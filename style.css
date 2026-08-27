@@ -4780,14 +4780,201 @@ canvas#game-canvas {
     line-height: 1.4;
 }
 
-/* Mobile Safe Areas */
+/* ===================================================================
+ * AAA MOBILE PERFECTION & SAFE AREA ERGONOMICS ENGINE
+ * =================================================================== */
+
+/* Universal Mobile Gesture & Overscroll Shield */
+html, body {
+    touch-action: none !important;
+    overscroll-behavior: none !important;
+    -webkit-overflow-scrolling: touch;
+    -webkit-touch-callout: none !important;
+}
+
+/* Safe Area Insets across all HUD Elements */
 #game-header {
-    padding-left: max(12px, env(safe-area-inset-left));
-    padding-right: max(12px, env(safe-area-inset-right));
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+}
+
+.hud-top-left-dock {
+    top: max(14px, env(safe-area-inset-top)) !important;
+    left: max(14px, env(safe-area-inset-left)) !important;
+}
+
+.hud-bottom-center {
+    bottom: max(14px, env(safe-area-inset-bottom)) !important;
+}
+
+.menu-top-bar {
+    padding-top: max(10px, env(safe-area-inset-top)) !important;
+    padding-left: max(15px, env(safe-area-inset-left)) !important;
+    padding-right: max(15px, env(safe-area-inset-right)) !important;
+}
+
+#online-kill-feed {
+    top: max(14px, env(safe-area-inset-top)) !important;
+    right: max(14px, env(safe-area-inset-right)) !important;
+}
+
+#boss-hud-container {
+    top: max(14px, env(safe-area-inset-top)) !important;
 }
 
 #touch-controls-container {
     padding-left: max(10px, env(safe-area-inset-left));
     padding-right: max(10px, env(safe-area-inset-right));
     padding-bottom: max(10px, env(safe-area-inset-bottom));
+}
+
+/* Dynamic Floating Joystick Styles */
+.touch-controls-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    pointer-events: none !important;
+    z-index: 24 !important;
+}
+
+.touch-controls-overlay > * {
+    pointer-events: auto !important;
+}
+
+#joystick-base.floating-active {
+    border-color: rgba(0, 243, 255, 0.75) !important;
+    box-shadow: 0 0 32px rgba(0, 243, 255, 0.45), inset 0 0 15px rgba(0, 243, 255, 0.2) !important;
+    transform: scale(1.05) !important;
+}
+
+#joystick-aim-base.aiming-active {
+    border-color: rgba(255, 42, 95, 0.85) !important;
+    box-shadow: 0 0 32px rgba(255, 42, 95, 0.5), inset 0 0 15px rgba(255, 42, 95, 0.25) !important;
+    transform: scale(1.05) !important;
+}
+
+/* ===================================================================
+ * COMPREHENSIVE LANDSCAPE MOBILE MODALS & PANELS ADAPTATION
+ * (Applies to all touch devices & viewports with height <= 540px)
+ * =================================================================== */
+@media (max-height: 540px), (max-width: 920px) and (orientation: landscape) {
+    /* Modal Cards General Scaling */
+    .cyber-modal-card,
+    .modal-backdrop > div,
+    .tactical-map-window,
+    .scoreboard-window,
+    .pause-settings-redesigned,
+    .perk-selection-container,
+    .relic-selection-container,
+    .admin-panel {
+        max-height: 92vh !important;
+        max-height: 92dvh !important;
+        overflow-y: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        padding: 12px 16px !important;
+        border-radius: 12px !important;
+    }
+
+    /* Tactical Map Modal on Landscape Mobile */
+    .tactical-map-window {
+        width: 96vw !important;
+        padding: 8px 12px !important;
+    }
+    .tactical-map-body-grid {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 8px !important;
+        max-height: 68vh !important;
+        overflow-y: auto !important;
+    }
+    .tactical-side-panel {
+        flex: 1 !important;
+        padding: 8px !important;
+        font-size: 0.78rem !important;
+    }
+    #tactical-radar-canvas {
+        max-width: 220px !important;
+        max-height: 220px !important;
+    }
+
+    /* Perk & Relic Cards Layout */
+    #perk-modal .perk-cards-grid,
+    #relic-modal .relic-cards-grid {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 10px !important;
+        overflow-x: auto !important;
+        max-width: 95vw !important;
+        padding: 10px 5px !important;
+    }
+    .perk-card, .relic-card {
+        min-width: 170px !important;
+        max-width: 200px !important;
+        padding: 12px 10px !important;
+        font-size: 0.80rem !important;
+    }
+
+    /* Scoreboard Table on Mobile Landscape */
+    .scoreboard-window {
+        max-width: 94vw !important;
+    }
+    .scoreboard-table th, .scoreboard-table td {
+        padding: 4px 6px !important;
+        font-size: 0.72rem !important;
+    }
+
+    /* Admin Panel on Mobile */
+    .admin-panel {
+        width: 94vw !important;
+        max-width: 580px !important;
+        left: 50% !important;
+        transform: translate(-50%, -50%) !important;
+        top: 50% !important;
+    }
+
+    /* Custom Room & Lobby Windows */
+    .custom-lobby-window, .custom-room-window {
+        max-width: 94vw !important;
+        padding: 10px 14px !important;
+    }
+
+    /* Pause Settings Panel */
+    .pause-settings-redesigned {
+        width: 92vw !important;
+        max-width: 520px !important;
+        padding: 12px 16px !important;
+    }
+    .pause-settings-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+    .pause-setting-item {
+        padding: 6px 10px !important;
+        font-size: 0.78rem !important;
+    }
+}
+
+/* Arc Layout for Mobile HUD Abilities to avoid conflict with Right Joystick */
+@media (max-width: 900px), (max-height: 520px), (pointer: coarse) {
+    #hud-abilities-cluster {
+        bottom: max(14px, env(safe-area-inset-bottom)) !important;
+        right: max(14px, env(safe-area-inset-right)) !important;
+        pointer-events: none !important;
+        z-index: 26 !important;
+    }
+    #hud-abilities-cluster > * {
+        pointer-events: auto !important;
+    }
+    #joystick-base {
+        bottom: max(16px, env(safe-area-inset-bottom)) !important;
+        left: max(16px, env(safe-area-inset-left)) !important;
+    }
+    #joystick-aim-base {
+        bottom: max(16px, env(safe-area-inset-bottom)) !important;
+        right: max(16px, env(safe-area-inset-right)) !important;
+    }
 }

@@ -794,6 +794,14 @@
                         <span data-i18n="hapticLabel">الهزاز التكتيكي (Haptic Vibration):</span>
                         <button class="toggle-btn active" id="setting-haptic-btn" onclick="toggleSetting('haptic')" data-i18n="enabled">مفعل</button>
                     </div>
+                    <div class="setting-row">
+                        <span data-i18n="aimAssistLabel">مساعد التصويب (Aim Assist):</span>
+                        <button class="toggle-btn active" id="setting-aim-assist-btn" onclick="toggleSetting('aimAssist')" data-i18n="enabled">مفعل</button>
+                    </div>
+                    <div class="setting-row">
+                        <span data-i18n="floatingJoyLabel">الجويستيك العائم (Dynamic Joystick):</span>
+                        <button class="toggle-btn active" id="setting-floating-joy-btn" onclick="toggleSetting('floatingJoystick')" data-i18n="enabled">مفعل</button>
+                    </div>
                 </div>
 
                 <!-- قسم الرسوميات والأجهزة الضعيفة -->
@@ -1049,7 +1057,15 @@
 
             <!-- قسم التحكم -->
             <div class="pause-settings-section">
-                <div class="pause-section-label"> التحكم</div>
+                <div class="pause-section-label"> التحكم وحساسية اللمس</div>
+                <div class="pause-setting-item">
+                    <span class="pause-setting-name" data-i18n="pauseAimAssist">مساعد التصويب للموبايل</span>
+                    <button class="toggle-btn active" id="p-setting-aim-assist-btn" onclick="toggleSetting('aimAssist')" data-i18n="enabled">مفعل</button>
+                </div>
+                <div class="pause-setting-item">
+                    <span class="pause-setting-name" data-i18n="pauseFloatingJoy">الجويستيك العائم للموبايل</span>
+                    <button class="toggle-btn active" id="p-setting-floating-joy-btn" onclick="toggleSetting('floatingJoystick')" data-i18n="enabled">مفعل</button>
+                </div>
                 <div class="pause-setting-item">
                     <span class="pause-setting-name">حساسية الجويستك</span>
                     <div class="pause-slider-wrap">

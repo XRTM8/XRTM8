@@ -577,6 +577,10 @@ const I18N_DICTIONARY = {
         currentLangLabel: 'لغة الواجهة الحالية:',
         settingsJoyGroup: ' التحكم وحساسية اللمس',
         joySensLabel: 'حساسية الجويستك (Joystick Sens):',
+        aimAssistLabel: 'مساعد التصويب (Aim Assist):',
+        floatingJoyLabel: 'الجويستيك العائم (Dynamic Joystick):',
+        pauseAimAssist: 'مساعد التصويب للموبايل',
+        pauseFloatingJoy: 'الجويستيك العائم للموبايل',
         masterVolLabel: 'مستوى الصوت العام (Master Volume):',
         settingsGraphicsGroup: ' الرسوميات وتحسين الأداء (Performance)',
         lowEndLabel: 'وضع الأجهزة الضعيفة (Low-End Mode):',
@@ -762,6 +766,10 @@ const I18N_DICTIONARY = {
         currentLangLabel: 'Interface Language:',
         settingsJoyGroup: ' Controls & Touch Sensitivity',
         joySensLabel: 'Joystick Sensitivity:',
+        aimAssistLabel: 'Mobile Aim Assist:',
+        floatingJoyLabel: 'Dynamic Floating Joystick:',
+        pauseAimAssist: 'Mobile Aim Assist',
+        pauseFloatingJoy: 'Dynamic Floating Joystick',
         masterVolLabel: 'Master Audio Volume:',
         settingsGraphicsGroup: ' Graphics & Performance',
         lowEndLabel: 'Low-End Device Mode:',
@@ -1348,10 +1356,18 @@ function isPvPMode() {
         let unlockedCosmeticSkins = new Set(JSON.parse(localStorage.getItem('chrono_skins' + SAVE_VERSION)) || ['default']);
         let ownedCosmeticSkins = Array.from(unlockedCosmeticSkins);
         let activeCosmeticSkin = 'default';
-        let isUserAdmin = false;
-
-        let gameSettings = JSON.parse(localStorage.getItem('chrono_settings_v74')) || {
-            sound: true, shake: true, floating: true, highRefresh: true, showFps: false, lowEnd: false, bloom: true
+        let rawSettings = JSON.parse(localStorage.getItem('chrono_settings_v74')) || {};
+        let gameSettings = {
+            sound: rawSettings.sound !== undefined ? rawSettings.sound : true,
+            shake: rawSettings.shake !== undefined ? rawSettings.shake : true,
+            floating: rawSettings.floating !== undefined ? rawSettings.floating : true,
+            highRefresh: rawSettings.highRefresh !== undefined ? rawSettings.highRefresh : true,
+            showFps: rawSettings.showFps !== undefined ? rawSettings.showFps : false,
+            lowEnd: rawSettings.lowEnd !== undefined ? rawSettings.lowEnd : false,
+            bloom: rawSettings.bloom !== undefined ? rawSettings.bloom : true,
+            haptic: rawSettings.haptic !== undefined ? rawSettings.haptic : true,
+            aimAssist: rawSettings.aimAssist !== undefined ? rawSettings.aimAssist : true,
+            floatingJoystick: rawSettings.floatingJoystick !== undefined ? rawSettings.floatingJoystick : true
         };
 
         let achievements = JSON.parse(localStorage.getItem('chrono_achievements' + SAVE_VERSION)) || {
@@ -1995,13 +2011,18 @@ function isPvPMode() {
             const pBtnBloom = document.getElementById('p-setting-bloom-btn');
             if (pBtnLowEnd) { pBtnLowEnd.innerText = gameSettings.lowEnd ? 'مفعل' : 'معطل'; pBtnLowEnd.className = `toggle-btn ${gameSettings.lowEnd ? 'active' : ''}`; }
             if (pBtnBloom) { pBtnBloom.innerText = gameSettings.bloom ? 'مفعل' : 'معطل'; pBtnBloom.className = `toggle-btn ${gameSettings.bloom ? 'active' : ''}`; }
-            // Sync duplicate setting buttons (main menu page uses different IDs)
-            const btnShake2 = document.getElementById('setting-shake-btn2');
-            const btnFps2 = document.getElementById('setting-fps-mode-btn2');
-            const btnShowFps2 = document.getElementById('setting-showfps-btn2');
-            if (btnShake2) { btnShake2.innerText = gameSettings.shake ? 'مفعل' : 'معطل'; btnShake2.className = `toggle-btn ${gameSettings.shake ? 'active' : ''}`; }
-            if (btnFps2) { btnFps2.innerText = gameSettings.highRefresh ? '120Hz+' : '60Hz (توفير)'; btnFps2.className = `toggle-btn ${gameSettings.highRefresh ? 'active' : ''}`; }
-            if (btnShowFps2) { btnShowFps2.innerText = gameSettings.showFps ? 'مفعل' : 'معطل'; btnShowFps2.className = `toggle-btn ${gameSettings.showFps ? 'active' : ''}`; }
+            // Mobile aim assist, floating joystick and haptic vibration buttons
+            const btnHaptic = document.getElementById('setting-haptic-btn');
+            const btnAimAssist = document.getElementById('setting-aim-assist-btn');
+            const pBtnAimAssist = document.getElementById('p-setting-aim-assist-btn');
+            const btnFloatingJoy = document.getElementById('setting-floating-joy-btn');
+            const pBtnFloatingJoy = document.getElementById('p-setting-floating-joy-btn');
+
+            if (btnHaptic) { btnHaptic.innerText = gameSettings.haptic ? 'مفعل' : 'معطل'; btnHaptic.className = `toggle-btn ${gameSettings.haptic ? 'active' : ''}`; }
+            if (btnAimAssist) { btnAimAssist.innerText = gameSettings.aimAssist ? 'مفعل' : 'معطل'; btnAimAssist.className = `toggle-btn ${gameSettings.aimAssist ? 'active' : ''}`; }
+            if (pBtnAimAssist) { pBtnAimAssist.innerText = gameSettings.aimAssist ? 'مفعل' : 'معطل'; pBtnAimAssist.className = `toggle-btn ${gameSettings.aimAssist ? 'active' : ''}`; }
+            if (btnFloatingJoy) { btnFloatingJoy.innerText = gameSettings.floatingJoystick ? 'مفعل' : 'معطل'; btnFloatingJoy.className = `toggle-btn ${gameSettings.floatingJoystick ? 'active' : ''}`; }
+            if (pBtnFloatingJoy) { pBtnFloatingJoy.innerText = gameSettings.floatingJoystick ? 'مفعل' : 'معطل'; pBtnFloatingJoy.className = `toggle-btn ${gameSettings.floatingJoystick ? 'active' : ''}`; }
         }
 
         // Master Volume Control
@@ -5291,6 +5312,99 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.d = false;
         });
 
+        // ====================================================================
+        // AAA MOBILE PERFECTION: DYNAMIC FLOATING JOYSTICKS & AIM ASSIST
+        // ====================================================================
+        let isJoystickFloating = false;
+
+        function calculateMobileAimAssist(playerX, playerY, baseAngle) {
+            if (!gameSettings || gameSettings.aimAssist === false) return baseAngle;
+            let bestTarget = null;
+            let bestScore = -Infinity;
+            const maxAssistDistance = 850;
+            const maxAngleOffset = 0.65; // ~37 degrees cone
+
+            // 1. Check Standard Enemies
+            if (typeof enemies !== 'undefined' && enemies && enemies.length > 0) {
+                for (let i = 0; i < enemies.length; i++) {
+                    const e = enemies[i];
+                    if (!e || e.hp <= 0) continue;
+                    const dx = e.x - playerX;
+                    const dy = e.y - playerY;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist > maxAssistDistance || dist < 10) continue;
+
+                    const targetAng = Math.atan2(dy, dx);
+                    let angleDiff = targetAng - baseAngle;
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+
+                    const absDiff = Math.abs(angleDiff);
+                    if (absDiff < maxAngleOffset) {
+                        const angleScore = 1 - (absDiff / maxAngleOffset);
+                        const distScore = 1 - (dist / maxAssistDistance);
+                        const score = angleScore * 0.65 + distScore * 0.35 + (e.isBoss ? 0.35 : 0);
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestTarget = { angleDiff: angleDiff, dist: dist };
+                        }
+                    }
+                }
+            }
+
+            // 2. Check Active Boss
+            if (typeof boss !== 'undefined' && boss && boss.hp > 0) {
+                const dx = boss.x - playerX;
+                const dy = boss.y - playerY;
+                const dist = Math.hypot(dx, dy);
+                if (dist <= maxAssistDistance * 1.2) {
+                    const targetAng = Math.atan2(dy, dx);
+                    let angleDiff = targetAng - baseAngle;
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                    const absDiff = Math.abs(angleDiff);
+                    if (absDiff < maxAngleOffset * 1.15) {
+                        const angleScore = 1 - (absDiff / maxAngleOffset);
+                        const score = angleScore * 0.7 + 0.5;
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestTarget = { angleDiff: angleDiff, dist: dist };
+                        }
+                    }
+                }
+            }
+
+            // 3. Check PvP Remote Players
+            if (typeof remotePlayers !== 'undefined' && remotePlayers && remotePlayers.size > 0) {
+                remotePlayers.forEach(rp => {
+                    if (!rp || rp.hp <= 0) return;
+                    const dx = rp.x - playerX;
+                    const dy = rp.y - playerY;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist > maxAssistDistance || dist < 10) return;
+                    const targetAng = Math.atan2(dy, dx);
+                    let angleDiff = targetAng - baseAngle;
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                    const absDiff = Math.abs(angleDiff);
+                    if (absDiff < maxAngleOffset) {
+                        const angleScore = 1 - (absDiff / maxAngleOffset);
+                        const score = angleScore * 0.7 + (1 - dist / maxAssistDistance) * 0.3;
+                        if (score > bestScore) {
+                            bestScore = score;
+                            bestTarget = { angleDiff: angleDiff, dist: dist };
+                        }
+                    }
+                });
+            }
+
+            if (bestTarget) {
+                // Soft magnetic blend (40% gentle snap towards target)
+                return baseAngle + bestTarget.angleDiff * 0.40;
+            }
+            return baseAngle;
+        }
+
         // --- Movement Joystick (Left) ---
         if (joystickBase) {
             joystickBase.addEventListener('pointerdown', (e) => {
@@ -5312,6 +5426,28 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             joystickBase.addEventListener('lostpointercapture', resetJoystick);
         }
 
+        // Dynamic Left-Zone Floating Joystick Touch Activation
+        window.addEventListener('pointerdown', (e) => {
+            if (isGameOver || isGamePaused || isModalActive || (mainMenu && mainMenu.style.display !== 'none')) return;
+            if (!isMobileTouchActive() && e.pointerType === 'mouse') return; // Ignore desktop mouse
+            if (e.clientX < window.innerWidth * 0.42 && e.clientY > 60) {
+                if (e.target && (e.target.closest('.hud-action-btn') || e.target.closest('#pause-btn-hud') || e.target.closest('.overlay-screen') || e.target.closest('.modal-backdrop') || e.target.closest('button') || e.target.closest('input'))) return;
+                if (joystickPointerId === null && joystickBase && gameSettings.floatingJoystick !== false) {
+                    isJoystickFloating = true;
+                    joystickBase.classList.add('floating-active');
+                    const halfW = 54;
+                    joystickBase.style.left = Math.max(10, Math.min(window.innerWidth * 0.42 - halfW * 2, e.clientX - halfW)) + 'px';
+                    joystickBase.style.top = Math.max(70, Math.min(window.innerHeight - halfW * 2 - 10, e.clientY - halfW)) + 'px';
+                    joystickBase.style.bottom = 'auto';
+                    joystickBaseX = e.clientX;
+                    joystickBaseY = e.clientY;
+                    joystickPointerId = e.pointerId;
+                    try { joystickBase.setPointerCapture(e.pointerId); } catch(err) {}
+                    handleJoystickMove(e.clientX, e.clientY);
+                }
+            }
+        }, { passive: true });
+
         function resetJoystick(e) {
             if (e && e.pointerId !== undefined && e.pointerId !== joystickPointerId) return;
             try { if (joystickPointerId !== null && joystickBase) joystickBase.releasePointerCapture(joystickPointerId); } catch(err) {}
@@ -5320,6 +5456,16 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (joystickThumb) {
                 joystickThumb.style.transition = 'transform 0.16s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                 joystickThumb.style.transform = `translate3d(0px, 0px, 0)`;
+            }
+            if (joystickBase) {
+                joystickBase.classList.remove('floating-active');
+                if (isJoystickFloating) {
+                    joystickBase.style.left = '';
+                    joystickBase.style.top = '';
+                    joystickBase.style.bottom = '';
+                    isJoystickFloating = false;
+                    updateJoystickCenter();
+                }
             }
             joystickPointerId = null;
         }
@@ -5353,6 +5499,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 if (isGameOver || isGamePaused || isModalActive || (mainMenu && mainMenu.style.display !== 'none')) return;
                 aimJoystickPointerId = e.pointerId;
                 try { joystickAimBase.setPointerCapture(e.pointerId); } catch(err) {}
+                joystickAimBase.classList.add('aiming-active');
                 updateJoystickCenter();
                 handleAimJoystickMove(e.clientX, e.clientY);
                 e.stopPropagation();
@@ -5376,6 +5523,9 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (joystickAimThumb) {
                 joystickAimThumb.style.transition = 'transform 0.16s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                 joystickAimThumb.style.transform = `translate3d(0px, 0px, 0)`;
+            }
+            if (joystickAimBase) {
+                joystickAimBase.classList.remove('aiming-active');
             }
             aimJoystickPointerId = null;
         }
@@ -5531,7 +5681,9 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         function resize() {
             width = Math.max(320, window.innerWidth || 800);
             height = Math.max(240, window.innerHeight || 600);
-            let dpr = Math.min(window.devicePixelRatio || 1, gameSettings.lowEnd ? 1.0 : 2.0);
+            let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
+            let maxDpr = isMobile ? 1.75 : (gameSettings.lowEnd ? 1.0 : 2.0);
+            let dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
             canvas.width = Math.floor(width * dpr);
             canvas.height = Math.floor(height * dpr);
             canvas.style.width = width + 'px';
@@ -7044,10 +7196,14 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 let isMouseAimingActive = !isTouch && (isMouseDown || (hasMouseMoved && (now - lastMouseMoveTime < 1000)));
 
                 if (isAimJoystickActive && aimJoystickPower > 0.1) {
-                    // 1. تصويب الجويستك اللمسي في الهاتف
-                    this.targetAngle = aimJoystickAngle;
+                    // 1. تصويب الجويستك اللمسي في الهاتف مع المساعد التكتيكي الذكي
+                    let finalAngle = aimJoystickAngle;
+                    if (gameSettings.aimAssist !== false && typeof calculateMobileAimAssist === 'function') {
+                        finalAngle = calculateMobileAimAssist(this.x, this.y, aimJoystickAngle);
+                    }
+                    this.targetAngle = finalAngle;
                 } else if (isMouseAimingActive) {
-                    // 2. تصويب الماوس عند تحريكه في الكمبيوتر
+                    // 2. تصويب الماوس عند تحريكه في الكمبيوتر (خام ومباشر 100% بدون أي تعديل)
                     this.targetAngle = Math.atan2(mouseWorldY - this.y, mouseWorldX - this.x);
                 } else if (hasInput) {
                     // 3. التوجيه التلقائي في اتجاه أزرار الحركة المضغوطة (WASD / Joystick) عند ترك الماوس لثانية
