@@ -6278,7 +6278,7 @@ html[lang="en"] .shop-preview-info {
         height: 100dvh !important;
     }
 
-    /* Universal Screen Overlay Layout - Zero Scroll Mobile Cockpit */
+    /* Universal Screen Overlay Layout - Fluid Mobile Cockpit */
     .overlay-screen {
         position: fixed !important;
         inset: 0 !important;
@@ -6295,7 +6295,7 @@ html[lang="en"] .shop-preview-info {
         -webkit-overflow-scrolling: touch !important;
         touch-action: pan-y !important;
         padding-top: max(3px, env(safe-area-inset-top, 3px)) !important;
-        padding-bottom: max(6px, env(safe-area-inset-bottom, 6px)) !important;
+        padding-bottom: max(36px, env(safe-area-inset-bottom, 36px)) !important;
         padding-left: max(8px, env(safe-area-inset-left, 8px)) !important;
         padding-right: max(8px, env(safe-area-inset-right, 8px)) !important;
         scrollbar-width: thin !important;
@@ -6473,12 +6473,11 @@ html[lang="en"] .shop-preview-info {
     .tab-content, .tab-content.active {
         width: 100% !important;
         max-width: min(98vw, 840px) !important;
+        height: auto !important;
         max-height: none !important;
-        overflow-y: visible !important;
-        overflow-x: hidden !important;
-        padding-bottom: 6px !important;
+        overflow: visible !important;
+        padding-bottom: 8px !important;
         gap: 4px !important;
-        touch-action: pan-y !important;
         display: none;
     }
 
@@ -6632,7 +6631,7 @@ html[lang="en"] .shop-preview-info {
     }
 
     /* ====================================================================
-       PHASE 2: SPLIT-DECK CYBER SHOP (100% ACCESSIBLE & REACHABLE)
+       PHASE 2: COMPACT HOLOGRAM PREVIEW & FULLY SCROLLABLE CYBER SHOP
        ==================================================================== */
     #tab-shop.active {
         display: flex !important;
@@ -6640,6 +6639,9 @@ html[lang="en"] .shop-preview-info {
         width: 100% !important;
         max-width: min(98vw, 840px) !important;
         gap: 4px !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
     }
 
     .shop-header-banner {
@@ -6653,39 +6655,44 @@ html[lang="en"] .shop-preview-info {
     }
 
     .shop-title-large {
-        font-size: 0.82rem !important;
+        font-size: 0.78rem !important;
         font-weight: 900 !important;
     }
 
     .shop-balance-tag {
-        font-size: 0.70rem !important;
+        font-size: 0.68rem !important;
     }
 
-    /* Two-Column Side-By-Side Mobile Shop Hub */
+    /* Ultra-Compact Hologram Vehicle Preview Bar */
     .shop-preview-hub {
         width: 100% !important;
         max-width: min(98vw, 840px) !important;
-        padding: 6px 10px !important;
-        gap: 10px !important;
+        padding: 4px 8px !important;
+        gap: 8px !important;
         margin-bottom: 4px !important;
-        border-radius: 12px !important;
+        border-radius: 10px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: space-between !important;
         flex-shrink: 0 !important;
-        background: rgba(8, 16, 28, 0.90) !important;
-        border: 1.5px solid rgba(0, 243, 255, 0.35) !important;
+        min-height: 48px !important;
+        background: rgba(8, 16, 28, 0.92) !important;
+        border: 1px solid rgba(0, 243, 255, 0.35) !important;
+        box-shadow: 0 0 14px rgba(0, 243, 255, 0.15) !important;
     }
 
     .shop-canvas-wrap {
-        width: 68px !important;
-        height: 68px !important;
+        width: 46px !important;
+        height: 46px !important;
         flex-shrink: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
 
     #shop-preview-canvas {
-        width: 68px !important;
-        height: 68px !important;
+        width: 46px !important;
+        height: 46px !important;
         aspect-ratio: 1 / 1 !important;
         object-fit: contain !important;
     }
@@ -6694,39 +6701,63 @@ html[lang="en"] .shop-preview-info {
         flex: 1 1 auto !important;
         display: flex !important;
         flex-direction: column !important;
-        gap: 2px !important;
+        gap: 1px !important;
         min-width: 0 !important;
     }
 
+    .shop-rarity-pill {
+        font-size: 0.50rem !important;
+        padding: 0 4px !important;
+        height: 14px !important;
+        line-height: 14px !important;
+        align-self: flex-start !important;
+    }
+
     .shop-preview-name {
-        font-size: 0.82rem !important;
+        font-size: 0.74rem !important;
         font-weight: 900 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
+        line-height: 1.1 !important;
     }
 
     .shop-preview-details {
-        font-size: 0.62rem !important;
-        line-height: 1.2 !important;
+        font-size: 0.58rem !important;
+        line-height: 1.1 !important;
         display: -webkit-box !important;
         -webkit-line-clamp: 1 !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
+        opacity: 0.85 !important;
     }
 
     .shop-preview-action-box {
         flex-shrink: 0 !important;
-        width: 110px !important;
+        width: auto !important;
+        min-width: 90px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 2px !important;
     }
 
     #shop-preview-action-btn {
         width: 100% !important;
-        padding: 6px 8px !important;
-        font-size: 0.70rem !important;
-        min-height: 32px !important;
-        border-radius: 8px !important;
+        padding: 4px 8px !important;
+        font-size: 0.66rem !important;
+        min-height: 28px !important;
+        border-radius: 6px !important;
         font-weight: 900 !important;
+        white-space: nowrap !important;
+    }
+
+    #shop-matching-set-btn {
+        width: 100% !important;
+        padding: 3px 6px !important;
+        font-size: 0.58rem !important;
+        margin-top: 2px !important;
+        border-radius: 5px !important;
+        white-space: nowrap !important;
     }
 
     .shop-category-tabs {
@@ -6747,49 +6778,56 @@ html[lang="en"] .shop-preview-info {
 
     .shop-cat-btn {
         padding: 3px 8px !important;
-        font-size: 0.66rem !important;
+        font-size: 0.65rem !important;
         white-space: nowrap !important;
         flex-shrink: 0 !important;
         border-radius: 6px !important;
     }
 
+    /* Seamless Native Full-Page Grid Scroll (No Trap, Smooth Touch) */
     .shop-items-grid {
         display: grid !important;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 115px), 1fr)) !important;
+        grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)) !important;
         gap: 5px !important;
         width: 100% !important;
         max-width: min(98vw, 840px) !important;
-        max-height: 165px !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        touch-action: pan-y !important;
-        padding-right: 2px !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        padding-bottom: 8px !important;
     }
 
     .shop-item-card {
-        padding: 6px 5px !important;
+        padding: 5px 4px !important;
         border-radius: 8px !important;
         gap: 3px !important;
     }
 
     .shop-item-icon-box {
-        width: 32px !important;
-        height: 32px !important;
+        width: 28px !important;
+        height: 28px !important;
         border-radius: 6px !important;
     }
 
     .shop-item-title {
-        font-size: 0.68rem !important;
+        font-size: 0.66rem !important;
+        font-weight: 800 !important;
     }
 
     .shop-item-btn {
-        padding: 4px 5px !important;
-        font-size: 0.64rem !important;
-        min-height: 26px !important;
-        border-radius: 6px !important;
+        padding: 3px 5px !important;
+        font-size: 0.62rem !important;
+        min-height: 24px !important;
+        border-radius: 5px !important;
     }
 
     /* --- ARSENAL TAB & CLASSES 4-CARD ZERO-SCROLL MATRIX --- */
+    #tab-arsenal.active {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
     .arsenal-header-bar {
         font-size: 0.76rem !important;
         margin-bottom: 3px !important;
@@ -6802,6 +6840,9 @@ html[lang="en"] .shop-preview-info {
         gap: 5px !important;
         width: 100% !important;
         max-width: min(98vw, 840px) !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
     }
 
     .arsenal-class-card {
@@ -6882,7 +6923,13 @@ html[lang="en"] .shop-preview-info {
         font-size: 0.56rem !important;
     }
 
-    /* --- MISSIONS & CONTRACTS TAB --- */
+    /* --- MISSIONS & CONTRACTS TAB (SEAMLESS SCROLL) --- */
+    #tab-missions.active {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
     .missions-unified-grid {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
@@ -6904,10 +6951,9 @@ html[lang="en"] .shop-preview-info {
     }
 
     .achievements-container, .contracts-container {
-        max-height: 180px !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        touch-action: pan-y !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
         gap: 4px !important;
         display: flex !important;
         flex-direction: column !important;
@@ -6933,17 +6979,22 @@ html[lang="en"] .shop-preview-info {
         font-size: 0.58rem !important;
     }
 
-    /* --- SETTINGS TAB --- */
+    /* --- SETTINGS TAB (SEAMLESS SCROLL) --- */
+    #tab-settings.active {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
     .settings-full-grid {
         display: grid !important;
         grid-template-columns: 1fr 1fr !important;
         gap: 6px 10px !important;
         width: 100% !important;
         max-width: min(98vw, 840px) !important;
-        max-height: 210px !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-        touch-action: pan-y !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
     }
 
     .settings-card-group {
