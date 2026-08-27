@@ -1,0 +1,10 @@
+# Dependencies (لا يتم رفعها إلى GitHub لأن Render يقوم بتثبيتها تلقائياً)
+node_modules/
+package-lock.json
+
+# Local SQLite databases & temporary logs
+*.sqlite
+*.sqlite-journal
+*.log
+.DS_Store
+Thumbs.db

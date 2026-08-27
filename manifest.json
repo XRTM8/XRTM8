@@ -1,0 +1,29 @@
+{
+  "name": "الانجراف الزمني",
+  "short_name": "الانجراف الزمني",
+  "description": "Chrono Drift - High-octane Cyberpunk 2D Space Shooter & Real-Time Multiplayer Action Game.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "landscape-primary",
+  "background_color": "#020306",
+  "theme_color": "#00f3ff",
+  "categories": [
+    "games",
+    "action",
+    "arcade"
+  ],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%2303050a' rx='100'/%3E%3Cpolygon points='256,60 430,420 256,350 82,420' fill='%2300f3ff' stroke='%23ffffff' stroke-width='16'/%3E%3Cpolygon points='256,120 380,380 256,330 132,380' fill='%23bd00ff'/%3E%3Ccircle cx='256' cy='256' r='40' fill='%23ffd700'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%2303050a' rx='100'/%3E%3Cpolygon points='256,60 430,420 256,350 82,420' fill='%2300f3ff' stroke='%23ffffff' stroke-width='16'/%3E%3Cpolygon points='256,120 380,380 256,330 132,380' fill='%23bd00ff'/%3E%3Ccircle cx='256' cy='256' r='40' fill='%23ffd700'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
