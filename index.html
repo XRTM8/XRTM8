@@ -8,17 +8,38 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@600;700;800;900&family=Cairo:wght@600;700;800;900&family=Changa:wght@700;800;900&family=Chakra+Petch:wght@700;900&family=Rajdhani:wght@700;900&family=Share+Tech+Mono&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#00f3ff">
+    <script>
+        // Load PWA manifest and Google Identity services safely on HTTP/HTTPS environments
+        if (window.location.protocol.startsWith('http')) {
+            const manifestLink = document.createElement('link');
+            manifestLink.rel = 'manifest';
+            manifestLink.href = 'manifest.json';
+            document.head.appendChild(manifestLink);
+
+            const gsiScript = document.createElement('script');
+            gsiScript.src = 'https://accounts.google.com/gsi/client';
+            gsiScript.async = true;
+            gsiScript.defer = true;
+            document.head.appendChild(gsiScript);
+        }
+    </script>
 </head>
 <body>
 
-    <!-- تنبيه تدوير الهاتف للوضع الأفقي على الأجهزة المحمولة -->
+    <!-- تنبيه تدوير الهاتف للوضع الأفقي وشاشة كاملة احترافية -->
     <div id="portrait-orientation-warning" class="portrait-orientation-warning">
-        <svg class="c-icon c-icon-xl c-icon-cyan"><use href="#icon-gamepad"></use></svg>
-        <div class="rotate-phone-title" data-i18n="rotatePhoneTitle">يرجى تدوير الهاتف للوضع الأفقي</div>
-        <div class="rotate-phone-desc" data-i18n="rotatePhoneDesc">لتجربة لعب تكتيكية شاشة كاملة وبأعلى أداء</div>
+        <div class="rotate-phone-card">
+            <div class="rotate-phone-anim-icon">
+                <svg class="c-icon phone-rotate-svg"><use href="#icon-rotate-phone"></use></svg>
+            </div>
+            <div class="rotate-phone-title" data-i18n="rotatePhoneTitle">تدوير الهاتف للوضع الأفقي</div>
+            <div class="rotate-phone-desc" data-i18n="rotatePhoneDesc">لتجربة حرب فضائية غامرة بكامل الشاشة وأعلى معدل إطارات</div>
+            <button class="btn-rotate-fullscreen-action" onclick="forceRotateAndFullscreen()">
+                <svg class="c-icon"><use href="#icon-fullscreen"></use></svg>
+                <span data-i18n="btnRotateFullscreen">ملء الشاشة وتدوير اللعبة</span>
+            </button>
+        </div>
     </div>
 
 
@@ -210,6 +231,58 @@
             <!-- 31. Fullscreen / Maximize -->
             <g id="icon-fullscreen" viewBox="0 0 24 24">
                 <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </g>
+
+            <!-- 32. Arrow Left / Back -->
+            <g id="icon-arrow-left" viewBox="0 0 24 24">
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m7 7-7-7 7-7"/>
+            </g>
+
+            <!-- 33. Info / Details -->
+            <g id="icon-info" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/>
+                <line x1="12" y1="16" x2="12" y2="12" stroke="currentColor" stroke-width="2"/>
+                <line x1="12" y1="8" x2="12.01" y2="8" stroke="currentColor" stroke-width="2"/>
+            </g>
+
+            <!-- 34. Bot / Drone -->
+            <g id="icon-bot" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                <circle cx="12" cy="5" r="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                <path fill="none" stroke="currentColor" stroke-width="2" d="M12 7v4M8 16h.01M16 16h.01"/>
+            </g>
+
+            <!-- 35. Snow / Frost -->
+            <g id="icon-snow" viewBox="0 0 24 24">
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07 19.07 4.93"/>
+            </g>
+
+            <!-- 36. Heart / Health -->
+            <g id="icon-heart" viewBox="0 0 24 24">
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </g>
+
+            <!-- 37. Rotate Phone / Orientation -->
+            <g id="icon-rotate-phone" viewBox="0 0 24 24">
+                <rect x="6" y="3" width="12" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/>
+                <line x1="10" y1="18" x2="14" y2="18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M1 9l3-3 3 3M4 6v5a7 7 0 0 0 7 7"/>
+            </g>
+
+            <!-- 38. Sparkles / Starlight -->
+            <g id="icon-sparkles" viewBox="0 0 24 24">
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M5 3v4M3 5h4M19 17v4M17 19h4"/>
+            </g>
+
+            <!-- 39. Crosshair / Tactical Aim -->
+            <g id="icon-crosshair" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
+                <line x1="12" y1="2" x2="12" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <line x1="2" y1="12" x2="6" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <line x1="18" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <circle cx="12" cy="12" r="2" fill="currentColor"/>
             </g>
         </defs>
     </svg>
@@ -417,10 +490,11 @@
     <!-- القائمة الرئيسية -->
     <div id="main-menu" class="overlay-screen">
         <div class="menu-top-bar">
-            <div id="online-counter-badge" class="online-counter-badge">
+            <div class="menu-top-stats-chip">
                 <span class="pulse-dot"></span>
-                <span class="online-txt"><span data-i18n="onlineAgentsLabel">العملاء المتصلون:</span> <strong id="online-count-val">1</strong></span>
-                <span class="mode-counters">(PVE: <span id="pve-count-val">0</span> | PVP: <span id="pvp-count-val">0</span> | RAID: <span id="raid-count-val">0</span>)</span>
+                <span class="chip-currency"><strong id="menu-top-credits" style="color: #ffd700;">0</strong> <span style="color: #ffd700; font-size: 0.75rem;">CR</span></span>
+                <span class="chip-divider">|</span>
+                <span class="chip-xp"><span data-i18n="levelShort">Lv.</span><strong id="menu-top-level" style="color: var(--energy-color);">1</strong></span>
             </div>
             <div class="header-actions-group">
                 <!-- زر ملء الشاشة الفوري للهواتف والأجهزة المحمولة -->
@@ -460,15 +534,10 @@
             <div class="title-cyber-accent"></div>
         </div>
 
-        <div class="screen-subtitle" id="main-menu-subtitle">
-            <span data-i18n="agentLevelLabel">مستوى العميل:</span> <span id="menu-level-val" style="color: var(--energy-color); font-weight: bold;">1</span> | 
-            <span data-i18n="xpLabel">الخبرة (XP):</span> <span id="menu-xp-val" style="color: var(--player-color);">0</span>
-        </div>
-
-        <!-- حقل اسم العميل التكتيكي للعب الجماعي -->
+        <!-- حقل اسم العميل التكتيكي المضغوط -->
         <div class="tactical-username-box">
-            <label for="player-username-input" class="username-label" data-i18n="tacticalUsernameLabel"> اسم العميل التكتيكي (Tactical Username):</label>
             <div class="username-input-wrapper">
+                <svg class="c-icon c-icon-cyan"><use href="#icon-idcard"></use></svg>
                 <input type="text" id="player-username-input" class="cyber-input" maxlength="20" placeholder="أدخل اسمك القتالي..." value="Apex_Agent" data-i18n-placeholder="usernamePlaceholder">
                 <span id="player-status-tag" class="status-tag" data-i18n="readyForBattle">جاهز للقتال</span>
             </div>
@@ -529,25 +598,6 @@
                         </div>
                     </button>
                 </div>
-            </div>
-
-            <!-- 2. Fast Pick Quick Actions / Modes Strip -->
-            <div class="lobby-quick-modes-strip">
-                <button class="quick-mode-chip solo" onclick="startSelectedMode('offline')">
-                    <svg class="c-icon"><use href="#icon-user"></use></svg> <span>فردي سريع</span>
-                </button>
-                <button class="quick-mode-chip pvp" onclick="joinMultiplayerMode('online_pvp')">
-                    <svg class="c-icon"><use href="#icon-swords"></use></svg> <span>نزاع PVP</span>
-                </button>
-                <button class="quick-mode-chip pve" onclick="joinMultiplayerMode('online_pve')">
-                    <svg class="c-icon"><use href="#icon-users"></use></svg> <span>تعاوني PVE</span>
-                </button>
-                <button class="quick-mode-chip raid" onclick="joinMultiplayerMode('online_boss_raid')">
-                    <svg class="c-icon"><use href="#icon-titan"></use></svg> <span>غارة الزعيم</span>
-                </button>
-                <button class="quick-mode-chip all-modes" onclick="openModeSelectModal()">
-                    <svg class="c-icon"><use href="#icon-orbit"></use></svg> <span>جميع الأطوار (7)</span>
-                </button>
             </div>
         </div>
 
@@ -733,96 +783,89 @@
         </div>
 
         <div id="tab-settings" class="tab-content">
-            <div style="color: var(--player-color); font-weight: 900; font-size: 1.05rem; margin-bottom: 12px; text-align: center;" data-i18n="settingsTitle"> مركز الإعدادات وتخصيص التحكم والرسوميات</div>
-            
             <div class="settings-full-grid">
-                <!-- قسم اللغة والواجهة -->
-                <div class="settings-card-group">
-                    <div class="settings-group-title"> اللغة والواجهة (Language & UI)</div>
-                    <div class="setting-row">
-                        <span data-i18n="currentLangLabel">لغة الواجهة الحالية:</span>
-                        <div style="display: flex; gap: 8px;">
-                            <button class="toggle-btn active" id="btn-lang-ar" onclick="setAppLanguage('ar')">العربية </button>
-                            <button class="toggle-btn" id="btn-lang-en" onclick="setAppLanguage('en')">English </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- قسم الصوت والحساسية -->
+                <!-- العمود الأول: الصوت والتحكم واللمس -->
                 <div class="settings-card-group">
                     <div class="settings-group-title" data-i18n="settingsJoyGroup"> التحكم وحساسية اللمس</div>
                     <div class="setting-row">
                         <label for="setting-joy-sens" data-i18n="joySensLabel">حساسية الجويستك (Joystick Sens):</label>
-                        <div style="display: flex; align-items: center; gap: 8px; width: 55%;">
+                        <div class="setting-slider-wrap">
                             <input type="range" id="setting-joy-sens" min="0.5" max="2.5" step="0.1" value="1.0" class="cyber-range" oninput="updateJoystickSens(this.value)">
-                            <span id="joy-sens-val" style="font-weight: bold; color: #00f3ff; min-width: 38px;">1.0x</span>
+                            <span id="joy-sens-val" class="setting-val-chip">1.0x</span>
                         </div>
                     </div>
                     <div class="setting-row">
                         <label for="setting-vol-slider" data-i18n="masterVolLabel">مستوى الصوت العام (Master Volume):</label>
-                        <div style="display: flex; align-items: center; gap: 8px; width: 55%;">
+                        <div class="setting-slider-wrap">
                             <input type="range" id="setting-vol-slider" min="0" max="100" step="5" value="85" class="cyber-range" oninput="updateMasterVolume(this.value)">
-                            <span id="master-vol-val" style="font-weight: bold; color: #00ff88; min-width: 38px;">85%</span>
+                            <span id="master-vol-val" class="setting-val-chip green">85%</span>
                         </div>
                     </div>
                     <div class="setting-row">
                         <label for="setting-bgm-slider" data-i18n="bgmVolLabel">الموسيقى التوليدية (BGM Synthwave):</label>
-                        <div style="display: flex; align-items: center; gap: 8px; width: 55%;">
+                        <div class="setting-slider-wrap">
                             <input type="range" id="setting-bgm-slider" min="0" max="100" step="5" value="65" class="cyber-range" oninput="updateBgmVolume(this.value)">
-                            <span id="bgm-vol-val" style="font-weight: bold; color: #00f3ff; min-width: 38px;">65%</span>
+                            <span id="bgm-vol-val" class="setting-val-chip">65%</span>
                         </div>
                     </div>
                     <div class="setting-row">
-                        <span data-i18n="hapticLabel">الهزاز التكتيكي (Haptic Vibration):</span>
+                        <span data-i18n="hapticLabel">الهزاز التكتيكي (Haptic):</span>
                         <button class="toggle-btn active" id="setting-haptic-btn" onclick="toggleSetting('haptic')" data-i18n="enabled">مفعل</button>
                     </div>
                     <div class="setting-row">
-                        <span data-i18n="floatingJoyLabel">الجويستيك العائم (Dynamic Joystick):</span>
+                        <span data-i18n="floatingJoyLabel">الجويستيك العائم (Dynamic):</span>
                         <button class="toggle-btn active" id="setting-floating-joy-btn" onclick="toggleSetting('floatingJoystick')" data-i18n="enabled">مفعل</button>
                     </div>
                 </div>
 
-                <!-- قسم الرسوميات والأجهزة الضعيفة -->
+                <!-- العمود الثاني: الرسوميات واللغة والأداء -->
                 <div class="settings-card-group">
-                    <div class="settings-group-title" data-i18n="settingsGraphicsGroup"> الرسوميات وتحسين الأداء (Performance)</div>
+                    <div class="settings-group-title" data-i18n="settingsGraphicsGroup"> الرسوميات واللغة والأداء</div>
                     <div class="setting-row">
-                        <span data-i18n="lowEndLabel">وضع الأجهزة الضعيفة (Low-End Mode):</span>
-                        <button class="toggle-btn" id="setting-lowend-btn" onclick="toggleSetting('lowEnd')" data-i18n="disabled">معطل</button>
+                        <span data-i18n="currentLangLabel">لغة الواجهة (Language):</span>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="toggle-btn active" id="btn-lang-ar" onclick="setAppLanguage('ar')">العربية</button>
+                            <button class="toggle-btn" id="btn-lang-en" onclick="setAppLanguage('en')">English</button>
+                        </div>
                     </div>
                     <div class="setting-row">
-                        <span data-i18n="bloomLabel">تأثير التوهج النيوني (Bloom/Glow):</span>
+                        <span data-i18n="bloomLabel">التوهج النيوني (Bloom):</span>
                         <button class="toggle-btn active" id="setting-bloom-btn" onclick="toggleSetting('bloom')" data-i18n="enabled">مفعل</button>
                     </div>
                     <div class="setting-row">
-                        <span data-i18n="shakeLabel">اهتزاز الشاشة عند الضربات (Screen Shake):</span>
+                        <span data-i18n="shakeLabel">اهتزاز الشاشة (Screen Shake):</span>
                         <button class="toggle-btn active" id="setting-shake-btn2" onclick="toggleSetting('shake')" data-i18n="enabled">مفعل</button>
                     </div>
                     <div class="setting-row">
-                        <span data-i18n="refreshRateLabel">تردد الإطارات (Refresh Rate):</span>
+                        <span data-i18n="lowEndLabel">وضع الأجهزة الضعيفة:</span>
+                        <button class="toggle-btn" id="setting-lowend-btn" onclick="toggleSetting('lowEnd')" data-i18n="disabled">معطل</button>
+                    </div>
+                    <div class="setting-row">
+                        <span data-i18n="refreshRateLabel">تردد الإطارات:</span>
                         <button class="toggle-btn active" id="setting-fps-mode-btn2" onclick="toggleSetting('highRefresh')">120Hz+</button>
                     </div>
                     <div class="setting-row">
-                        <span data-i18n="showFpsLabel">إظهار عداد الإطارات (FPS Tag):</span>
+                        <span data-i18n="showFpsLabel">عداد الإطارات (FPS):</span>
                         <button class="toggle-btn" id="setting-showfps-btn2" onclick="toggleSetting('showFps')" data-i18n="disabled">معطل</button>
                     </div>
                 </div>
 
-                <!-- قسم تخصيص أزرار التحكم للحاسب (Keybindings) -->
-                <div class="settings-card-group" style="grid-column: 1 / -1;">
+                <!-- قسم تحكم الحاسوب المضغوط -->
+                <div class="settings-card-group pc-keybinds-compact" style="grid-column: 1 / -1;">
                     <div class="settings-group-title" data-i18n="keybindingsTitle"> أزرار التحكم للحاسب (PC Keybindings)</div>
-                    <div class="keybinds-table">
-                        <div class="keybind-item"><span>الحركة:</span><kbd>W A S D / الأسهم</kbd></div>
-                        <div class="keybind-item"><span>التصويب وإطلاق النار:</span><kbd>Mouse L-Click</kbd></div>
-                        <div class="keybind-item"><span>مهارة الكلاس:</span><kbd>E</kbd></div>
-                        <div class="keybind-item"><span>مهارة الدعم:</span><kbd>C</kbd></div>
-                        <div class="keybind-item"><span>تبديل السلاح:</span><kbd>Q / 1-2</kbd></div>
-                        <div class="keybind-item"><span>لوحة المعركة الحية:</span><kbd>Tab</kbd></div>
-                        <div class="keybind-item"><span>النبضة الفائقة:</span><kbd>Z</kbd></div>
-                        <div class="keybind-item"><span>القدرة المطلقة:</span><kbd>F</kbd></div>
-                        <div class="keybind-item"><span>الاندفاع الحركي:</span><kbd>Space</kbd></div>
-                        <div class="keybind-item"><span>تلقيم الذخيرة:</span><kbd>R</kbd></div>
-                        <div class="keybind-item"><span>عجلة الإشارات التكتيكية:</span><kbd>V</kbd></div>
-                        <div class="keybind-item"><span>الخريطة التكتيكية:</span><kbd>M</kbd></div>
+                    <div class="keybinds-table-compact">
+                        <div class="keybind-chip"><kbd>W A S D</kbd> <span>الحركة</span></div>
+                        <div class="keybind-chip"><kbd>L-Click</kbd> <span>إطلاق</span></div>
+                        <div class="keybind-chip"><kbd>Space</kbd> <span>اندفاع</span></div>
+                        <div class="keybind-chip"><kbd>E / C</kbd> <span>المهارات</span></div>
+                        <div class="keybind-chip"><kbd>Q / 1-2</kbd> <span>تبديل السلاح</span></div>
+                        <div class="keybind-chip"><kbd>R</kbd> <span>تلقيم</span></div>
+                        <div class="keybind-chip"><kbd>F</kbd> <span>القدرة المطلقة</span></div>
+                        <div class="keybind-chip"><kbd>Z</kbd> <span>النبضة الفائقة</span></div>
+                        <div class="keybind-chip"><kbd>M</kbd> <span>الخريطة</span></div>
+                        <div class="keybind-chip"><kbd>Tab</kbd> <span>لوحة المعركة</span></div>
+                        <div class="keybind-chip"><kbd>V</kbd> <span>الإشارات</span></div>
+                        <div class="keybind-chip"><kbd>Esc</kbd> <span>إلغاء / رجوع</span></div>
                     </div>
                 </div>
             </div>
@@ -832,10 +875,13 @@
     </div>
 
     <!-- نافذة اختيار الأطوار التكتيكية الفخمة (Tactical Mode Selector Modal) -->
-    <div id="mode-select-modal" class="cyber-modal hidden">
+    <div id="mode-select-modal" class="cyber-modal hidden" onclick="if(event.target===this) closeModeSelectModal()">
         <div class="cyber-modal-card mode-select-card">
             <div class="modal-header">
                 <div class="modal-title-wrap">
+                    <button class="btn-modal-back" onclick="closeModeSelectModal()" title="رجوع للردهة">
+                        <svg class="c-icon"><use href="#icon-arrow-left"></use></svg> <span data-i18n="btnBackLobby">رجوع</span>
+                    </button>
                     <svg class="c-icon c-icon-cyan"><use href="#icon-zap"></use></svg>
                     <h3 data-i18n="modeSelectModalTitle"> مصفوفة أطوار المعركة التكتيكية (Game Modes)</h3>
                 </div>
@@ -863,7 +909,14 @@
                     </div>
                 </div>
 
-                <div class="mode-select-section-title"> أطوار اللعب الجماعي والنزاع الحي (Live Multiplayer)</div>
+                <div class="mode-select-section-title mode-multiplayer-header">
+                    <span> أطوار اللعب الجماعي والنزاع الحي (Live Multiplayer)</span>
+                    <div id="online-counter-badge" class="online-counter-badge">
+                        <span class="pulse-dot"></span>
+                        <span class="online-txt"><span data-i18n="onlineAgentsLabel">المتصلون:</span> <strong id="online-count-val">1</strong></span>
+                        <span class="mode-counters">(PVE: <span id="pve-count-val">0</span> | PVP: <span id="pvp-count-val">0</span> | RAID: <span id="raid-count-val">0</span>)</span>
+                    </div>
+                </div>
                 <div class="play-modes-grid">
                     <!-- 3. Online Co-op PvE -->
                     <div class="mode-card pve" onclick="closeModeSelectModal(); joinMultiplayerMode('online_pve')">
@@ -918,6 +971,33 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- زر رجوع إضافي في أسفل نافذة الأطوار -->
+                <div class="mode-modal-footer">
+                    <button class="btn-modal-back-footer" onclick="closeModeSelectModal()">
+                        <svg class="c-icon"><use href="#icon-arrow-left"></use></svg> <span data-i18n="btnBackLobby">الرجوع إلى الردهة الرئيسية</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة شرح وتفاصيل وتجهيز البيرك التفاعلية (Interactive Perk Detail Modal) -->
+    <div id="perk-detail-modal" class="cyber-modal hidden" onclick="if(event.target===this) closePerkDetailModal()">
+        <div class="cyber-modal-card perk-detail-card">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <svg class="c-icon c-icon-cyan" id="perk-modal-icon"><use href="#icon-zap"></use></svg>
+                    <h3 id="perk-modal-title">تفاصيل البيرك التكتيكي</h3>
+                </div>
+                <button class="modal-close-btn" onclick="closePerkDetailModal()"></button>
+            </div>
+            <div class="modal-body" id="perk-modal-body-content">
+                <!-- يتم تعبئة المستويات والتفاصيل ديناميكياً -->
+            </div>
+            <div class="modal-footer perk-modal-footer">
+                <button id="perk-modal-equip-btn" class="btn-primary" onclick="togglePerkFromModal()">تجهيز في العتاد</button>
+                <button class="btn-secondary" onclick="closePerkDetailModal()">إغلاق</button>
             </div>
         </div>
     </div>
@@ -1528,41 +1608,46 @@
     </div>
 
     <!-- نافذة ليدربورد الرانك العالمي التنافسي (Competitive Rank Leaderboard Modal) -->
-    <div id="rank-leaderboard-modal" class="modal-backdrop hidden">
-        <div class="modal-card rank-modal-card">
+    <div id="rank-leaderboard-modal" class="cyber-modal hidden" onclick="if(event.target===this) closeRankLeaderboardModal()">
+        <div class="cyber-modal-card rank-modal-card">
             <div class="modal-header">
-                <h2 class="modal-title" data-i18n="rankModalTitle"> دوري أبطال الساحة (Apex Global League)</h2>
+                <div class="modal-title-wrap">
+                    <svg class="c-icon c-icon-gold"><use href="#icon-trophy"></use></svg>
+                    <h3 data-i18n="rankModalTitle">دوري أبطال الساحة (Apex Global League)</h3>
+                </div>
                 <button class="modal-close-btn" onclick="closeRankLeaderboardModal()"></button>
             </div>
             
-            <div class="rank-tiers-legend">
-                <span class="tier-tag t-bronze" data-i18n="tierBronzeTag"> برونزي (0+)</span>
-                <span class="tier-tag t-silver" data-i18n="tierSilverTag"> فضي (500+)</span>
-                <span class="tier-tag t-gold" data-i18n="tierGoldTag"> ذهبي (1000+)</span>
-                <span class="tier-tag t-diamond" data-i18n="tierDiamondTag"> دياموند (2000+)</span>
-                <span class="tier-tag t-god" data-i18n="tierMasterTag"> غراند ماستر (3500+)</span>
+            <div class="modal-body" style="padding: 12px 16px;">
+                <div class="rank-tiers-legend">
+                    <span class="tier-tag t-bronze" data-i18n="tierBronzeTag"> برونزي (0+)</span>
+                    <span class="tier-tag t-silver" data-i18n="tierSilverTag"> فضي (500+)</span>
+                    <span class="tier-tag t-gold" data-i18n="tierGoldTag"> ذهبي (1000+)</span>
+                    <span class="tier-tag t-diamond" data-i18n="tierDiamondTag"> دياموند (2000+)</span>
+                    <span class="tier-tag t-god" data-i18n="tierMasterTag"> غراند ماستر (3500+)</span>
+                </div>
+
+                <div class="rank-table-container">
+                    <table class="rank-table">
+                        <thead>
+                            <tr>
+                                <th data-i18n="rankThRank">الترتيب</th>
+                                <th data-i18n="rankThAgent">العميل</th>
+                                <th data-i18n="rankThTier">الرتبة</th>
+                                <th data-i18n="rankThTrophies">الكؤوس </th>
+                                <th data-i18n="rankThPvpKills">قتلات PVP</th>
+                                <th data-i18n="rankThPveRevives">إنعاش PVE</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rank-leaderboard-body">
+                            <tr><td colspan="6" style="text-align: center; color: #8899a6; padding: 20px;" data-i18n="rankLoading">جاري جلب إحصائيات الأبطال...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
-            <div class="rank-table-container">
-                <table class="rank-table">
-                    <thead>
-                        <tr>
-                            <th data-i18n="rankThRank">الترتيب</th>
-                            <th data-i18n="rankThAgent">العميل</th>
-                            <th data-i18n="rankThTier">الرتبة</th>
-                            <th data-i18n="rankThTrophies">الكؤوس </th>
-                            <th data-i18n="rankThPvpKills">قتلات PVP</th>
-                            <th data-i18n="rankThPveRevives">إنعاش PVE</th>
-                        </tr>
-                    </thead>
-                    <tbody id="rank-leaderboard-body">
-                        <tr><td colspan="6" style="text-align: center; color: #8899a6; padding: 20px;" data-i18n="rankLoading">جاري جلب إحصائيات الأبطال...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="modal-footer-btn-row">
-                <button class="btn-main" onclick="closeRankLeaderboardModal()" data-i18n="closeAndContinueBtn">إغلاق ومتابعة القتال</button>
+            <div class="modal-footer" style="padding: 10px 16px; display: flex; justify-content: center;">
+                <button class="btn-primary" onclick="closeRankLeaderboardModal()" data-i18n="closeAndContinueBtn" style="padding: 8px 24px;">إغلاق والعودة للردهة</button>
             </div>
         </div>
     </div>

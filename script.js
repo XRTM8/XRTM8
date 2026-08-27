@@ -127,6 +127,34 @@ function toggleFullScreen() {
     }
 }
 
+// Professional screen rotation and fullscreen engine for mobile
+window.forceRotateAndFullscreen = function() {
+    try {
+        if (typeof playSound === 'function') playSound('tab');
+        const doc = window.document;
+        const docEl = doc.documentElement;
+        const requestFullScreen = docEl.requestFullscreen || 
+                                  docEl.mozRequestFullScreen || 
+                                  docEl.webkitRequestFullScreen || 
+                                  docEl.msRequestFullscreen;
+        if (requestFullScreen) {
+            requestFullScreen.call(docEl).catch(() => {});
+        }
+
+        // Attempt modern Screen Orientation API lock
+        if (screen.orientation && screen.orientation.lock) {
+            screen.orientation.lock('landscape').catch(() => {});
+        } else if (screen.lockOrientation) {
+            try { screen.lockOrientation('landscape'); } catch (e) {}
+        } else if (screen.mozLockOrientation) {
+            try { screen.mozLockOrientation('landscape'); } catch (e) {}
+        } else if (screen.msLockOrientation) {
+            try { screen.msLockOrientation('landscape'); } catch (e) {}
+        }
+    } catch (e) {
+        console.warn('Orientation lock failed:', e);
+    }
+};
 
 // Safe LocalStorage JSON Parser Shield
 function safeGetJson(key, defaultVal = null) {
@@ -584,6 +612,8 @@ const I18N_DICTIONARY = {
         btnLeaderboard: 'لوحة الأبطال PTS',
         btnStartBattle: '⚡ بدء المعركة (BATTLE)',
         btnStartBattleSub: 'اختر النمط وانطلق في الساحة',
+        btnBackLobby: 'رجوع للردهة',
+        btnRotateFullscreen: 'ملء الشاشة وتدوير اللعبة',
         modeSelectModalTitle: ' مصفوفة أطوار المعركة التكتيكية (Game Modes)',
         menuDescTxt: 'اختر نمط المعركة التكتيكي للانطلاق في الساحة السيبرانية:',
         modeSoloTitle: 'فردي أوفلاين (Solo Offline)',
@@ -774,6 +804,8 @@ const I18N_DICTIONARY = {
         btnLeaderboard: 'PTS Leaderboard',
         btnStartBattle: '⚡ BATTLE / START',
         btnStartBattleSub: 'Select Combat Mode & Deploy',
+        btnBackLobby: 'Back to Lobby',
+        btnRotateFullscreen: 'Fullscreen & Rotate',
         modeSelectModalTitle: ' Tactical Combat Mode Matrix',
         menuDescTxt: 'Select your tactical combat mode to launch into the cybernetic arena:',
         modeSoloTitle: 'Solo Offline',
@@ -1625,47 +1657,47 @@ function isPvPMode() {
         // ====================================================================
         const COSMETICS_CATALOG = {
             skins: [
-                { id: 'default', title: 'الهيكل الافتراضي (Standard)', desc: 'الهيكل السيبراني التكتيكي الأساسي المتوازن.', price: 0, icon: '', rarity: 'common', setId: 'default' },
-                { id: 'skin_golden_striker', title: 'المهاجم الذهبي (Solid Gold)', desc: 'دروع مصقولة بذهب التيتانيوم الخالص عيار 24 مع بريق ملكي.', price: 100, icon: '', rarity: 'legendary', setId: 'skin_golden_striker' },
-                { id: 'skin_glacial_spectre', title: 'طيف الصقيع (Glacial Spectre)', desc: 'هيكل ماسي كريستالي مع 3 شظايا جليد سابحة في فلكه.', price: 80, icon: '', rarity: 'epic', setId: 'skin_glacial_spectre' },
-                { id: 'skin_obsidian_dragon', title: 'تنين الأوبسيديان (Obsidian Dragon)', desc: 'تيتانيوم أسود مصفح مع عيون حمراء وزخارف ياقوتية حارقة.', price: 200, icon: '', rarity: 'mythic', setId: 'skin_obsidian_dragon' },
-                { id: 'skin_solar_phoenix', title: 'فينيق البلازما الشمسي (Solar Phoenix)', desc: 'طائر النار الشمسي بأجنحة لهب بلازما متموجة وطاقة حارقة.', price: 180, icon: '', rarity: 'mythic', setId: 'skin_solar_phoenix' },
-                { id: 'skin_quantum_void', title: 'سيد الفراغ الكمي (Quantum Void)', desc: 'هيكل كمي أرجواني يولد ثقباً أسود مصغراً في مركزه.', price: 120, icon: '', rarity: 'legendary', setId: 'skin_quantum_void' },
-                { id: 'skin_cyber_phantom', title: 'الشبح التكتيكي (Cyber Phantom)', desc: 'مقاتلة شبحية كربونية مع مسارات دارات كهربائية نيونية.', price: 65, icon: '', rarity: 'epic', setId: 'skin_cyber_phantom' },
-                { id: 'skin_neon_berserker', title: 'الهائج النيوني (Neon Berserker)', desc: 'هيكل هجومي مجهز بشفرات نيونية حادة وطاقة قرمزية.', price: 45, icon: '', rarity: 'rare', setId: 'skin_neon_berserker' },
-                { id: 'skin_apex_overlord', title: 'الإمبراطور السيبراني (Apex Overlord)', desc: 'هيكل حربي مذهب يعلوه تاج الطاقة الإمبراطوري.', price: 150, icon: '', rarity: 'legendary', setId: 'skin_apex_overlord' }
+                { id: 'default', title: 'الهيكل الافتراضي (Standard)', desc: 'الهيكل السيبراني التكتيكي الأساسي المتوازن.', price: 0, icon: 'icon-orbit', rarity: 'common', setId: 'default' },
+                { id: 'skin_golden_striker', title: 'المهاجم الذهبي (Solid Gold)', desc: 'دروع مصقولة بذهب التيتانيوم الخالص عيار 24 مع بريق ملكي.', price: 90, icon: 'icon-crown', rarity: 'legendary', setId: 'skin_golden_striker' },
+                { id: 'skin_glacial_spectre', title: 'طيف الصقيع (Glacial Spectre)', desc: 'هيكل ماسي كريستالي مع 3 شظايا جليد سابحة في فلكه.', price: 75, icon: 'icon-snow', rarity: 'epic', setId: 'skin_glacial_spectre' },
+                { id: 'skin_obsidian_dragon', title: 'تنين الأوبسيديان (Obsidian Dragon)', desc: 'تيتانيوم أسود مصفح مع عيون حمراء وزخارف ياقوتية حارقة.', price: 140, icon: 'icon-flame', rarity: 'mythic', setId: 'skin_obsidian_dragon' },
+                { id: 'skin_solar_phoenix', title: 'فينيق البلازما الشمسي (Solar Phoenix)', desc: 'طائر النار الشمسي بأجنحة لهب بلازما متموجة وطاقة حارقة.', price: 150, icon: 'icon-sparkles', rarity: 'mythic', setId: 'skin_solar_phoenix' },
+                { id: 'skin_quantum_void', title: 'سيد الفراغ الكمي (Quantum Void)', desc: 'هيكل كمي أرجواني يولد ثقباً أسود مصغراً في مركزه.', price: 95, icon: 'icon-stasis', rarity: 'legendary', setId: 'skin_quantum_void' },
+                { id: 'skin_cyber_phantom', title: 'الشبح التكتيكي (Cyber Phantom)', desc: 'مقاتلة شبحية كربونية مع مسارات دارات كهربائية نيونية.', price: 60, icon: 'icon-bot', rarity: 'epic', setId: 'skin_cyber_phantom' },
+                { id: 'skin_neon_berserker', title: 'الهائج النيوني (Neon Berserker)', desc: 'هيكل هجومي مجهز بشفرات نيونية حادة وطاقة قرمزية.', price: 45, icon: 'icon-swords', rarity: 'rare', setId: 'skin_neon_berserker' },
+                { id: 'skin_apex_overlord', title: 'الإمبراطور السيبراني (Apex Overlord)', desc: 'هيكل حربي مذهب يعلوه تاج الطاقة الإمبراطوري.', price: 120, icon: 'icon-titan', rarity: 'legendary', setId: 'skin_apex_overlord' }
             ],
             weapons: [
-                { id: 'wep_default', title: 'البلازما القياسية (Standard)', desc: 'مظهر الإطلاق الكهرومغناطيسي القياسي.', price: 0, icon: '', rarity: 'common', setId: 'default' },
-                { id: 'wep_goldengun', title: 'السلاح الذهبي (Solid Gold)', desc: 'رصاص مذهب فخم يتلألأ بشعاع ذهبي خالص عيار 24.', price: 90, icon: 'CR', rarity: 'legendary', setId: 'skin_golden_striker' },
-                { id: 'wep_frost_shard', title: 'شظايا الصقيع (Frost Shard)', desc: 'مقذوفات جليدية حادة تدمر وتبطئ الأعداء.', price: 60, icon: '', rarity: 'epic', setId: 'skin_glacial_spectre' },
-                { id: 'wep_dragonfire', title: 'لهب التنين (Dragonfire)', desc: 'مقذوفات بلازما نارية شديدة الاشتعال بحبيبات حارقة.', price: 50, icon: '', rarity: 'rare', setId: 'skin_obsidian_dragon' },
-                { id: 'wep_solar_flare', title: 'توهج الشمس (Solar Flare)', desc: 'مقذوفات بلازما شمسية نقية شديدة الحرارة.', price: 85, icon: '', rarity: 'mythic', setId: 'skin_solar_phoenix' },
-                { id: 'wep_voidray', title: 'شعاع الفراغ (Void Ray)', desc: 'حزم ليزر بنفسجية نفاذة تخترق الأبعاد.', price: 75, icon: '', rarity: 'epic', setId: 'skin_quantum_void' },
-                { id: 'wep_toxic_surge', title: 'الحمض السام (Toxic Surge)', desc: 'مقذوفات حمضية خضراء متوهجة تذيب دروع الأعداء.', price: 65, icon: '', rarity: 'epic', setId: 'skin_cyber_phantom' },
-                { id: 'wep_neon_fury', title: 'غضب النيون (Neon Fury)', desc: 'مقذوفات قرمزية حادة تتوهج بنبضات النيون.', price: 40, icon: '', rarity: 'rare', setId: 'skin_neon_berserker' },
-                { id: 'wep_plasma_comet', title: 'مذنب البلازما الكوني (Plasma Comet)', desc: 'مقذوفات نجمية متعددة الأطياف تشق الفضاء.', price: 110, icon: '', rarity: 'mythic', setId: 'skin_apex_overlord' }
+                { id: 'wep_default', title: 'البلازما القياسية (Standard)', desc: 'مظهر الإطلاق الكهرومغناطيسي القياسي.', price: 0, icon: 'icon-crosshair', rarity: 'common', setId: 'default' },
+                { id: 'wep_goldengun', title: 'السلاح الذهبي (Solid Gold)', desc: 'رصاص مذهب فخم يتلألأ بشعاع ذهبي خالص عيار 24.', price: 70, icon: 'icon-crown', rarity: 'legendary', setId: 'skin_golden_striker' },
+                { id: 'wep_frost_shard', title: 'شظايا الصقيع (Frost Shard)', desc: 'مقذوفات جليدية حادة تدمر وتبطئ الأعداء.', price: 50, icon: 'icon-snow', rarity: 'epic', setId: 'skin_glacial_spectre' },
+                { id: 'wep_dragonfire', title: 'لهب التنين (Dragonfire)', desc: 'مقذوفات بلازما نارية شديدة الاشتعال بحبيبات حارقة.', price: 40, icon: 'icon-flame', rarity: 'rare', setId: 'skin_obsidian_dragon' },
+                { id: 'wep_solar_flare', title: 'توهج الشمس (Solar Flare)', desc: 'مقذوفات بلازما شمسية نقية شديدة الحرارة.', price: 65, icon: 'icon-sparkles', rarity: 'mythic', setId: 'skin_solar_phoenix' },
+                { id: 'wep_voidray', title: 'شعاع الفراغ (Void Ray)', desc: 'حزم ليزر بنفسجية نفاذة تخترق الأبعاد.', price: 55, icon: 'icon-target', rarity: 'epic', setId: 'skin_quantum_void' },
+                { id: 'wep_toxic_surge', title: 'الحمض السام (Toxic Surge)', desc: 'مقذوفات حمضية خضراء متوهجة تذيب دروع الأعداء.', price: 45, icon: 'icon-zap', rarity: 'epic', setId: 'skin_cyber_phantom' },
+                { id: 'wep_neon_fury', title: 'غضب النيون (Neon Fury)', desc: 'مقذوفات قرمزية حادة تتوهج بنبضات النيون.', price: 35, icon: 'icon-swords', rarity: 'rare', setId: 'skin_neon_berserker' },
+                { id: 'wep_plasma_comet', title: 'مذنب البلازما الكوني (Plasma Comet)', desc: 'مقذوفات نجمية متعددة الأطياف تشق الفضاء.', price: 80, icon: 'icon-crystal', rarity: 'mythic', setId: 'skin_apex_overlord' }
             ],
             trails: [
-                { id: 'trail_default', title: 'المسار الكلاسيكي (Cyan Stream)', desc: 'مسار نيون أزرق انسيابي وناعم.', price: 0, icon: '', rarity: 'common', setId: 'default' },
-                { id: 'trail_golden', title: 'لهب الذهب (Golden Flame)', desc: 'انبعاثات جزيئات ذهبية متطايرة كنجوم ساطعة.', price: 45, icon: '', rarity: 'rare', setId: 'skin_golden_striker' },
-                { id: 'trail_frost_mist', title: 'ضباب الصقيع (Frost Mist)', desc: 'مسار جليدي أزرق يترك سحابة بلورات ثلجية.', price: 50, icon: '', rarity: 'epic', setId: 'skin_glacial_spectre' },
-                { id: 'trail_dragon_ember', title: 'جمرات التنين (Dragon Embers)', desc: 'شرارات نارية بركانية قرمزية متساقطة.', price: 60, icon: '', rarity: 'mythic', setId: 'skin_obsidian_dragon' },
-                { id: 'trail_solar_flare', title: 'توهج الشمس (Solar Corona)', desc: 'شواظ شمسية ملتهبة وشرارات نارية ممتدة.', price: 90, icon: '', rarity: 'mythic', setId: 'skin_solar_phoenix' },
-                { id: 'trail_dark_matter', title: 'المادة المظلمة (Dark Matter)', desc: 'فراغ أرجواني مظلم يبتلع الضوء في مساره.', price: 70, icon: '', rarity: 'legendary', setId: 'skin_quantum_void' },
-                { id: 'trail_matrix', title: 'شفرة المصفوفة (Matrix Code)', desc: 'سيل من الرموز الخضراء الرقمية المتساقطة.', price: 35, icon: '[ONLINE]', rarity: 'rare', setId: 'skin_cyber_phantom' },
-                { id: 'trail_neon_pulse', title: 'نبضات النيون (Neon Pulse)', desc: 'أمواج وردية متتابعة خلف السفينة.', price: 40, icon: '', rarity: 'rare', setId: 'skin_neon_berserker' },
-                { id: 'trail_rainbow', title: 'طيف النيون (Rainbow Starlight)', desc: 'ألوان الطيف النيونية تتلألأ خلف اندفاع السفينة.', price: 55, icon: '', rarity: 'epic', setId: 'skin_apex_overlord' }
+                { id: 'trail_default', title: 'المسار الكلاسيكي (Cyan Stream)', desc: 'مسار نيون أزرق انسيابي وناعم.', price: 0, icon: 'icon-orbit', rarity: 'common', setId: 'default' },
+                { id: 'trail_golden', title: 'لهب الذهب (Golden Flame)', desc: 'انبعاثات جزيئات ذهبية متطايرة كنجوم ساطعة.', price: 35, icon: 'icon-crown', rarity: 'rare', setId: 'skin_golden_striker' },
+                { id: 'trail_frost_mist', title: 'ضباب الصقيع (Frost Mist)', desc: 'مسار جليدي أزرق يترك سحابة بلورات ثلجية.', price: 40, icon: 'icon-snow', rarity: 'epic', setId: 'skin_glacial_spectre' },
+                { id: 'trail_dragon_ember', title: 'جمرات التنين (Dragon Embers)', desc: 'شرارات نارية بركانية قرمزية متساقطة.', price: 50, icon: 'icon-flame', rarity: 'mythic', setId: 'skin_obsidian_dragon' },
+                { id: 'trail_solar_flare', title: 'توهج الشمس (Solar Corona)', desc: 'شواظ شمسية ملتهبة وشرارات نارية ممتدة.', price: 65, icon: 'icon-sparkles', rarity: 'mythic', setId: 'skin_solar_phoenix' },
+                { id: 'trail_dark_matter', title: 'المادة المظلمة (Dark Matter)', desc: 'فراغ أرجواني مظلم يبتلع الضوء في مساره.', price: 55, icon: 'icon-stasis', rarity: 'legendary', setId: 'skin_quantum_void' },
+                { id: 'trail_matrix', title: 'شفرة المصفوفة (Matrix Code)', desc: 'سيل من الرموز الخضراء الرقمية المتساقطة.', price: 30, icon: 'icon-broadcast', rarity: 'rare', setId: 'skin_cyber_phantom' },
+                { id: 'trail_neon_pulse', title: 'نبضات النيون (Neon Pulse)', desc: 'أمواج وردية متتابعة خلف السفينة.', price: 35, icon: 'icon-zap', rarity: 'rare', setId: 'skin_neon_berserker' },
+                { id: 'trail_rainbow', title: 'طيف النيون (Rainbow Starlight)', desc: 'ألوان الطيف النيونية تتلألأ خلف اندفاع السفينة.', price: 45, icon: 'icon-sparkles', rarity: 'epic', setId: 'skin_apex_overlord' }
             ],
             abilities: [
-                { id: 'nova_default', title: 'النبضة القياسية (Standard Nova)', desc: 'انفجار نيون كهربائي ومخروط سبرنت سماوي قياسي.', price: 0, icon: '', rarity: 'common', setId: 'default' },
-                { id: 'sprint_thunder', title: 'صاعقة الرعد (Thunder Overdrive)', desc: 'سبرنت مشحون بصواعق برق ذهبية وموجة صوتية متفجرة.', price: 45, icon: '', rarity: 'rare', setId: 'skin_golden_striker' },
-                { id: 'sprint_frost', title: 'عاصفة الصقيع (Sub-Zero Vortex)', desc: 'سبرنت يطلق شظايا صقيع جليدية ومخروط تجميد ناصع.', price: 60, icon: '', rarity: 'epic', setId: 'skin_glacial_spectre' },
-                { id: 'sprint_shadow_flame', title: 'لهب الظلال (Shadow Flame Warp)', desc: 'سبرنت يلف السفينة بنيران أرجوانية وموجة اندفاع مظلمة.', price: 80, icon: '', rarity: 'legendary', setId: 'skin_obsidian_dragon' },
-                { id: 'nova_supernova', title: 'السوبر نوفا الشمسي (Solar Supernova)', desc: 'انفجار شمسي ذهبي كاسح يضيء الساحة.', price: 85, icon: '', rarity: 'mythic', setId: 'skin_solar_phoenix' },
-                { id: 'nova_blackhole', title: 'أفق الحدث الكمي (Event Horizon)', desc: 'موجة جاذبية كمية تبتلع الرصاص بهالة مظلمة.', price: 75, icon: '', rarity: 'legendary', setId: 'skin_quantum_void' },
-                { id: 'sprint_hyperdrive', title: 'الانحناء الطيفي (Hyperdrive Starlight)', desc: 'سبرنت بسرعة الضوء يولد ظلالاً نيونية متعددة الأبعاد.', price: 100, icon: '', rarity: 'mythic', setId: 'skin_cyber_phantom' },
-                { id: 'nova_apex_glory', title: 'يوم القيامة (Apex Doomsday)', desc: 'انفجار قرمزي مدمر يعقبه أمواج صدمية ثلاثية متتالية.', price: 100, icon: '', rarity: 'mythic', setId: 'skin_apex_overlord' }
+                { id: 'nova_default', title: 'النبضة القياسية (Standard Nova)', desc: 'انفجار نيون كهربائي ومخروط سبرنت سماوي قياسي.', price: 0, icon: 'icon-zap', rarity: 'common', setId: 'default' },
+                { id: 'sprint_thunder', title: 'صاعقة الرعد (Thunder Overdrive)', desc: 'سبرنت مشحون بصواعق برق ذهبية وموجة صوتية متفجرة.', price: 35, icon: 'icon-zap', rarity: 'rare', setId: 'skin_golden_striker' },
+                { id: 'sprint_frost', title: 'عاصفة الصقيع (Sub-Zero Vortex)', desc: 'سبرنت يطلق شظايا صقيع جليدية ومخروط تجميد ناصع.', price: 45, icon: 'icon-snow', rarity: 'epic', setId: 'skin_glacial_spectre' },
+                { id: 'sprint_shadow_flame', title: 'لهب الظلال (Shadow Flame Warp)', desc: 'سبرنت يلف السفينة بنيران أرجوانية وموجة اندفاع مظلمة.', price: 60, icon: 'icon-flame', rarity: 'legendary', setId: 'skin_obsidian_dragon' },
+                { id: 'nova_supernova', title: 'السوبر نوفا الشمسي (Solar Supernova)', desc: 'انفجار شمسي ذهبي كاسح يضيء الساحة.', price: 70, icon: 'icon-sparkles', rarity: 'mythic', setId: 'skin_solar_phoenix' },
+                { id: 'nova_blackhole', title: 'أفق الحدث الكمي (Event Horizon)', desc: 'موجة جاذبية كمية تبتلع الرصاص بهالة مظلمة.', price: 60, icon: 'icon-stasis', rarity: 'legendary', setId: 'skin_quantum_void' },
+                { id: 'sprint_hyperdrive', title: 'الانحناء الطيفي (Hyperdrive Starlight)', desc: 'سبرنت بسرعة الضوء يولد ظلالاً نيونية متعددة الأبعاد.', price: 80, icon: 'icon-orbit', rarity: 'mythic', setId: 'skin_cyber_phantom' },
+                { id: 'nova_apex_glory', title: 'غضب النيون (Neon Fury Burst)', desc: 'انفجار نيون قرمزي هائج يعقبه أمواج صدمية ثلاثية متتالية.', price: 65, icon: 'icon-swords', rarity: 'mythic', setId: 'skin_neon_berserker' }
             ]
         };
 
@@ -1677,10 +1709,10 @@ function isPvPMode() {
                 weapon: 'wep_goldengun', 
                 trail: 'trail_golden', 
                 ability: 'sprint_thunder',
-                bundlePrice: 210,
-                originalPrice: 280,
+                bundlePrice: 175,
+                originalPrice: 230,
                 themeColor: '#ffd700',
-                icon: ''
+                icon: 'icon-crown'
             },
             skin_glacial_spectre: { 
                 id: 'skin_glacial_spectre',
@@ -1689,10 +1721,10 @@ function isPvPMode() {
                 weapon: 'wep_frost_shard', 
                 trail: 'trail_frost_mist', 
                 ability: 'sprint_frost',
-                bundlePrice: 185,
-                originalPrice: 250,
+                bundlePrice: 155,
+                originalPrice: 210,
                 themeColor: '#00f3ff',
-                icon: ''
+                icon: 'icon-snow'
             },
             skin_obsidian_dragon: { 
                 id: 'skin_obsidian_dragon',
@@ -1701,10 +1733,10 @@ function isPvPMode() {
                 weapon: 'wep_dragonfire', 
                 trail: 'trail_dragon_ember', 
                 ability: 'sprint_shadow_flame',
-                bundlePrice: 290,
-                originalPrice: 390,
+                bundlePrice: 215,
+                originalPrice: 290,
                 themeColor: '#ff0033',
-                icon: ''
+                icon: 'icon-flame'
             },
             skin_solar_phoenix: { 
                 id: 'skin_solar_phoenix',
@@ -1713,10 +1745,10 @@ function isPvPMode() {
                 weapon: 'wep_solar_flare', 
                 trail: 'trail_solar_flare', 
                 ability: 'nova_supernova',
-                bundlePrice: 330,
-                originalPrice: 445,
+                bundlePrice: 250,
+                originalPrice: 350,
                 themeColor: '#ff7700',
-                icon: ''
+                icon: 'icon-sparkles'
             },
             skin_quantum_void: { 
                 id: 'skin_quantum_void',
@@ -1725,10 +1757,10 @@ function isPvPMode() {
                 weapon: 'wep_voidray', 
                 trail: 'trail_dark_matter', 
                 ability: 'nova_blackhole',
-                bundlePrice: 255,
-                originalPrice: 340,
+                bundlePrice: 200,
+                originalPrice: 270,
                 themeColor: '#bd00ff',
-                icon: ''
+                icon: 'icon-stasis'
             },
             skin_cyber_phantom: { 
                 id: 'skin_cyber_phantom',
@@ -1737,10 +1769,10 @@ function isPvPMode() {
                 weapon: 'wep_toxic_surge', 
                 trail: 'trail_matrix', 
                 ability: 'sprint_hyperdrive',
-                bundlePrice: 195,
-                originalPrice: 265,
+                bundlePrice: 160,
+                originalPrice: 215,
                 themeColor: '#00ff88',
-                icon: '[ONLINE]'
+                icon: 'icon-bot'
             },
             skin_neon_berserker: { 
                 id: 'skin_neon_berserker',
@@ -1749,10 +1781,10 @@ function isPvPMode() {
                 weapon: 'wep_neon_fury', 
                 trail: 'trail_neon_pulse', 
                 ability: 'nova_apex_glory',
-                bundlePrice: 165,
-                originalPrice: 225,
+                bundlePrice: 135,
+                originalPrice: 180,
                 themeColor: '#ff0055',
-                icon: ''
+                icon: 'icon-swords'
             },
             skin_apex_overlord: { 
                 id: 'skin_apex_overlord',
@@ -1760,11 +1792,11 @@ function isPvPMode() {
                 chassis: 'skin_apex_overlord', 
                 weapon: 'wep_plasma_comet', 
                 trail: 'trail_rainbow', 
-                ability: 'nova_apex_glory',
-                bundlePrice: 310,
-                originalPrice: 415,
+                ability: 'nova_supernova',
+                bundlePrice: 230,
+                originalPrice: 315,
                 themeColor: '#ffd700',
-                icon: ''
+                icon: 'icon-titan'
             },
             default: { 
                 id: 'default',
@@ -1776,7 +1808,7 @@ function isPvPMode() {
                 bundlePrice: 0,
                 originalPrice: 0,
                 themeColor: '#00f3ff',
-                icon: ''
+                icon: 'icon-orbit'
             }
         };
 
@@ -1891,104 +1923,263 @@ function isPvPMode() {
             return cCfg ? cCfg.color : '#00f3ff';
         }
 
-        // دالة الرسم الهندسي المخصص للسكنات (تُطبق لون ومادة السكن على هيكل الكلاس المختار)
+        // دالة الرسم الهندسي المخصص للسكنات (تُطبق هندسة ومؤثرات خاصة فريدة لكل سكن)
         function drawCustomShipGeometry(ctx, skinId, pClass, radius, isFiringUlt, overchargeActive, sprintTimer, animTime) {
             ctx.save();
             let cCfg = (typeof CLASSES_CONFIG !== 'undefined' && CLASSES_CONFIG[pClass]) ? CLASSES_CONFIG[pClass] : { color: '#00f3ff' };
             let classBaseCol = isFiringUlt ? colors.ult : (overchargeActive ? colors.overcharge : (cCfg.color || colors.player));
             let t = (animTime || performance.now()) * 0.003;
 
-            // 1. تطبيق مادة وتلوين السكن المجهز على هيكل الكلاس نفسه
             if (skinId === 'skin_golden_striker') {
-                // السكن الذهبي: مذهب مصقول 24K مع انعكاسات ميتاليك
-                let goldGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
-                goldGrad.addColorStop(0, '#fff4b8'); goldGrad.addColorStop(0.5, '#ffd700'); goldGrad.addColorStop(1, '#b38600');
+                // ==========================================
+                // 1. المهاجم الذهبي (Solid Gold 24K): أجنحة مذهبة وجزيئات بريق ملكية
+                // ==========================================
+                let goldGrad = ctx.createLinearGradient(-radius * 1.5, -radius * 1.5, radius * 1.5, radius * 1.5);
+                goldGrad.addColorStop(0, '#fffbe0'); goldGrad.addColorStop(0.35, '#ffd700'); goldGrad.addColorStop(0.75, '#b8860b'); goldGrad.addColorStop(1, '#664d00');
+
+                // حواف وأجنحة إضافية مذهبة عريضة (Hyper-Spoilers)
+                ctx.beginPath();
+                ctx.moveTo(-radius * 1.6, radius * 1.2);
+                ctx.lineTo(-radius * 0.8, -radius * 0.4);
+                ctx.lineTo(-radius * 0.5, radius * 0.8);
+                ctx.closePath();
+                ctx.moveTo(radius * 1.6, radius * 1.2);
+                ctx.lineTo(radius * 0.8, -radius * 0.4);
+                ctx.lineTo(radius * 0.5, radius * 0.8);
+                ctx.closePath();
+                ctx.fillStyle = '#b8860b'; ctx.fill();
+                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 1.8; ctx.stroke();
+
+                // الهيكل الأساسي
                 drawClassBaseHull(ctx, pClass, radius);
                 ctx.fillStyle = goldGrad; ctx.fill();
                 ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.2; ctx.stroke();
 
-                // بريق ونجوم ذهبية ملكية
-                for (let k = 0; k < 2; k++) {
-                    let starAng = t * 3 + (k * Math.PI);
-                    let sx = Math.cos(starAng) * (radius * 0.7), sy = Math.sin(starAng) * (radius * 0.7);
-                    ctx.beginPath(); ctx.arc(sx, sy, 1.8, 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill();
+                // خطوط ليزرية مذهبة على الهيكل
+                ctx.beginPath();
+                ctx.moveTo(0, -radius * 1.6); ctx.lineTo(0, radius * 0.6);
+                ctx.moveTo(-radius * 0.5, radius * 0.2); ctx.lineTo(radius * 0.5, radius * 0.2);
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.5; ctx.stroke();
+
+                // 3 نجوم بريق ذهبية سابحة
+                for (let k = 0; k < 3; k++) {
+                    let starAng = t * 2.5 + (k * Math.PI * 2 / 3);
+                    let dist = radius * (1.3 + Math.sin(t * 3 + k) * 0.2);
+                    let sx = Math.cos(starAng) * dist, sy = Math.sin(starAng) * dist;
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, 2.2, 0, Math.PI * 2);
+                    ctx.fillStyle = '#ffd700'; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 8; ctx.fill();
+                    ctx.shadowBlur = 0;
                 }
             } else if (skinId === 'skin_glacial_spectre') {
-                // سكن طيف الصقيع: هيكل بلوري مع شظايا جليدية عائمة
-                drawClassBaseHull(ctx, pClass, radius);
-                ctx.fillStyle = 'rgba(180, 240, 255, 0.45)'; ctx.fill();
+                // ==========================================
+                // 2. طيف الصقيع (Glacial Spectre): هيكل بلوري مع 3 شظايا جليد حائمة
+                // ==========================================
+                // أجنحة جليدية مدببة إضافية
+                ctx.beginPath();
+                ctx.moveTo(-radius * 1.5, radius * 0.4);
+                ctx.lineTo(-radius * 1.8, radius * 1.1);
+                ctx.lineTo(-radius * 0.9, radius * 0.9);
+                ctx.moveTo(radius * 1.5, radius * 0.4);
+                ctx.lineTo(radius * 1.8, radius * 1.1);
+                ctx.lineTo(radius * 0.9, radius * 0.9);
+                ctx.fillStyle = 'rgba(0, 243, 255, 0.35)'; ctx.fill();
                 ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 2.0; ctx.stroke();
 
-                // 3 شظايا جليد سابحة حول هيكل الكلاس
+                drawClassBaseHull(ctx, pClass, radius);
+                ctx.fillStyle = 'rgba(180, 245, 255, 0.45)'; ctx.fill();
+                ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 2.2; ctx.stroke();
+
+                // 3 شظايا ماسية سابحة في فلك دائم
                 for (let k = 0; k < 3; k++) {
-                    let ang = t * 2 + (k * Math.PI * 2 / 3);
-                    let sx = Math.cos(ang) * (radius * 1.55);
-                    let sy = Math.sin(ang) * (radius * 1.55);
-                    ctx.beginPath(); ctx.moveTo(sx, sy - 4); ctx.lineTo(sx + 3, sy); ctx.lineTo(sx, sy + 4); ctx.lineTo(sx - 3, sy); ctx.closePath();
-                    ctx.fillStyle = '#00f3ff'; ctx.fill();
+                    let ang = t * 2.0 + (k * Math.PI * 2 / 3);
+                    let sx = Math.cos(ang) * (radius * 1.6);
+                    let sy = Math.sin(ang) * (radius * 1.6);
+                    ctx.save();
+                    ctx.translate(sx, sy);
+                    ctx.rotate(ang + t * 3);
+                    ctx.beginPath();
+                    ctx.moveTo(0, -6); ctx.lineTo(4, 0); ctx.lineTo(0, 6); ctx.lineTo(-4, 0);
+                    ctx.closePath();
+                    ctx.fillStyle = '#c2f7ff'; ctx.shadowColor = '#00f3ff'; ctx.shadowBlur = 10; ctx.fill();
+                    ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 1.5; ctx.stroke();
+                    ctx.restore();
                 }
             } else if (skinId === 'skin_obsidian_dragon') {
-                // سكن تنين الأوبسيديان: تيتانيوم كربوني أسود مع عيون حمراء ونقوش رونية
-                drawClassBaseHull(ctx, pClass, radius);
-                ctx.fillStyle = '#0a0a0f'; ctx.fill();
-                ctx.strokeStyle = '#ff0033'; ctx.lineWidth = 2.2; ctx.stroke();
-
-                // عيون التنين الحمراء
+                // ==========================================
+                // 3. تنين الأوبسيديان (Obsidian Dragon): دروع كربونية مسننة مع عروق حمم
+                // ==========================================
+                // زعانف تنين مسننة على الأطراف
                 ctx.beginPath();
-                ctx.arc(-radius * 0.25, -radius * 0.4, 2, 0, Math.PI * 2);
-                ctx.arc(radius * 0.25, -radius * 0.4, 2, 0, Math.PI * 2);
-                ctx.fillStyle = '#ff0033'; ctx.fill();
+                ctx.moveTo(-radius * 1.6, radius * 0.8);
+                ctx.lineTo(-radius * 1.3, 0);
+                ctx.lineTo(-radius * 1.7, -radius * 0.5);
+                ctx.lineTo(-radius * 0.8, -radius * 0.2);
+                ctx.moveTo(radius * 1.6, radius * 0.8);
+                ctx.lineTo(radius * 1.3, 0);
+                ctx.lineTo(radius * 1.7, -radius * 0.5);
+                ctx.lineTo(radius * 0.8, -radius * 0.2);
+                ctx.fillStyle = '#220006'; ctx.fill();
+                ctx.strokeStyle = '#ff0033'; ctx.lineWidth = 2.0; ctx.stroke();
+
+                drawClassBaseHull(ctx, pClass, radius);
+                ctx.fillStyle = '#0a080d'; ctx.fill();
+                ctx.strokeStyle = '#ff0033'; ctx.lineWidth = 2.4; ctx.stroke();
+
+                // عيون التنين المتوهجة بالياقوت
+                ctx.beginPath();
+                ctx.arc(-radius * 0.3, -radius * 0.6, 2.5, 0, Math.PI * 2);
+                ctx.arc(radius * 0.3, -radius * 0.6, 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#ff0033'; ctx.shadowColor = '#ff0000'; ctx.shadowBlur = 8; ctx.fill();
+                ctx.shadowBlur = 0;
             } else if (skinId === 'skin_solar_phoenix') {
-                // سكن فينيق البلازما: ألوان شمسية متوهجة مع أطراف لهب متوهجة
-                let sunGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, radius * 1.4);
-                sunGrad.addColorStop(0, '#ffffff'); sunGrad.addColorStop(0.3, '#ffcc00'); sunGrad.addColorStop(0.8, '#ff3300'); sunGrad.addColorStop(1, '#880000');
+                // ==========================================
+                // 4. فينيق البلازما الشمسي (Solar Phoenix): أجنحة لهب متموجة وطاقة شمسية
+                // ==========================================
+                let sunGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, radius * 1.5);
+                sunGrad.addColorStop(0, '#ffffff'); sunGrad.addColorStop(0.3, '#ffcc00'); sunGrad.addColorStop(0.7, '#ff4400'); sunGrad.addColorStop(1, '#660000');
+
+                // أجنحة فينيق متموجة مع النبض
+                let wingWave = Math.sin(t * 5) * 4;
+                ctx.beginPath();
+                ctx.moveTo(0, -radius * 1.4);
+                ctx.quadraticCurveTo(-radius * 2.0, -radius * 0.2 + wingWave, -radius * 1.6, radius * 1.1);
+                ctx.lineTo(-radius * 0.8, radius * 0.7);
+                ctx.quadraticCurveTo(0, radius * 0.9, radius * 0.8, radius * 0.7);
+                ctx.lineTo(radius * 1.6, radius * 1.1);
+                ctx.quadraticCurveTo(radius * 2.0, -radius * 0.2 + wingWave, 0, -radius * 1.4);
+                ctx.fillStyle = 'rgba(255, 100, 0, 0.4)'; ctx.fill();
+                ctx.strokeStyle = '#ffbb00'; ctx.lineWidth = 1.8; ctx.stroke();
+
                 drawClassBaseHull(ctx, pClass, radius);
                 ctx.fillStyle = sunGrad; ctx.fill();
                 ctx.strokeStyle = '#ffee66'; ctx.lineWidth = 2.2; ctx.stroke();
             } else if (skinId === 'skin_quantum_void') {
-                // سكن الفراغ الكمي: بنفسجي مظلم مع ثقب أسود دوار في المركز
+                // ==========================================
+                // 5. الفراغ الكمي (Quantum Void): هالة أرجوانية مع حلقة كمية دوارة
+                // ==========================================
                 drawClassBaseHull(ctx, pClass, radius);
-                ctx.fillStyle = '#080312'; ctx.fill();
-                ctx.strokeStyle = '#bd00ff'; ctx.lineWidth = 2.0; ctx.stroke();
+                ctx.fillStyle = '#06020e'; ctx.fill();
+                ctx.strokeStyle = '#bd00ff'; ctx.lineWidth = 2.2; ctx.stroke();
 
-                // ثقب أسود مصغر وحلقات جاذبية في مركز الكلاس
-                ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fillStyle = '#000000'; ctx.fill(); ctx.strokeStyle = '#00f3ff'; ctx.stroke();
-            } else if (skinId === 'skin_apex_overlord') {
-                // سكن الإمبراطور: أرجواني مذهب مع تاج طاقة عائم
-                drawClassBaseHull(ctx, pClass, radius);
-                ctx.fillStyle = '#160814'; ctx.fill();
-                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2.4; ctx.stroke();
-
-                // تاج طاقة هولوغرامي عائم فوق قمرة الكلاس
+                // حلقة كمية مجسمة دوارة حول السفينة
+                ctx.save();
+                ctx.rotate(t * 1.5);
                 ctx.beginPath();
-                ctx.moveTo(-radius * 0.5, -radius * 1.9 + Math.sin(t * 3) * 2);
-                ctx.lineTo(-radius * 0.25, -radius * 1.7 + Math.sin(t * 3) * 2);
-                ctx.lineTo(0, -radius * 2.1 + Math.sin(t * 3) * 2);
-                ctx.lineTo(radius * 0.25, -radius * 1.7 + Math.sin(t * 3) * 2);
-                ctx.lineTo(radius * 0.5, -radius * 1.9 + Math.sin(t * 3) * 2);
-                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 1.8; ctx.stroke();
+                ctx.ellipse(0, 0, radius * 1.65, radius * 0.65, t * 0.8, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(189, 0, 255, 0.75)'; ctx.lineWidth = 2.0; ctx.stroke();
+                
+                // عقدة جاذبية على مدار الحلقة
+                let nx = Math.cos(t * 3) * (radius * 1.65);
+                let ny = Math.sin(t * 3) * (radius * 0.65);
+                ctx.beginPath(); ctx.arc(nx, ny, 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#00f3ff'; ctx.shadowColor = '#00f3ff'; ctx.shadowBlur = 8; ctx.fill();
+                ctx.restore();
+
+                // ثقب أسود في مركز الهيكل
+                ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#000000'; ctx.fill();
+                ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 1.5; ctx.stroke();
             } else if (skinId === 'skin_cyber_phantom') {
-                // سكن الشبح التكتيكي: ألياف كربون رمادية مع مسارات خضراء
+                // ==========================================
+                // 6. الشبح التكتيكي (Cyber Phantom): دروع شبحية كربونية بمسارات نيون خضراء
+                // ==========================================
+                // زعانف شبحية كربونية
+                ctx.beginPath();
+                ctx.moveTo(-radius * 1.5, radius * 0.9);
+                ctx.lineTo(-radius * 1.4, -radius * 0.8);
+                ctx.lineTo(-radius * 0.7, -radius * 0.3);
+                ctx.moveTo(radius * 1.5, radius * 0.9);
+                ctx.lineTo(radius * 1.4, -radius * 0.8);
+                ctx.lineTo(radius * 0.7, -radius * 0.3);
+                ctx.fillStyle = '#08140f'; ctx.fill();
+                ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 1.8; ctx.stroke();
+
                 drawClassBaseHull(ctx, pClass, radius);
-                ctx.fillStyle = '#0c121c'; ctx.fill();
-                ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 2.0; ctx.stroke();
+                ctx.fillStyle = '#0a1017'; ctx.fill();
+                ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 2.2; ctx.stroke();
+
+                // مسارات دارات كهربائية نيونية خضراء متوهجة
+                ctx.beginPath();
+                ctx.moveTo(-radius * 0.5, radius * 0.4); ctx.lineTo(-radius * 0.2, 0); ctx.lineTo(0, -radius * 0.8); ctx.lineTo(radius * 0.2, 0); ctx.lineTo(radius * 0.5, radius * 0.4);
+                ctx.strokeStyle = '#00ff88'; ctx.lineWidth = 1.5; ctx.shadowColor = '#00ff88'; ctx.shadowBlur = 6; ctx.stroke();
+                ctx.shadowBlur = 0;
             } else if (skinId === 'skin_neon_berserker') {
-                // سكن الهائج النيوني: خطوط قرمزي ووردي كهربائي
+                // ==========================================
+                // 7. الهائج النيوني (Neon Berserker): شفرات نيونية حادة قاطعة على الأجنحة
+                // ==========================================
+                // شفرات هجومية نيونية أمامية بارزة
+                ctx.beginPath();
+                ctx.moveTo(-radius * 1.2, radius * 0.6);
+                ctx.lineTo(-radius * 1.5, -radius * 1.3);
+                ctx.lineTo(-radius * 0.7, -radius * 0.5);
+                ctx.moveTo(radius * 1.2, radius * 0.6);
+                ctx.lineTo(radius * 1.5, -radius * 1.3);
+                ctx.lineTo(radius * 0.7, -radius * 0.5);
+                ctx.fillStyle = '#ff0055'; ctx.shadowColor = '#ff0055'; ctx.shadowBlur = 10; ctx.fill();
+                ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.8; ctx.stroke();
+                ctx.shadowBlur = 0;
+
                 drawClassBaseHull(ctx, pClass, radius);
-                ctx.fillStyle = '#1a040a'; ctx.fill();
+                ctx.fillStyle = '#1c030d'; ctx.fill();
                 ctx.strokeStyle = '#ff0055'; ctx.lineWidth = 2.4; ctx.stroke();
+            } else if (skinId === 'skin_apex_overlord') {
+                // ==========================================
+                // 8. الإمبراطور السيبراني (Apex Overlord): دروع مذهبة ملكية مع تاج طاقة وأقمار حماية
+                // ==========================================
+                // صفائح دروع إمبراطورية أرجوانية مذهبة
+                ctx.beginPath();
+                ctx.moveTo(-radius * 1.6, radius * 0.6);
+                ctx.lineTo(-radius * 1.2, -radius * 1.0);
+                ctx.lineTo(-radius * 0.6, -radius * 1.2);
+                ctx.lineTo(-radius * 0.6, radius * 0.8);
+                ctx.moveTo(radius * 1.6, radius * 0.6);
+                ctx.lineTo(radius * 1.2, -radius * 1.0);
+                ctx.lineTo(radius * 0.6, -radius * 1.2);
+                ctx.lineTo(radius * 0.6, radius * 0.8);
+                ctx.fillStyle = '#3b0d40'; ctx.fill();
+                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2.0; ctx.stroke();
+
+                drawClassBaseHull(ctx, pClass, radius);
+                ctx.fillStyle = '#180720'; ctx.fill();
+                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 2.6; ctx.stroke();
+
+                // تاج طاقة هولوغرامي خماسي عائم فوق القمرة
+                let crownY = -radius * 1.8 + Math.sin(t * 3) * 2;
+                ctx.beginPath();
+                ctx.moveTo(-radius * 0.6, crownY);
+                ctx.lineTo(-radius * 0.35, crownY + 3);
+                ctx.lineTo(0, crownY - 4);
+                ctx.lineTo(radius * 0.35, crownY + 3);
+                ctx.lineTo(radius * 0.6, crownY);
+                ctx.lineTo(0, crownY + 6);
+                ctx.closePath();
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.4)'; ctx.fill();
+                ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 1.8; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 8; ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // قمر دفاعي ذهبي يدور حول الهيكل
+                let satX = Math.cos(t * 3) * (radius * 1.7);
+                let satY = Math.sin(t * 3) * (radius * 1.7);
+                ctx.beginPath(); ctx.arc(satX, satY, 3, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffd700'; ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 8; ctx.fill();
+                ctx.shadowBlur = 0;
             } else {
-                // السكن القياسي (Standard)
+                // ==========================================
+                // 9. الهيكل القياسي (Standard): اعتراض كهرومغناطيسي تكتيكي نقي
+                // ==========================================
                 drawClassBaseHull(ctx, pClass, radius);
                 ctx.fillStyle = classBaseCol; ctx.fill();
                 ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.0; ctx.stroke();
             }
 
-            // 2. قمرة القيادة الخاصة بالكلاس
+            // قمرة القيادة الخاصة بالكلاس
             ctx.beginPath();
             ctx.ellipse(0, -radius * 0.2, 3.5, 7, 0, 0, Math.PI * 2);
             ctx.fillStyle = isFiringUlt ? '#ff0055' : (overchargeActive ? '#ffd700' : '#ffffff');
+            ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
             ctx.fill();
+            ctx.shadowBlur = 0;
 
             ctx.restore();
         }
@@ -2458,7 +2649,7 @@ function playSoundOriginal(type) {
 
         const MASTER_PERKS = {
             shield_core: {
-                id: 'shield_core', title: 'درع إيجيس الفائق (Aegis)', icon: '',
+                id: 'shield_core', title: 'درع إيجيس الفائق (Aegis)', icon: 'icon-shield',
                 desc: [
                     'المستوى 1: +1 طبقة درع حماية إضافية وإعادة شحن فورية.',
                     'المستوى 2: +2 طبقات درع وتخفيض 25% لوقت إعادة شحن الدرع.',
@@ -2472,7 +2663,7 @@ function playSoundOriginal(type) {
                 }
             },
             evo_plasma: {
-                id: 'evo_plasma', title: 'بلازما اللهب الحارق', icon: '',
+                id: 'evo_plasma', title: 'بلازما اللهب الحارق', icon: 'icon-flame',
                 desc: [
                     'المستوى 1: طلقات حارقة تترك بقع لهب تلحق ضرراً مستمراً.',
                     'المستوى 2: +30% ضرر احتراق وانفجار حراري عند مقتل العدو.',
@@ -2484,7 +2675,7 @@ function playSoundOriginal(type) {
                 }
             },
             evo_frost: {
-                id: 'evo_frost', title: 'الصقيع الزمني المطبق', icon: '',
+                id: 'evo_frost', title: 'الصقيع الزمني المطبق', icon: 'icon-snow',
                 desc: [
                     'المستوى 1: إبطاء سرعة حركة وهجوم الأعداء المصابين بنسبة 40%.',
                     'المستوى 2: تجميد الأعداء لثانية ونصف بعد 3 إصابات متتالية.',
@@ -2496,7 +2687,7 @@ function playSoundOriginal(type) {
                 }
             },
             sub_drone: {
-                id: 'sub_drone', title: 'المسيّرة المقاتلة المرافقة', icon: '',
+                id: 'sub_drone', title: 'المسيّرة المقاتلة المرافقة', icon: 'icon-bot',
                 desc: [
                     'المستوى 1: مسيّرة واحدة مرافقة تطلق ليزراً تلقائياً على أقرب هدف.',
                     'المستوى 2: طائرتان مرافقتان مع زيادة 30% لسرعة إطلاق النار.',
@@ -2508,7 +2699,7 @@ function playSoundOriginal(type) {
                 }
             },
             sub_tesla: {
-                id: 'sub_tesla', title: 'ملف تسلا الصاعق المتسلسل', icon: '',
+                id: 'sub_tesla', title: 'ملف تسلا الصاعق المتسلسل', icon: 'icon-zap',
                 desc: [
                     'المستوى 1: تفريغ صاعقة تقفز بين هدفين وتلحق شللاً مؤقتاً.',
                     'المستوى 2: الصواعق تقفز بين 4 أهداف مع تقليل كولداون الصعق.',
@@ -2521,7 +2712,7 @@ function playSoundOriginal(type) {
                 }
             },
             sub_mines: {
-                id: 'sub_mines', title: 'الألغام الجاذبة النبضية', icon: '',
+                id: 'sub_mines', title: 'الألغام الجاذبة النبضية', icon: 'icon-target',
                 desc: [
                     'المستوى 1: إسقاط ألغام موقوتة دورية تنفجر عند اقتراب الأعداء.',
                     'المستوى 2: الألغام تسحب الأعداء نحو مركز الانفجار بحقل جاذبي.',
@@ -2533,7 +2724,7 @@ function playSoundOriginal(type) {
                 }
             },
             hyper_fire: {
-                id: 'hyper_fire', title: 'تسريع التردد الناري الفائق', icon: '',
+                id: 'hyper_fire', title: 'تسريع التردد الناري الفائق', icon: 'icon-crosshair',
                 desc: [
                     'المستوى 1: +25% زيادة سرعة إطلاق النار الأساسية.',
                     'المستوى 2: +45% سرعة إطلاق نار مع خفض ارتداد السلاح.',
@@ -2545,7 +2736,7 @@ function playSoundOriginal(type) {
                 }
             },
             kinetic_blast: {
-                id: 'kinetic_blast', title: 'مقذوفات البلازما الثقيلة', icon: '',
+                id: 'kinetic_blast', title: 'مقذوفات البلازما الثقيلة', icon: 'icon-swords',
                 desc: [
                     'المستوى 1: +35% مضاعفة ضرر الرصاص الأساسي.',
                     'المستوى 2: +70% ضرر الرصاص مع فرصة 25% لإحداث ضربة حرجة x2.',
@@ -2556,7 +2747,7 @@ function playSoundOriginal(type) {
                 }
             },
             chrono_drift: {
-                id: 'chrono_drift', title: 'مكثف الاندفاع الزمني (Drift)', icon: '',
+                id: 'chrono_drift', title: 'مكثف الاندفاع الزمني (Drift)', icon: 'icon-orbit',
                 desc: [
                     'المستوى 1: تخفيض كولداون الـ Dash بمقدار 300ms.',
                     'المستوى 2: تخفيض 600ms لكولداون الـ Dash وزيادة مسافة الاندفاع 25%.',
@@ -2567,7 +2758,7 @@ function playSoundOriginal(type) {
                 }
             },
             vampiric_siphon: {
-                id: 'vampiric_siphon', title: 'ممتص الطاقة الحيوية', icon: '',
+                id: 'vampiric_siphon', title: 'ممتص الطاقة الحيوية', icon: 'icon-heart',
                 desc: [
                     'المستوى 1: القضاء على الأعداء يمنح طاقة إضافية للـ EMP والـ Ultimate.',
                     'المستوى 2: القضاء على النخب والزعماء يمدد حالة Overcharge بنسبة +2 ثوانٍ.',
@@ -2579,7 +2770,7 @@ function playSoundOriginal(type) {
                 }
             },
             ricochet_flak: {
-                id: 'ricochet_flak', title: 'مقذوفات الارتداد المنشطرة', icon: '',
+                id: 'ricochet_flak', title: 'مقذوفات الارتداد المنشطرة', icon: 'icon-swords',
                 desc: [
                     'المستوى 1: الرصاص يرتد عن حواف الساحة نحو أقرب عدو.',
                     'المستوى 2: الرصاص يرتد مرتين مع زيادة 25% لسرعة المقذوف.',
@@ -2591,7 +2782,7 @@ function playSoundOriginal(type) {
                 }
             },
             orbital_crest: {
-                id: 'orbital_crest', title: 'الدرع المداري العاكس', icon: '',
+                id: 'orbital_crest', title: 'الدرع المداري العاكس', icon: 'icon-shield',
                 desc: [
                     'المستوى 1: شفرة طاقة تدور حول المركبة وتمسح رصاص الأعداء القريب.',
                     'المستوى 2: شفرتان مداريتان بمدى دوران أوسع وسرعة دوران مضاعفة.',
@@ -2749,6 +2940,8 @@ function playSoundOriginal(type) {
             }
         }
 
+        let activeSelectedPerkId = null;
+
         function renderPerksMatrixUI() {
             let container = document.getElementById('main-perks-grid');
             if (!container) return;
@@ -2758,31 +2951,105 @@ function playSoundOriginal(type) {
                 let perk = MASTER_PERKS[key];
                 let isEquipped = equippedPerks.includes(key);
                 let lvl = (perkLevels && perkLevels[key]) || 1;
-                let card = document.createElement('div');
-                card.className = `perk-slot-card ${isEquipped ? 'equipped' : ''}`;
-                card.onclick = () => toggleEquipPerk(key);
-                
-                let equipBadge = `<div class="perk-slot-badge ${isEquipped ? 'active' : 'inactive'}">${isEquipped ? '[OK] مجهز في العتاد القتالي' : '+ اضغط للتجهيز في الفتحة'}</div>`;
-                let descL1 = perk.desc[0] || 'المستوى 1: تعزيز أساسي';
-                let descL2 = perk.desc[1] || 'المستوى 2: تعزيز متقدم مضاعف';
-                let descL3 = perk.desc[2] || 'المستوى 3: قوة APEX القصوى';
+                let tile = document.createElement('div');
+                tile.className = `compact-perk-tile ${isEquipped ? 'equipped' : ''}`;
+                tile.onclick = () => openPerkDetailModal(key);
 
-                card.innerHTML = `
-                    ${equipBadge}
-                    <div style="font-size: 2.2rem; margin: 6px 0;">${perk.icon}</div>
-                    <div class="card-title" style="font-size: 0.96rem; font-weight: 900; color: #fff;">${perk.title}</div>
-                    <div class="auto-evolve-tag" style="background: rgba(0, 243, 255, 0.12); border: 1px solid #00f3ff; border-radius: 20px; padding: 2px 10px; font-size: 0.7rem; color: #00f3ff; font-weight: bold; margin: 6px 0;">
-                         يتطور تلقائياً أثناء القتال (L1  L3)
+                let iconId = perk.icon || 'icon-zap';
+                let isAr = (typeof currentLanguage !== 'undefined' && currentLanguage === 'ar');
+                let statusText = isEquipped ? (isAr ? 'مجهز' : 'EQUIPPED') : (isAr ? 'تجهيز' : 'EQUIP');
+
+                tile.innerHTML = `
+                    <div class="perk-tile-icon-wrap">
+                        <svg class="c-icon c-icon-lg"><use href="#${iconId}"></use></svg>
+                        <span class="perk-level-tag">Lv.${lvl}</span>
                     </div>
-                    <div class="perk-tier-descriptions" style="text-align: right; width: 100%; font-size: 0.72rem; color: #8899a6; line-height: 1.4; margin-top: 6px;">
-                        <div style="color: #00ff88; margin-bottom: 2px;">• L1: ${descL1}</div>
-                        <div style="color: #00f3ff; margin-bottom: 2px;">• L2: ${descL2}</div>
-                        <div style="color: #ffd700;">• L3: ${descL3}</div>
+                    <div class="perk-tile-body">
+                        <div class="perk-tile-title">${perk.title}</div>
+                        <div class="perk-tile-tag ${isEquipped ? 'active' : ''}">${statusText}</div>
+                    </div>
+                    <div class="perk-tile-info-btn">
+                        <svg class="c-icon"><use href="#icon-info"></use></svg>
                     </div>
                 `;
-                container.appendChild(card);
+                container.appendChild(tile);
             }
         }
+
+        window.openPerkDetailModal = function(perkId) {
+            activeSelectedPerkId = perkId;
+            const perk = MASTER_PERKS[perkId];
+            if (!perk) return;
+            const modal = document.getElementById('perk-detail-modal');
+            if (!modal) return;
+
+            const iconEl = document.getElementById('perk-modal-icon');
+            if (iconEl) iconEl.innerHTML = `<use href="#${perk.icon || 'icon-zap'}"></use>`;
+            const titleEl = document.getElementById('perk-modal-title');
+            if (titleEl) titleEl.innerText = perk.title;
+
+            const bodyEl = document.getElementById('perk-modal-body-content');
+            if (bodyEl) {
+                let isAr = (typeof currentLanguage !== 'undefined' && currentLanguage === 'ar');
+                let curLvl = (perkLevels && perkLevels[perkId]) || 1;
+                let descL1 = perk.desc[0] || 'تعزيز أساسي';
+                let descL2 = perk.desc[1] || 'تعزيز متقدم مضاعف';
+                let descL3 = perk.desc[2] || 'قوة APEX القصوى';
+
+                bodyEl.innerHTML = `
+                    <div class="perk-modal-hero-badge">
+                        <span class="perk-hero-evolve-txt">
+                            <span class="pulse-dot"></span> ${isAr ? 'يتطور تلقائياً داخل المعركة مع كل موجة' : 'Auto-evolves during battle per wave'}
+                        </span>
+                    </div>
+                    <div class="perk-levels-timeline">
+                        <div class="perk-tier-row ${curLvl >= 1 ? 'unlocked' : ''}">
+                            <span class="tier-dot tier-l1">L1</span>
+                            <div class="tier-desc-box">
+                                <div class="tier-name">${isAr ? 'المستوى 1 (Tier 1)' : 'Level 1'}</div>
+                                <div class="tier-desc-txt">${descL1}</div>
+                            </div>
+                        </div>
+                        <div class="perk-tier-row ${curLvl >= 2 ? 'unlocked' : ''}">
+                            <span class="tier-dot tier-l2">L2</span>
+                            <div class="tier-desc-box">
+                                <div class="tier-name">${isAr ? 'المستوى 2 (Tier 2)' : 'Level 2'}</div>
+                                <div class="tier-desc-txt">${descL2}</div>
+                            </div>
+                        </div>
+                        <div class="perk-tier-row ${curLvl >= 3 ? 'unlocked' : ''}">
+                            <span class="tier-dot tier-l3">L3</span>
+                            <div class="tier-desc-box">
+                                <div class="tier-name">${isAr ? 'المستوى 3 (Apex Tier 3)' : 'Level 3 (Apex)'}</div>
+                                <div class="tier-desc-txt">${descL3}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            const equipBtn = document.getElementById('perk-modal-equip-btn');
+            if (equipBtn) {
+                let isEquipped = equippedPerks.includes(perkId);
+                let isAr = (typeof currentLanguage !== 'undefined' && currentLanguage === 'ar');
+                equipBtn.innerText = isEquipped ? (isAr ? 'إلغاء التجهيز من العتاد' : 'Unequip Perk') : (isAr ? 'تجهيز في العتاد القتالي' : 'Equip in Loadout');
+                equipBtn.className = isEquipped ? 'btn-danger' : 'btn-primary';
+            }
+
+            modal.classList.remove('hidden');
+            playSound('tab');
+        };
+
+        window.closePerkDetailModal = function() {
+            const modal = document.getElementById('perk-detail-modal');
+            if (modal) modal.classList.add('hidden');
+        };
+
+        window.togglePerkFromModal = function() {
+            if (!activeSelectedPerkId) return;
+            toggleEquipPerk(activeSelectedPerkId);
+            openPerkDetailModal(activeSelectedPerkId);
+        };
 
         let joystickPointerId = null, joystickBaseX = 0, joystickBaseY = 0, joystickAngle = -Math.PI / 2, joystickPower = 0;
         let aimJoystickPointerId = null, aimJoystickBaseX = 0, aimJoystickBaseY = 0, aimJoystickAngle = -Math.PI / 2, aimJoystickPower = 0;
@@ -3075,8 +3342,14 @@ function playSoundOriginal(type) {
 
         function updateArsenalUI() {
             updateMetaShopUI();
-            document.getElementById('menu-level-val').innerText = playerLevel;
-            document.getElementById('menu-xp-val').innerText = playerXP;
+            const lvlEl = document.getElementById('menu-level-val');
+            if (lvlEl) lvlEl.innerText = playerLevel;
+            const xpEl = document.getElementById('menu-xp-val');
+            if (xpEl) xpEl.innerText = playerXP;
+            const topLvl = document.getElementById('menu-top-level');
+            if (topLvl) topLvl.innerText = playerLevel;
+            const topCred = document.getElementById('menu-top-credits');
+            if (topCred) topCred.innerText = metaCurrency;
             renderArsenalPreviewCanvas();
         }
 
@@ -3093,9 +3366,26 @@ function playSoundOriginal(type) {
             if (!container) return;
             container.innerHTML = '';
             for (let key in contracts) {
-                let con = contracts[key], card = document.createElement('div');
-                card.className = `contract-card ${con.unlocked ? 'unlocked' : ''}`;
-                card.innerHTML = `<div><div class="ach-title">${con.title}</div><div class="ach-desc">${con.desc}</div></div><div class="ach-status ${con.unlocked ? 'done' : 'pending'}">${con.unlocked ? '[OK] مجمع (+ ' + con.reward + ' مكعب)' : ' غير مكتمل'}</div>`;
+                let con = contracts[key];
+                let card = document.createElement('div');
+                card.className = `compact-mission-row ${con.unlocked ? 'unlocked' : ''}`;
+                let iconId = con.unlocked ? 'icon-check' : 'icon-swords';
+                let isAr = (typeof currentLanguage !== 'undefined' && currentLanguage === 'ar');
+                let statusTxt = con.unlocked ? (isAr ? 'مكتمل' : 'Claimed') : (isAr ? 'قيد التنفيذ' : 'In Progress');
+
+                card.innerHTML = `
+                    <div class="mission-row-icon ${con.unlocked ? 'done' : ''}">
+                        <svg class="c-icon"><use href="#${iconId}"></use></svg>
+                    </div>
+                    <div class="mission-row-info">
+                        <div class="mission-row-title">${con.title}</div>
+                        <div class="mission-row-desc">${con.desc}</div>
+                    </div>
+                    <div class="mission-row-reward">
+                        <span class="mission-reward-tag">+${con.reward} CR</span>
+                        <span class="mission-status-pill ${con.unlocked ? 'done' : 'pending'}">${statusTxt}</span>
+                    </div>
+                `;
                 container.appendChild(card);
             }
         }
@@ -3105,9 +3395,26 @@ function playSoundOriginal(type) {
             if (!container) return;
             container.innerHTML = '';
             for (let key in achievements) {
-                let ach = achievements[key], card = document.createElement('div');
-                card.className = `achievement-card ${ach.unlocked ? 'unlocked' : ''}`;
-                card.innerHTML = `<div><div class="ach-title">${ach.title}</div><div class="ach-desc">${ach.desc}</div></div><div class="ach-status ${ach.unlocked ? 'done' : 'pending'}">${ach.unlocked ? '[OK] مكتمل (+ ' + ach.reward + ' مكعب)' : ' مقفل'}</div>`;
+                let ach = achievements[key];
+                let card = document.createElement('div');
+                card.className = `compact-mission-row ${ach.unlocked ? 'unlocked' : ''}`;
+                let iconId = ach.unlocked ? 'icon-trophy' : 'icon-crown';
+                let isAr = (typeof currentLanguage !== 'undefined' && currentLanguage === 'ar');
+                let statusTxt = ach.unlocked ? (isAr ? 'منجز' : 'Unlocked') : (isAr ? 'مقفل' : 'Locked');
+
+                card.innerHTML = `
+                    <div class="mission-row-icon ${ach.unlocked ? 'done' : ''}">
+                        <svg class="c-icon"><use href="#${iconId}"></use></svg>
+                    </div>
+                    <div class="mission-row-info">
+                        <div class="mission-row-title">${ach.title}</div>
+                        <div class="mission-row-desc">${ach.desc}</div>
+                    </div>
+                    <div class="mission-row-reward">
+                        <span class="mission-reward-tag">+${ach.reward} CR</span>
+                        <span class="mission-status-pill ${ach.unlocked ? 'done' : 'pending'}">${statusTxt}</span>
+                    </div>
+                `;
                 container.appendChild(card);
             }
         }
@@ -3304,6 +3611,11 @@ function updateGoogleUI() {
             }
             if (trophiesValEl) trophiesValEl.innerText = `${playerTrophies} PTS`;
 
+            const topCreds = document.getElementById('menu-top-credits');
+            if (topCreds) topCreds.innerText = metaCurrency;
+            const topLvl = document.getElementById('menu-top-level');
+            if (topLvl) topLvl.innerText = playerLevel;
+
             if (tier.nextTier) {
                 let prevTierFloor = tier.id === 'bronze' ? 0 : (tier.id === 'silver' ? 500 : (tier.id === 'gold' ? 1000 : 2000));
                 let progressPct = Math.min(100, Math.max(0, ((playerTrophies - prevTierFloor) / (tier.nextTrophies - prevTierFloor)) * 100));
@@ -3324,15 +3636,15 @@ function updateGoogleUI() {
         }
 
         window.openRankLeaderboardModal = function() {
+            if (typeof playSound === 'function') playSound('tab');
             const modal = document.getElementById('rank-leaderboard-modal');
             if (modal) {
                 modal.classList.remove('hidden');
                 modal.style.display = 'flex';
             }
+            renderLocalRankLeaderboard();
             if (socket && isSocketConnected) {
                 socket.emit('get_rank_leaderboard');
-            } else {
-                renderLocalRankLeaderboard();
             }
         };
 
@@ -3348,16 +3660,37 @@ function updateGoogleUI() {
             const body = document.getElementById('rank-leaderboard-body');
             if (!body) return;
             const tier = getRankTierClient(playerTrophies);
-            body.innerHTML = `
-                <tr>
-                    <td><strong style="color:#ffd700;">#1 (أنت)</strong></td>
-                    <td><strong>${tacticalUsername || 'Apex_Agent'}</strong></td>
+            
+            let rows = [
+                { rank: '#1', name: 'CyberTitan_99', tier: 'Grand Master', tierColor: '#ff00ea', trophies: '4,280 PTS', kills: '312', revives: '84' },
+                { rank: '#2', name: 'Vortex_Spectre', tier: 'Diamond Apex', tierColor: '#00f3ff', trophies: '2,940 PTS', kills: '198', revives: '62' },
+                { rank: '#3', name: 'Neon_Overlord', tier: 'Gold Striker', tierColor: '#ffd700', trophies: '1,450 PTS', kills: '145', revives: '41' }
+            ];
+
+            let isAr = (typeof currentLanguage !== 'undefined' && currentLanguage === 'ar');
+            let userRow = `
+                <tr style="background: rgba(0, 243, 255, 0.12); border-left: 3px solid #00f3ff;">
+                    <td><strong style="color:#00ff88;">#4 (${isAr ? 'أنت' : 'YOU'})</strong></td>
+                    <td><strong style="color:#00f3ff;">${tacticalUsername || 'Apex_Agent'}</strong></td>
                     <td><span style="color:${tier.color}; font-weight:bold;">${tier.badge} ${tier.name.split('(')[0]}</span></td>
                     <td><strong style="color:#ffd700;">${playerTrophies} PTS</strong></td>
-                    <td>0</td>
+                    <td>${(typeof sessionStats !== 'undefined' && sessionStats && sessionStats.kills) ? sessionStats.kills : 0}</td>
                     <td>0</td>
                 </tr>
             `;
+
+            let tableHtml = rows.map(r => `
+                <tr>
+                    <td><strong style="color:#ffd700;">${r.rank}</strong></td>
+                    <td><strong>${r.name}</strong></td>
+                    <td><span style="color:${r.tierColor}; font-weight:bold;">${r.tier}</span></td>
+                    <td><strong style="color:#ffd700;">${r.trophies}</strong></td>
+                    <td>${r.kills}</td>
+                    <td>${r.revives}</td>
+                </tr>
+            `).join('') + userRow;
+
+            body.innerHTML = tableHtml;
         }
 
         window.showMatchVictoryPodium = function(p1, p2, p3, rewardsText) {
@@ -5313,14 +5646,17 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     btnHtml = `<button class="shop-item-btn btn-buy" onclick="buyOrEquipCosmetic('${item.id}', '${currentShopCategory}', ${item.price})">شراء (${item.price} CR)</button>`;
                 }
 
-                let setTag = (item.setId && COSMETIC_SETS[item.setId]) ? `<div style="font-size:0.65rem; color:#ffd700; margin-top:2px;"> طقم متناسق</div>` : '';
+                let setTag = (item.setId && COSMETIC_SETS[item.setId]) ? `<div class="shop-set-tag"> طقم متناسق</div>` : '';
+                let iconSvg = `<svg class="c-icon c-icon-lg"><use href="#${item.icon || 'icon-sparkles'}"></use></svg>`;
 
                 card.innerHTML = `
-                    <div class="shop-item-icon">${item.icon}</div>
+                    <div class="shop-card-top-row">
+                        <span class="shop-card-rarity-badge">${(item.rarity || 'Common').toUpperCase()}</span>
+                        ${setTag}
+                    </div>
+                    <div class="shop-item-icon-box">${iconSvg}</div>
                     <div class="shop-item-title">${item.title}</div>
-                    <div class="shop-item-desc">${item.desc}</div>
-                    ${setTag}
-                    ${btnHtml}
+                    <div class="shop-card-action-wrap">${btnHtml}</div>
                 `;
                 container.appendChild(card);
             }
@@ -5371,6 +5707,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         };
 
         function closeAllActiveModals() {
+            const perkModal = document.getElementById('perk-detail-modal');
+            if (perkModal) perkModal.classList.add('hidden');
             const modeModal = document.getElementById('mode-select-modal');
             if (modeModal) modeModal.classList.add('hidden');
             const daily = document.getElementById('daily-rewards-modal');
