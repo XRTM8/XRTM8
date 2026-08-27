@@ -3100,13 +3100,21 @@ function playSoundOriginal(type) {
 
         window.openModeSelectModal = function() {
             const m = document.getElementById('mode-select-modal');
-            if (m) m.classList.remove('hidden');
+            if (m) {
+                m.classList.remove('hidden');
+                m.style.display = 'flex';
+            }
+            isModalActive = true;
             playSound('tab');
         };
 
         window.closeModeSelectModal = function() {
             const m = document.getElementById('mode-select-modal');
-            if (m) m.classList.add('hidden');
+            if (m) {
+                m.classList.add('hidden');
+                m.style.display = 'none';
+            }
+            isModalActive = false;
         };
 
         function switchTab(tabName) {
@@ -10320,6 +10328,12 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 mainMenu.classList.add('hidden');
                 mainMenu.style.display = 'none';
             }
+            if (typeof closeModeSelectModal === 'function') closeModeSelectModal();
+            document.querySelectorAll('.cyber-modal, .modal-backdrop').forEach(m => {
+                m.classList.add('hidden');
+                m.style.display = 'none';
+            });
+            isModalActive = false;
 
             const isOnline = isMultiplayerMode();
             if (isOnline) {
