@@ -1262,10 +1262,16 @@
         <div id="online-kill-feed" class="online-kill-feed"></div>
 
         <div id="boss-hud-container">
-            <div id="boss-name-label">The Giant Cube</div>
+            <div class="boss-title-row">
+                <span class="boss-skull-icon"><svg class="c-icon c-icon-red"><use href="#icon-skull"></use></svg></span>
+                <span id="boss-name-label">The Giant Cube</span>
+                <span class="boss-threat-badge">THREAT LV.MAX</span>
+            </div>
             <div class="boss-bar-bg">
                 <div id="boss-hp-bar"></div>
                 <div id="boss-stagger-bar"></div>
+                <div class="boss-phase-divider phase-1"></div>
+                <div class="boss-phase-divider phase-2"></div>
             </div>
         </div>
         
@@ -1409,7 +1415,10 @@
             <div class="telemetry-row"><span data-i18n="telSubkills">ضحايا الأسلحة المساندة:</span><span class="telemetry-val" id="tel-subkills">0</span></div>
             <div class="telemetry-row"><span data-i18n="telUlts">القدرات المطلقة المنفذة:</span><span class="telemetry-val" id="tel-ults">0</span></div>
         </div>
-        <button class="btn-main" onclick="returnToMainMenu()" data-i18n="returnToMainMenuBtn">القائمة الرئيسية</button>
+        <div style="display: flex; gap: 10px; margin-top: 10px; width: 100%; max-width: 340px;">
+            <button class="btn-main" onclick="restartGame()" style="background: linear-gradient(135deg, #00f3ff, #00a2ff); flex: 1; margin-top: 0;" data-i18n="retryBattleBtn">إعادة القتال فوراً</button>
+            <button class="btn-main" onclick="returnToMainMenu()" style="background: rgba(255, 255, 255, 0.1); flex: 1; margin-top: 0;" data-i18n="returnToMainMenuBtn">القائمة الرئيسية</button>
+        </div>
     </div>
 
     <!-- بنر الإعلانات العامة من الخادم والمطور -->

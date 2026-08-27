@@ -781,7 +781,8 @@ const I18N_DICTIONARY = {
         legendBoss: 'زعيم',
         legendOasis: 'واحة',
         legendPortals: 'بوابات',
-        legendCrystal: 'كريستال'
+        legendCrystal: 'كريستال',
+        retryBattleBtn: 'إعادة القتال فوراً'
     },
     en: {
             gameTitle: 'Chrono Drift', rotatePhoneTitle: 'Please Rotate Device to Landscape', rotatePhoneDesc: 'For the optimal full-screen tactical combat experience',
@@ -973,7 +974,8 @@ const I18N_DICTIONARY = {
         legendBoss: 'Boss',
         legendOasis: 'Oasis',
         legendPortals: 'Portals',
-        legendCrystal: 'Crystal'
+        legendCrystal: 'Crystal',
+        retryBattleBtn: 'RETRY BATTLE'
     }
 };
 
@@ -2438,8 +2440,8 @@ function updateAndDrawMuzzleFlashes(effectiveDelta) {
     }
 }
 
-// 3. Audio Synthesizer 2.0 (Cinematic Multi-Layered Web Audio SFX)
-function playSoundV2(type) {
+// 3. Audio Synthesizer 3.0 (Cinematic Procedural Multi-Layered Web Audio Engine)
+function playSoundV2(type, param) {
     if (!gameSettings || !gameSettings.sound || !audioCtx || audioCtx.state !== 'running') return;
 
     try {
@@ -2452,22 +2454,84 @@ function playSoundV2(type) {
             gain.gain.setValueAtTime(0.04, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
             osc.connect(gain); gain.connect(masterOut);
             osc.start(now); osc.stop(now + 0.035);
-        } else if (type === 'ui_click') {
+        } else if (type === 'ui_click' || type === 'tab') {
             let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
             osc.type = 'triangle'; osc.frequency.setValueAtTime(450, now); osc.frequency.exponentialRampToValueAtTime(950, now + 0.06);
             gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
             osc.connect(gain); gain.connect(masterOut);
             osc.start(now); osc.stop(now + 0.065);
-        } else if (type === 'shoot_railgun') {
-            // High energy hypersonic crack + sub-drop
+        } else if (type === 'graze') {
+            // High crystal adrenaline shimmer ping
             let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(1200, now); osc1.frequency.exponentialRampToValueAtTime(80, now + 0.35);
-            osc2.type = 'sine'; osc2.frequency.setValueAtTime(180, now); osc2.frequency.exponentialRampToValueAtTime(30, now + 0.35);
+            osc1.type = 'sine'; osc1.frequency.setValueAtTime(2400, now); osc1.frequency.exponentialRampToValueAtTime(3600, now + 0.08);
+            osc2.type = 'triangle'; osc2.frequency.setValueAtTime(4800, now); osc2.frequency.exponentialRampToValueAtTime(6000, now + 0.08);
+            gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+            osc1.connect(gain); osc2.connect(gain); gain.connect(masterOut);
+            osc1.start(now); osc2.start(now); osc1.stop(now + 0.09); osc2.stop(now + 0.09);
+        } else if (type === 'boss_roar') {
+            // Seismic sub-bass rumble + distorted low-end sweep
+            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            let filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.setValueAtTime(350, now); filter.frequency.exponentialRampToValueAtTime(60, now + 0.9);
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(90, now); osc.frequency.exponentialRampToValueAtTime(25, now + 0.9);
+            gain.gain.setValueAtTime(0.55, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+            osc.connect(filter); filter.connect(gain); gain.connect(masterOut);
+            osc.start(now); osc.stop(now + 0.9);
+        } else if (type === 'combo_kill') {
+            // Dynamic pitch-scaling kill sound based on combo streak
+            let cCount = (typeof combo !== 'undefined' && combo) ? combo : 1;
+            let basePitch = Math.min(1800, 520 * Math.pow(1.05, Math.min(25, cCount)));
+            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(basePitch, now); osc.frequency.exponentialRampToValueAtTime(basePitch * 1.5, now + 0.12);
+            gain.gain.setValueAtTime(0.20, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            osc.connect(gain); gain.connect(masterOut);
+            osc.start(now); osc.stop(now + 0.13);
+        } else if (type === 'shield_break') {
+            // Urgent fractured shield alarm
+            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(980, now); osc.frequency.exponentialRampToValueAtTime(220, now + 0.28);
+            gain.gain.setValueAtTime(0.35, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+            osc.connect(gain); gain.connect(masterOut);
+            osc.start(now); osc.stop(now + 0.29);
+        } else if (type === 'shield_recharge') {
+            // Harmonic crystal swell
+            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc1.type = 'sine'; osc1.frequency.setValueAtTime(329.63, now); osc1.frequency.exponentialRampToValueAtTime(659.25, now + 0.35);
+            osc2.type = 'triangle'; osc2.frequency.setValueAtTime(440.00, now); osc2.frequency.exponentialRampToValueAtTime(880.00, now + 0.35);
+            gain.gain.setValueAtTime(0.22, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            osc1.connect(gain); osc2.connect(gain); gain.connect(masterOut);
+            osc1.start(now); osc2.start(now); osc1.stop(now + 0.36); osc2.stop(now + 0.36);
+        } else if (type === 'shoot_blaster') {
+            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(750, now); osc.frequency.exponentialRampToValueAtTime(160, now + 0.08);
+            gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            osc.connect(gain); gain.connect(masterOut);
+            osc.start(now); osc.stop(now + 0.085);
+        } else if (type === 'shoot_rapid') {
+            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(980, now); osc.frequency.exponentialRampToValueAtTime(320, now + 0.045);
+            gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
+            osc.connect(gain); gain.connect(masterOut);
+            osc.start(now); osc.stop(now + 0.05);
+        } else if (type === 'shoot_lmg') {
+            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(420, now); osc.frequency.exponentialRampToValueAtTime(60, now + 0.11);
+            gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+            osc.connect(gain); gain.connect(masterOut);
+            osc.start(now); osc.stop(now + 0.115);
+        } else if (type === 'shoot_pistol') {
+            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(840, now); osc.frequency.exponentialRampToValueAtTime(220, now + 0.07);
+            gain.gain.setValueAtTime(0.13, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+            osc.connect(gain); gain.connect(masterOut);
+            osc.start(now); osc.stop(now + 0.075);
+        } else if (type === 'shoot_railgun') {
+            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(1400, now); osc1.frequency.exponentialRampToValueAtTime(70, now + 0.35);
+            osc2.type = 'sine'; osc2.frequency.setValueAtTime(220, now); osc2.frequency.exponentialRampToValueAtTime(30, now + 0.35);
             gain.gain.setValueAtTime(0.35, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
             osc1.connect(gain); osc2.connect(gain); gain.connect(masterOut);
             osc1.start(now); osc2.start(now); osc1.stop(now + 0.36); osc2.stop(now + 0.36);
         } else if (type === 'shoot_shotgun') {
-            // Explosive white-noise burst + thump
             let bufferSize = audioCtx.sampleRate * 0.22;
             let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             let data = buffer.getChannelData(0);
@@ -2477,40 +2541,92 @@ function playSoundV2(type) {
             let gain = audioCtx.createGain(); gain.gain.setValueAtTime(0.38, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
             noise.connect(filter); filter.connect(gain); gain.connect(masterOut);
             noise.start(now); noise.stop(now + 0.22);
+        } else if (type === 'reload_blaster') {
+            [320, 680].forEach((freq, idx) => {
+                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                let startT = now + idx * 0.12;
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, startT);
+                gain.gain.setValueAtTime(0.15, startT); gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.1);
+                osc.connect(gain); gain.connect(masterOut);
+                osc.start(startT); osc.stop(startT + 0.11);
+            });
+        } else if (type === 'reload_rapid') {
+            [480, 920].forEach((freq, idx) => {
+                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                let startT = now + idx * 0.08;
+                osc.type = 'sine'; osc.frequency.setValueAtTime(freq, startT);
+                gain.gain.setValueAtTime(0.14, startT); gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.07);
+                osc.connect(gain); gain.connect(masterOut);
+                osc.start(startT); osc.stop(startT + 0.075);
+            });
+        } else if (type === 'reload_lmg') {
+            [220, 310, 540].forEach((freq, idx) => {
+                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                let startT = now + idx * 0.14;
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(freq, startT);
+                gain.gain.setValueAtTime(0.16, startT); gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.12);
+                osc.connect(gain); gain.connect(masterOut);
+                osc.start(startT); osc.stop(startT + 0.13);
+            });
+        } else if (type === 'reload_shotgun') {
+            [180, 240].forEach((freq, idx) => {
+                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                let startT = now + idx * 0.13;
+                osc.type = 'square'; osc.frequency.setValueAtTime(freq, startT);
+                gain.gain.setValueAtTime(0.20, startT); gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.09);
+                osc.connect(gain); gain.connect(masterOut);
+                osc.start(startT); osc.stop(startT + 0.095);
+            });
+        } else if (type === 'reload_railgun') {
+            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(350, now); osc.frequency.exponentialRampToValueAtTime(1400, now + 0.35);
+            gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            osc.connect(gain); gain.connect(masterOut);
+            osc.start(now); osc.stop(now + 0.36);
+        } else if (type === 'reload_pistol') {
+            [540, 720].forEach((freq, idx) => {
+                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+                let startT = now + idx * 0.09;
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, startT);
+                gain.gain.setValueAtTime(0.12, startT); gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.08);
+                osc.connect(gain); gain.connect(masterOut);
+                osc.start(startT); osc.stop(startT + 0.085);
+            });
+        } else if (type === 'reload_ready') {
+            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(620, now); osc.frequency.exponentialRampToValueAtTime(1240, now + 0.12);
+            gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            osc.connect(gain); gain.connect(masterOut);
+            osc.start(now); osc.stop(now + 0.13);
         } else if (type === 'hit_crit') {
-            // High-pitched crystal ping
             let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
             osc.type = 'sine'; osc.frequency.setValueAtTime(1760, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
             gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
             osc.connect(gain); gain.connect(masterOut);
             osc.start(now); osc.stop(now + 0.19);
         } else if (type === 'parry') {
-            // Resonant energy deflection chord
             let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(), gain = audioCtx.createGain();
             osc1.type = 'triangle'; osc1.frequency.setValueAtTime(587.33, now); // D5
             osc2.type = 'sine'; osc2.frequency.setValueAtTime(880.00, now); // A5
             gain.gain.setValueAtTime(0.32, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
             osc1.connect(gain); osc2.connect(gain); gain.connect(masterOut);
             osc1.start(now); osc2.start(now); osc1.stop(now + 0.4); osc2.stop(now + 0.4);
-        } else if (type === 'nova_emp') {
-            // Massive sub-bass drop & electrical discharge
+        } else if (type === 'nova_emp' || type === 'ultimate') {
             let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
             osc.type = 'sawtooth'; osc.frequency.setValueAtTime(240, now); osc.frequency.exponentialRampToValueAtTime(25, now + 0.8);
             gain.gain.setValueAtTime(0.45, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
             osc.connect(gain); gain.connect(masterOut);
             osc.start(now); osc.stop(now + 0.85);
         } else if (type === 'level_up') {
-            // Triumphant 3-note ascending fanfare (D - F# - A)
-            [293.66, 369.99, 440.00].forEach((freq, idx) => {
+            [293.66, 369.99, 440.00, 587.33].forEach((freq, idx) => {
                 let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                let startT = now + idx * 0.1;
+                let startT = now + idx * 0.09;
                 osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, startT);
                 gain.gain.setValueAtTime(0.28, startT); gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.35);
                 osc.connect(gain); gain.connect(masterOut);
                 osc.start(startT); osc.stop(startT + 0.36);
             });
         } else {
-            // Fallback to standard playSound if defined
             if (typeof playSoundOriginal === 'function') {
                 playSoundOriginal(type);
             }
@@ -2518,8 +2634,19 @@ function playSoundV2(type) {
     } catch (e) {}
 }
 
+function playSound(type, param) { playSoundV2(type, param); }
 
-function playSound(type) { playSoundV2(type); }
+function playWeaponReloadSound(weapon, isSecondary) {
+    if (isSecondary) {
+        playSound('reload_pistol');
+        return;
+    }
+    if (weapon === 'shotgun') playSound('reload_shotgun');
+    else if (weapon === 'rapid') playSound('reload_rapid');
+    else if (weapon === 'lmg') playSound('reload_lmg');
+    else if (weapon === 'railgun') playSound('reload_railgun');
+    else playSound('reload_blaster');
+}
 
 function playSoundOriginal(type) {
             if (!gameSettings.sound || !audioCtx || audioCtx.state !== 'running') return;
@@ -7136,7 +7263,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 if (this.isReloading || this.ammo >= this.maxAmmo) return;
                 this.isReloading = true;
                 this.reloadTimer = this.reloadDuration;
-                playSound('shield');
+                playWeaponReloadSound(this.weapon, this.isUsingSecondary);
                 spawnFloatingText(this.x, this.y - 40, ' جاري التلقيم...', '#00f3ff');
             }
 
@@ -7582,7 +7709,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                         this.ammo = this.maxAmmo;
                         if (this.isUsingSecondary) this.secondaryAmmo = this.maxAmmo;
                         else this.primaryAmmo = this.maxAmmo;
-                        playSound('shield');
+                        playSound('reload_ready');
                         spawnFloatingText(this.x, this.y - 30, '[OK] اكتمل التلقيم', '#00ff88');
                     }
                 }
@@ -8406,6 +8533,14 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 ammoCurrentVal.innerText = player.isReloading ? 'RELOAD' : player.ammo;
                 ammoCurrentVal.style.color = player.ammo <= Math.ceil(player.maxAmmo * 0.25) ? '#ff0055' : '#00f3ff';
             }
+            const ammoDock = document.getElementById('ammo-hud-dock');
+            if (ammoDock) {
+                if (player.ammo <= Math.ceil(player.maxAmmo * 0.25) || player.isReloading) {
+                    ammoDock.classList.add('ammo-low');
+                } else {
+                    ammoDock.classList.remove('ammo-low');
+                }
+            }
             if (ammoMaxVal) {
                 ammoMaxVal.innerText = player.maxAmmo;
             }
@@ -8974,8 +9109,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 }
 
                 if (this.type === 'boss' && this.health <= (this.maxHealth * 0.55) && !this.bossPhase2Triggered) {
-                    this.bossPhase2Triggered = true; if (gameSettings.shake) screenShakeTime = 600;
-                    playSound('overcharge'); triggerShockwave(this.x, this.y, this.color, 320);
+                    this.bossPhase2Triggered = true; if (gameSettings.shake) screenShakeTime = 650;
+                    playSound('boss_roar'); triggerShockwave(this.x, this.y, this.color, 340);
                     spawnFloatingText(this.x, this.y - 45, ' PHASE 2: ENRAGED OVERDRIVE! ', this.color);
                     if (this.bossTier === 1) {
                         enemies.push(new Enemy('drone', 1, false, this.x - 45, this.y));
@@ -9003,9 +9138,9 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 }
 
                 if (this.type === 'boss' && this.health <= (this.maxHealth * 0.25) && !this.bossPhase3Triggered) {
-                    this.bossPhase3Triggered = true; if (gameSettings.shake) screenShakeTime = 800;
-                    playSound('ultimate'); triggerShockwave(this.x, this.y, '#ff0055', 420);
-                    spawnFloatingText(this.x, this.y - 60, ' PHASE 3: APEX DOOMSDAY NOVA! ', '#ff0055');
+                    this.bossPhase3Triggered = true; if (gameSettings.shake) screenShakeTime = 850;
+                    playSound('boss_roar'); triggerShockwave(this.x, this.y, '#ff0055', 440);
+                    spawnFloatingText(this.x, this.y - 60, ' PHASE 3: APEX NEON FURY NOVA! ', '#ff0055');
                     for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
                         spawnEnemyBullet(this.x, this.y, a, this.bulletSpeed * 1.3, this, '#ff0055', 6);
                     }
@@ -9967,6 +10102,11 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             saveGameProgress(); updateArsenalUI();
             setTimeout(() => { gameOverScreen.classList.remove('hidden'); }, 1000);
         }
+
+        window.restartGame = function() {
+            if (gameOverScreen) gameOverScreen.classList.add('hidden');
+            startGame();
+        };
 
         function returnToMainMenu() {
             gameOverScreen.classList.add('hidden'); pauseMenu.classList.add('hidden'); perkModal.classList.add('hidden'); relicModal.classList.add('hidden');
@@ -11180,7 +11320,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                         combo += 1;
                         comboTimer = 4000;
                         updateBounty('graze', 1); 
-                        createExplosion(b.x, b.y, '#00ffff', 5, 3);
+                        playSound('graze');
+                        createExplosion(b.x, b.y, '#00ffff', 6, 4);
                         spawnFloatingText(player.x, player.y - 20, '+GRAZE!', '#00ffff');
                     }
                 }
@@ -11212,7 +11353,15 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     if (distSq(b.x, b.y, e.x, e.y) < (b.radius + e.radius)**2) {
                         createExplosion(e.x, e.y, e.color, 15, 8); bulletDestroyed = true; e.health--; e.hitFlashTimer = 90;
                         if (e.health <= 0 && !e.isDead) {
-                            e.isDead = true; createExplosion(e.x, e.y, e.color, 20, 10); hitStopDuration = (e.type === 'boss') ? 150 : 50; 
+                            e.isDead = true; 
+                            createExplosion(e.x, e.y, e.color, 20, 10); 
+                            hitStopDuration = (e.type === 'boss') ? 150 : 45; 
+                            if (e.type === 'boss') {
+                                playSound('boss_roar');
+                                if (gameSettings.shake) screenShakeTime = 600;
+                            } else {
+                                playSound('combo_kill');
+                            }
                             if (e.type === 'splitter') {
                                 enemies.push(new Enemy('micro_splitter', 1, false, e.x - 15, e.y - 15));
                                 enemies.push(new Enemy('micro_splitter', 1, false, e.x + 15, e.y + 15));
