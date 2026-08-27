@@ -5603,8 +5603,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             mouseWorldX = camX + (mouseScreenX / cameraZoom);
             mouseWorldY = camY + (mouseScreenY / cameraZoom);
 
-            // تدوير وتوجيه جويستك الرماية نحو موضع الماوس المشار إليه فوراً
-            if (joystickAimThumb && !isAimJoystickActive) {
+            // تدوير وتوجيه جويستك الرماية نحو موضع الماوس المشار إليه فوراً (PC Mouse Only)
+            if (!isMobileTouchActive() && joystickAimThumb && !isAimJoystickActive) {
                 let targetAng = 0;
                 if (player) {
                     targetAng = Math.atan2(mouseWorldY - player.y, mouseWorldX - player.x);
@@ -10156,7 +10156,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 timeScale = 1.0; // Permanently FORCE timeScale = 1.0 in online multiplayer!
             } else {
                 const isPlayerActive = (isMoving || isAimJoystickActive || joystickPower > 0.05 || aimJoystickPower > 0.05 || isMouseDown || keys.w || keys.a || keys.s || keys.d || (player && Math.hypot(player.vx, player.vy) > 0.8)) && !isGameOver;
-                const targetTimeScale = isPlayerActive ? 1.0 : 0.22;
+                const targetTimeScale = (isMobileTouchActive() || isPlayerActive) ? 1.0 : 0.25;
                 timeScale = lerp(timeScale, targetTimeScale, 1 - Math.pow(0.82, frameFactor)); 
             }
 
