@@ -146,6 +146,8 @@ function updateMobileControlsVisibility() {
     const jBase = document.getElementById('joystick-base');
     const jAimBase = document.getElementById('joystick-aim-base');
     const hudCluster = document.getElementById('hud-abilities-cluster');
+    const mobilePauseBtn = document.getElementById('mobile-pause-btn-hud');
+    const mobileMapBtn = document.getElementById('mobile-map-btn-hud');
     const isTouch = isMobileTouchActive();
     const isPlaying = !isGameOver && !isGamePaused && (!mainMenu || mainMenu.style.display === 'none');
     
@@ -160,6 +162,8 @@ function updateMobileControlsVisibility() {
             hudCluster.style.display = 'block';
             hudCluster.classList.remove('hidden');
         }
+        if (mobilePauseBtn) mobilePauseBtn.style.display = 'flex';
+        if (mobileMapBtn) mobileMapBtn.style.display = 'flex';
         if (hudInstructions) hudInstructions.style.display = 'none';
         updateJoystickCenter();
     } else {
@@ -173,6 +177,8 @@ function updateMobileControlsVisibility() {
             hudCluster.style.display = 'none';
             hudCluster.classList.add('hidden');
         }
+        if (mobilePauseBtn) mobilePauseBtn.style.display = 'none';
+        if (mobileMapBtn) mobileMapBtn.style.display = 'none';
         if (hudInstructions && isPlaying) {
             hudInstructions.style.display = 'block';
         }
@@ -2599,47 +2605,80 @@ function playSoundV2(type, param) {
             gain.gain.setValueAtTime(0.22, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
             osc1.connect(gain); osc2.connect(gain); gain.connect(masterOut);
             osc1.start(now); osc2.start(now); osc1.stop(now + 0.36); osc2.stop(now + 0.36);
-        } else if (type === 'shoot_blaster') {
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(750, now); osc.frequency.exponentialRampToValueAtTime(160, now + 0.08);
-            gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-            osc.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.085);
+        } else if (type === 'shoot_blaster' || type === 'shoot') {
+            // Punchy dual-layer plasma blaster: mid snap + bass thump
+            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator();
+            let gain = audioCtx.createGain(), filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass'; filter.frequency.setValueAtTime(4000, now); filter.frequency.exponentialRampToValueAtTime(400, now + 0.1);
+            osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(900, now); osc1.frequency.exponentialRampToValueAtTime(120, now + 0.1);
+            osc2.type = 'square'; osc2.frequency.setValueAtTime(180, now); osc2.frequency.exponentialRampToValueAtTime(50, now + 0.12);
+            gain.gain.setValueAtTime(0.28, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
+            osc1.connect(filter); osc2.connect(filter); filter.connect(gain); gain.connect(masterOut);
+            osc1.start(now); osc2.start(now); osc1.stop(now + 0.13); osc2.stop(now + 0.14);
+            // Noise crack layer
+            let nBuf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.06), audioCtx.sampleRate);
+            let nData = nBuf.getChannelData(0); for (let i = 0; i < nData.length; i++) nData[i] = (Math.random() * 2 - 1) * (1 - i / nData.length);
+            let nSrc = audioCtx.createBufferSource(); nSrc.buffer = nBuf;
+            let nGain = audioCtx.createGain(); nGain.gain.setValueAtTime(0.12, now); nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+            let nFilter = audioCtx.createBiquadFilter(); nFilter.type = 'bandpass'; nFilter.frequency.setValueAtTime(3000, now); nFilter.Q.setValueAtTime(1.5, now);
+            nSrc.connect(nFilter); nFilter.connect(nGain); nGain.connect(masterOut);
+            nSrc.start(now); nSrc.stop(now + 0.06);
         } else if (type === 'shoot_rapid') {
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'sine'; osc.frequency.setValueAtTime(980, now); osc.frequency.exponentialRampToValueAtTime(320, now + 0.045);
-            gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
-            osc.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.05);
-        } else if (type === 'shoot_lmg') {
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(420, now); osc.frequency.exponentialRampToValueAtTime(60, now + 0.11);
-            gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
-            osc.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.115);
-        } else if (type === 'shoot_pistol') {
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(840, now); osc.frequency.exponentialRampToValueAtTime(220, now + 0.07);
-            gain.gain.setValueAtTime(0.13, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
-            osc.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.075);
-        } else if (type === 'shoot_railgun') {
-            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(1400, now); osc1.frequency.exponentialRampToValueAtTime(70, now + 0.35);
-            osc2.type = 'sine'; osc2.frequency.setValueAtTime(220, now); osc2.frequency.exponentialRampToValueAtTime(30, now + 0.35);
-            gain.gain.setValueAtTime(0.35, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            // Fast rattling burst: high snap + metallic click
+            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc1.type = 'triangle'; osc1.frequency.setValueAtTime(1400, now); osc1.frequency.exponentialRampToValueAtTime(300, now + 0.05);
+            osc2.type = 'square'; osc2.frequency.setValueAtTime(220, now); osc2.frequency.exponentialRampToValueAtTime(80, now + 0.06);
+            gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
             osc1.connect(gain); osc2.connect(gain); gain.connect(masterOut);
-            osc1.start(now); osc2.start(now); osc1.stop(now + 0.36); osc2.stop(now + 0.36);
+            osc1.start(now); osc2.start(now); osc1.stop(now + 0.06); osc2.stop(now + 0.065);
+        } else if (type === 'shoot_lmg') {
+            // Heavy machine gun: deep bass thud + rattling overtone
+            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator();
+            let gain = audioCtx.createGain(), filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass'; filter.frequency.setValueAtTime(2000, now); filter.frequency.exponentialRampToValueAtTime(200, now + 0.14);
+            osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(520, now); osc1.frequency.exponentialRampToValueAtTime(55, now + 0.14);
+            osc2.type = 'square'; osc2.frequency.setValueAtTime(140, now); osc2.frequency.exponentialRampToValueAtTime(35, now + 0.15);
+            gain.gain.setValueAtTime(0.32, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+            osc1.connect(filter); osc2.connect(filter); filter.connect(gain); gain.connect(masterOut);
+            osc1.start(now); osc2.start(now); osc1.stop(now + 0.15); osc2.stop(now + 0.16);
+        } else if (type === 'shoot_pistol') {
+            // Quick sharp pistol snap: bright pop + dry snap
+            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc1.type = 'triangle'; osc1.frequency.setValueAtTime(1100, now); osc1.frequency.exponentialRampToValueAtTime(200, now + 0.07);
+            osc2.type = 'sine'; osc2.frequency.setValueAtTime(280, now); osc2.frequency.exponentialRampToValueAtTime(80, now + 0.08);
+            gain.gain.setValueAtTime(0.22, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            osc1.connect(gain); osc2.connect(gain); gain.connect(masterOut);
+            osc1.start(now); osc2.start(now); osc1.stop(now + 0.08); osc2.stop(now + 0.085);
+        } else if (type === 'shoot_railgun') {
+            // Heavy electromagnetic charge + bass discharge
+            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(), osc3 = audioCtx.createOscillator();
+            let gain = audioCtx.createGain(), filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass'; filter.frequency.setValueAtTime(6000, now); filter.frequency.exponentialRampToValueAtTime(80, now + 0.4);
+            osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(1800, now); osc1.frequency.exponentialRampToValueAtTime(60, now + 0.4);
+            osc2.type = 'sine'; osc2.frequency.setValueAtTime(260, now); osc2.frequency.exponentialRampToValueAtTime(25, now + 0.4);
+            osc3.type = 'square'; osc3.frequency.setValueAtTime(80, now); osc3.frequency.exponentialRampToValueAtTime(20, now + 0.35);
+            gain.gain.setValueAtTime(0.40, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
+            osc1.connect(filter); osc2.connect(filter); osc3.connect(gain); filter.connect(gain); gain.connect(masterOut);
+            osc1.start(now); osc2.start(now); osc3.start(now); osc1.stop(now + 0.42); osc2.stop(now + 0.42); osc3.stop(now + 0.38);
         } else if (type === 'shoot_shotgun') {
-            let bufferSize = audioCtx.sampleRate * 0.22;
+            // Massive explosive blast: white noise burst + sub-bass boom
+            let bufferSize = Math.floor(audioCtx.sampleRate * 0.18);
             let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             let data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 0.5);
             let noise = audioCtx.createBufferSource(); noise.buffer = buffer;
-            let filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.setValueAtTime(1600, now); filter.frequency.exponentialRampToValueAtTime(120, now + 0.22);
-            let gain = audioCtx.createGain(); gain.gain.setValueAtTime(0.38, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+            let filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.setValueAtTime(3500, now); filter.frequency.exponentialRampToValueAtTime(150, now + 0.18);
+            let gain = audioCtx.createGain(); gain.gain.setValueAtTime(0.45, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
             noise.connect(filter); filter.connect(gain); gain.connect(masterOut);
-            noise.start(now); noise.stop(now + 0.22);
+            noise.start(now); noise.stop(now + 0.20);
+            // Sub-bass boom layer
+            let oscBoom = audioCtx.createOscillator(), gBoom = audioCtx.createGain();
+            oscBoom.type = 'sine'; oscBoom.frequency.setValueAtTime(110, now); oscBoom.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+            gBoom.gain.setValueAtTime(0.30, now); gBoom.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+            oscBoom.connect(gBoom); gBoom.connect(masterOut);
+            oscBoom.start(now); oscBoom.stop(now + 0.16);
         } else if (type === 'reload_blaster') {
             [320, 680].forEach((freq, idx) => {
                 let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();

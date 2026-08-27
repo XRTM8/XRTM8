@@ -302,7 +302,8 @@
     
     <!-- منطقة النقر التفاعلية للميني ماب لفتح الخريطة التكتيكية الموسعة -->
     <div id="minimap-touch-anchor" title="انقر لفتح الخريطة التكتيكية الموسعة [M]" onclick="toggleTacticalMapModal()">
-        <span class="minimap-m-hint">MAP [M]</span>
+        <span class="minimap-m-hint mobile-hide">MAP [M]</span>
+        <button class="minimap-open-btn mobile-show" onclick="toggleTacticalMapModal()" style="display:none;"><svg class="c-icon" style="width:14px;height:14px;"><use href="#icon-radar"></use></svg></button>
     </div>
 
     <!-- مصفوفة أزرار القدرات بتنسيق هندسي مريح وعصري -->
@@ -346,6 +347,14 @@
         <div id="ult-btn-hud" class="hud-action-btn" title="Orbital Ult (F)">
             <span class="btn-text">ULT</span>
             <span class="btn-sub" id="ult-btn-sub">0%</span>
+        </div>
+
+        <div id="mobile-pause-btn-hud" class="hud-action-btn mobile-only-btn" title="Pause" onclick="togglePause()" style="display:none;">
+            <span class="btn-text" style="font-size:0.9rem;">⏸</span>
+        </div>
+
+        <div id="mobile-map-btn-hud" class="hud-action-btn mobile-only-btn" title="Map" onclick="toggleTacticalMapModal()" style="display:none;">
+            <span class="btn-text" style="font-size:0.6rem;">MAP</span>
         </div>
     </div>
 
@@ -1298,12 +1307,12 @@
             <div class="tactical-map-header">
                 <div class="tactical-map-title">
                     <span class="pulse-dot"></span>  <span data-i18n="tacticalMapTitle">مصفوفة الرادار التكتيكي (Tactical Sector Map)</span>
-                    <span class="map-shortcut-tag">[M] / [Esc]</span>
+                    <span class="map-shortcut-tag mobile-hide">[M] / [Esc]</span>
                 </div>
                 <div class="tactical-map-header-info">
                     <span id="map-wave-info" style="color: var(--player-color); font-weight: bold; font-size: 0.95rem;">الموجة 1</span>
                     <span id="map-player-coords" style="color: #8899aa; font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;">X: 4000 | Y: 4000</span>
-                    <button class="tactical-map-close-btn" onclick="toggleTacticalMapModal(false)"></button>
+                    <button class="tactical-map-close-btn" onclick="toggleTacticalMapModal(false)"><svg class="c-icon" style="width:18px;height:18px;"><use href="#icon-x"></use></svg></button>
                 </div>
             </div>
             
