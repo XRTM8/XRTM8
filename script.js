@@ -2966,7 +2966,11 @@ function playSoundOriginal(type) {
             }
 
             ctx.save();
-            ctx.translate(w / 2, h / 2 + 4);
+            ctx.translate(w / 2, h / 2 + 2);
+
+            // Zoom out on all screens so the full ship, halo, and thruster flame breathe comfortably
+            let lobbyZoom = Math.min(w / 140, h / 80) * 0.70;
+            ctx.scale(lobbyZoom, lobbyZoom);
 
             // Gentle floating & rotation
             let rot = Math.sin(now * 0.0018) * 0.28;
@@ -2989,7 +2993,7 @@ function playSoundOriginal(type) {
 
             // Ship Geometry
             if (typeof drawCustomShipGeometry === 'function') {
-                drawCustomShipGeometry(ctx, previewSkinId, previewClass, 28, false, false, 0, now);
+                drawCustomShipGeometry(ctx, previewSkinId, previewClass, 24, false, false, 0, now);
             }
 
             ctx.restore();
@@ -3278,7 +3282,11 @@ function playSoundOriginal(type) {
                     const w = cssW, h = cssH;
 
                     ctx.save();
-                    ctx.translate(w / 2, h / 2 + 3);
+                    ctx.translate(w / 2, h / 2 + 1);
+
+                    // Zoom out so the 4 class preview ships are clean, proportioned miniature models
+                    let arsenalZoom = Math.min(w / 75, h / 55) * 0.60;
+                    ctx.scale(arsenalZoom, arsenalZoom);
 
                     // دوران 3D هادئ وانسيابي
                     let rot = (now * 0.0012);
@@ -3354,7 +3362,7 @@ function playSoundOriginal(type) {
                     ctx.restore();
 
                     // رسم هيكل الكلاس مع السكن المطبق عليه فوق لهب النفاثات
-                    drawCustomShipGeometry(ctx, activeSkinId, cId, 28, false, false, 0, now);
+                    drawCustomShipGeometry(ctx, activeSkinId, cId, 22, false, false, 0, now);
                     ctx.restore();
                 }
 
@@ -5521,7 +5529,11 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             let previewClass = selectedClass || 'assault';
 
             ctx.save();
-            ctx.translate(w / 2, h / 2 + 5);
+            ctx.translate(w / 2, h / 2 + 1);
+
+            // Zoom out so the shop hologram preview fits neatly inside the mini preview box
+            let shopZoom = Math.min(w / 50, h / 50) * 0.52;
+            ctx.scale(shopZoom, shopZoom);
 
             // تمايل هادئ وحركة طيران طبيعية
             let rot = Math.sin(now * 0.0018) * 0.32;
@@ -5530,7 +5542,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             ctx.rotate(rot);
 
             // 1. رسم لهب ومسار المحركات الحقيقي الخاص بالسكن خلف مؤخرة السفينة
-            let flameLen = 16 + Math.sin(now * 0.02) * 5 + Math.random() * 4;
+            let flameLen = 14 + Math.sin(now * 0.02) * 4 + Math.random() * 3;
             let flameCol = '#00f3ff';
             if (previewTrailId === 'trail_golden' || item.id === 'trail_golden') flameCol = '#ffd700';
             else if (previewTrailId === 'trail_frost_mist' || item.id === 'trail_frost_mist') flameCol = '#00f3ff';
@@ -5544,15 +5556,15 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             ctx.save();
             ctx.shadowColor = flameCol;
             ctx.shadowBlur = (gameSettings.bloom && !gameSettings.lowEnd) ? 18 : 0;
-            let grad = ctx.createLinearGradient(0, 22, 0, 22 + flameLen * 1.25);
+            let grad = ctx.createLinearGradient(0, 20, 0, 20 + flameLen * 1.15);
             grad.addColorStop(0, '#ffffff');
             grad.addColorStop(0.3, flameCol);
             grad.addColorStop(1, 'transparent');
 
             ctx.beginPath();
-            ctx.moveTo(-6, 22);
-            ctx.lineTo(0, 22 + flameLen * 1.25);
-            ctx.lineTo(6, 22);
+            ctx.moveTo(-5, 20);
+            ctx.lineTo(0, 20 + flameLen * 1.15);
+            ctx.lineTo(5, 20);
             ctx.closePath();
             ctx.fillStyle = grad;
             ctx.fill();
@@ -5561,11 +5573,11 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (currentShopCategory === 'trails' || previewTrailId !== 'trail_default') {
                 for (let k = 0; k < 6; k++) {
                     let pTime = (now * 0.004 + k * 1.0) % 6;
-                    let pDist = 24 + pTime * 11;
-                    let pSpread = Math.sin(now * 0.01 + k * 1.5) * (7 + pTime * 2);
+                    let pDist = 22 + pTime * 10;
+                    let pSpread = Math.sin(now * 0.01 + k * 1.5) * (6 + pTime * 2);
                     let pAlpha = Math.max(0, 1 - (pTime / 6));
                     ctx.beginPath();
-                    ctx.arc(pSpread, pDist, Math.max(1, 4.5 - pTime * 0.6), 0, Math.PI * 2);
+                    ctx.arc(pSpread, pDist, Math.max(1, 4 - pTime * 0.5), 0, Math.PI * 2);
                     ctx.fillStyle = flameCol;
                     ctx.globalAlpha = pAlpha;
                     ctx.fill();
@@ -5589,13 +5601,13 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
 
                 for (let bIdx = 0; bIdx < 3; bIdx++) {
                     let bProg = ((now * 0.006 + bIdx * 2.0) % 6) / 6;
-                    let bY = -32 - bProg * 55;
+                    let bY = -30 - bProg * 50;
                     let bAlpha = 1 - bProg;
                     ctx.save();
                     ctx.shadowColor = wepBulletCol;
                     ctx.shadowBlur = (gameSettings.bloom && !gameSettings.lowEnd) ? 14 : 0;
                     ctx.beginPath();
-                    ctx.ellipse(0, bY, 3.5, 10, 0, 0, Math.PI * 2);
+                    ctx.ellipse(0, bY, 3, 9, 0, 0, Math.PI * 2);
                     ctx.fillStyle = wepBulletCol;
                     ctx.globalAlpha = bAlpha;
                     ctx.fill();
@@ -5606,13 +5618,13 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             // 3. نبضات وانفجارات هولوجرامية عند معاينة فئة القدرات
             if (currentShopCategory === 'abilities') {
                 let aProgress = (now * 0.0018) % 1;
-                let aRadius = 15 + aProgress * 45;
+                let aRadius = 14 + aProgress * 40;
                 let aAlpha = 1 - aProgress;
                 ctx.save();
                 ctx.beginPath();
                 ctx.arc(0, 0, aRadius, 0, Math.PI * 2);
                 ctx.strokeStyle = glowCol;
-                ctx.lineWidth = 2.5;
+                ctx.lineWidth = 2.2;
                 ctx.globalAlpha = aAlpha;
                 ctx.shadowColor = glowCol;
                 ctx.shadowBlur = (gameSettings.bloom && !gameSettings.lowEnd) ? 18 : 0;
@@ -5622,7 +5634,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
 
             // 4. رسم هيكل السفينة ثلاثي الأبعاد الأصيل مع السكن المجهز
             let isAbilityAnim = (currentShopCategory === 'abilities');
-            drawCustomShipGeometry(ctx, previewSkinId, previewClass, 32, isAbilityAnim, false, 0, now);
+            drawCustomShipGeometry(ctx, previewSkinId, previewClass, 20, isAbilityAnim, false, 0, now);
 
             ctx.restore();
 
@@ -6297,15 +6309,16 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         function resize() {
             width = Math.max(320, window.innerWidth || 800);
             height = Math.max(240, window.innerHeight || 600);
-            let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
-            let maxDpr = isMobile ? 1.75 : (gameSettings.lowEnd ? 1.0 : 2.0);
-            let dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
+            let maxDpr = gameSettings.lowEnd ? 1.0 : Math.min(window.devicePixelRatio || 1, 2.5);
+            let dpr = maxDpr;
             canvas.width = Math.floor(width * dpr);
             canvas.height = Math.floor(height * dpr);
             canvas.style.width = width + 'px';
             canvas.style.height = height + 'px';
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
             updateJoystickCenter();
             updateMobileControlsVisibility();
         }

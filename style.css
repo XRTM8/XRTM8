@@ -6308,7 +6308,7 @@ html[lang="en"] .shop-preview-info {
         justify-content: space-between !important;
         align-items: center !important;
         width: 100% !important;
-        max-width: min(98vw, 840px) !important;
+        max-width: min(94vw, 700px) !important;
         height: auto !important;
         min-height: 28px !important;
         margin: 0 auto 2px auto !important;
@@ -6318,13 +6318,13 @@ html[lang="en"] .shop-preview-info {
     }
 
     .menu-top-stats-chip {
-        display: flex !important;
+        display: inline-flex !important;
         align-items: center !important;
         gap: 5px !important;
-        padding: 2px 7px !important;
+        padding: 2px 8px !important;
         font-size: 0.68rem !important;
-        height: 24px !important;
-        border-radius: 12px !important;
+        height: 26px !important;
+        border-radius: 13px !important;
         background: rgba(10, 20, 35, 0.88) !important;
         border: 1px solid rgba(0, 243, 255, 0.35) !important;
     }
@@ -6335,6 +6335,7 @@ html[lang="en"] .shop-preview-info {
         gap: 3px !important;
         flex-wrap: nowrap !important;
         justify-content: flex-end !important;
+        flex-shrink: 0 !important;
     }
 
     .header-actions-group .btn-text-tag {
@@ -6351,11 +6352,15 @@ html[lang="en"] .shop-preview-info {
         justify-content: center !important;
         font-size: 0.68rem !important;
         border-radius: 6px !important;
+        flex-shrink: 0 !important;
     }
 
     .admin-trigger-btn .c-icon {
-        width: 15px !important;
-        height: 15px !important;
+        width: 16px !important;
+        height: 16px !important;
+        display: block !important;
+        margin: 0 !important;
+        pointer-events: none !important;
     }
 
     /* Main Screen Title Banner */
@@ -6366,7 +6371,7 @@ html[lang="en"] .shop-preview-info {
     }
 
     .screen-title {
-        font-size: clamp(0.95rem, 2.8vw, 1.25rem) !important;
+        font-size: clamp(0.95rem, 2.8vw, 1.20rem) !important;
         margin: 0 !important;
         line-height: 1 !important;
         display: flex !important;
@@ -6376,7 +6381,7 @@ html[lang="en"] .shop-preview-info {
     }
 
     .title-primary {
-        font-size: clamp(0.95rem, 2.8vw, 1.25rem) !important;
+        font-size: clamp(0.95rem, 2.8vw, 1.20rem) !important;
     }
 
     .title-sub {
@@ -6397,7 +6402,7 @@ html[lang="en"] .shop-preview-info {
         padding: 1px 6px !important;
         margin: 0 auto 3px auto !important;
         width: 100% !important;
-        max-width: min(92vw, 340px) !important;
+        max-width: min(90vw, 320px) !important;
         height: 24px !important;
         display: flex !important;
         align-items: center !important;
@@ -6416,6 +6421,7 @@ html[lang="en"] .shop-preview-info {
         width: 14px !important;
         height: 14px !important;
         flex-shrink: 0 !important;
+        pointer-events: none !important;
     }
 
     .cyber-input {
@@ -6445,7 +6451,7 @@ html[lang="en"] .shop-preview-info {
         padding: 2px 4px !important;
         margin: 0 auto 4px auto !important;
         width: 100% !important;
-        max-width: min(98vw, 840px) !important;
+        max-width: min(94vw, 700px) !important;
         justify-content: flex-start !important;
         height: 28px !important;
         flex-shrink: 0 !important;
@@ -6472,7 +6478,7 @@ html[lang="en"] .shop-preview-info {
     /* Unconstrained Scrollable Tab Content Container */
     .tab-content, .tab-content.active {
         width: 100% !important;
-        max-width: min(98vw, 840px) !important;
+        max-width: min(94vw, 700px) !important;
         height: auto !important;
         max-height: none !important;
         overflow: visible !important;
@@ -6492,11 +6498,11 @@ html[lang="en"] .shop-preview-info {
        ==================================================================== */
     .lobby-command-deck {
         width: 100% !important;
-        max-width: min(98vw, 840px) !important;
+        max-width: min(94vw, 700px) !important;
         display: grid !important;
         grid-template-columns: 1.15fr 1fr !important;
         grid-template-rows: auto 1fr !important;
-        gap: 6px 12px !important;
+        gap: 6px 10px !important;
         align-items: stretch !important;
         margin: 0 auto !important;
     }
@@ -6537,9 +6543,9 @@ html[lang="en"] .shop-preview-info {
 
     #lobby-hero-canvas {
         width: 100% !important;
-        max-width: 160px !important;
+        max-width: 150px !important;
         height: auto !important;
-        max-height: 95px !important;
+        max-height: 90px !important;
         aspect-ratio: 16 / 10 !important;
         object-fit: contain !important;
         margin: 2px auto !important;
@@ -6568,6 +6574,7 @@ html[lang="en"] .shop-preview-info {
     .hero-quick-btn .c-icon {
         width: 13px !important;
         height: 13px !important;
+        pointer-events: none !important;
     }
 
     /* Right Column: Player Rank Card + INSTANT START BATTLE BUTTON */
@@ -6637,7 +6644,7 @@ html[lang="en"] .shop-preview-info {
         display: flex !important;
         flex-direction: column !important;
         width: 100% !important;
-        max-width: min(98vw, 840px) !important;
+        max-width: min(94vw, 700px) !important;
         gap: 4px !important;
         height: auto !important;
         max-height: none !important;
@@ -6666,7 +6673,7 @@ html[lang="en"] .shop-preview-info {
     /* Ultra-Compact Hologram Vehicle Preview Bar */
     .shop-preview-hub {
         width: 100% !important;
-        max-width: min(98vw, 840px) !important;
+        max-width: min(94vw, 700px) !important;
         padding: 4px 8px !important;
         gap: 8px !important;
         margin-bottom: 4px !important;
@@ -6790,7 +6797,7 @@ html[lang="en"] .shop-preview-info {
         grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)) !important;
         gap: 5px !important;
         width: 100% !important;
-        max-width: min(98vw, 840px) !important;
+        max-width: min(94vw, 700px) !important;
         height: auto !important;
         max-height: none !important;
         overflow: visible !important;
@@ -6839,7 +6846,7 @@ html[lang="en"] .shop-preview-info {
         grid-template-columns: repeat(4, 1fr) !important;
         gap: 5px !important;
         width: 100% !important;
-        max-width: min(98vw, 840px) !important;
+        max-width: min(94vw, 700px) !important;
         height: auto !important;
         max-height: none !important;
         overflow: visible !important;
@@ -6861,7 +6868,7 @@ html[lang="en"] .shop-preview-info {
 
     .card-3d-canvas-wrap {
         width: 100% !important;
-        height: 60px !important;
+        height: 56px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -6869,9 +6876,9 @@ html[lang="en"] .shop-preview-info {
 
     .card-3d-canvas-wrap canvas {
         width: 100% !important;
-        max-width: 75px !important;
+        max-width: 72px !important;
         height: auto !important;
-        max-height: 58px !important;
+        max-height: 54px !important;
         aspect-ratio: 16 / 13 !important;
         object-fit: contain !important;
     }
@@ -6935,7 +6942,7 @@ html[lang="en"] .shop-preview-info {
         grid-template-columns: 1fr 1fr !important;
         gap: 6px 10px !important;
         width: 100% !important;
-        max-width: min(98vw, 840px) !important;
+        max-width: min(94vw, 700px) !important;
     }
 
     .mission-section-col {
@@ -6991,7 +6998,7 @@ html[lang="en"] .shop-preview-info {
         grid-template-columns: 1fr 1fr !important;
         gap: 6px 10px !important;
         width: 100% !important;
-        max-width: min(98vw, 840px) !important;
+        max-width: min(94vw, 700px) !important;
         height: auto !important;
         max-height: none !important;
         overflow: visible !important;
@@ -7073,7 +7080,7 @@ html[lang="en"] .shop-preview-info {
     .daily-rewards-card,
     .podium-modal-card,
     .respawn-card {
-        width: min(98vw, 840px) !important;
+        width: min(94vw, 700px) !important;
         max-height: min(88vh, 88dvh) !important;
         display: flex !important;
         flex-direction: column !important;
@@ -7129,7 +7136,7 @@ html[lang="en"] .shop-preview-info {
 
     /* Mode Select Modal Card (Compact 4-Column Zero-Scroll Layout) */
     .mode-select-card {
-        max-width: min(98vw, 840px) !important;
+        max-width: min(94vw, 700px) !important;
     }
 
     .play-modes-grid {
@@ -7182,20 +7189,20 @@ html[lang="en"] .shop-preview-info {
 
     /* Tactical Sector Map Modal */
     .tactical-map-window {
-        max-width: min(98vw, 880px) !important;
+        max-width: min(94vw, 700px) !important;
     }
 
     .tactical-map-body-grid {
         display: grid !important;
-        grid-template-columns: 180px 1fr !important;
+        grid-template-columns: 170px 1fr !important;
         gap: 6px !important;
         padding: 4px !important;
         overflow-y: auto !important;
     }
 
     #expandedMapCanvas {
-        width: 170px !important;
-        height: 170px !important;
+        width: 160px !important;
+        height: 160px !important;
         aspect-ratio: 1 / 1 !important;
         object-fit: contain !important;
         max-width: 100% !important;
@@ -7203,7 +7210,7 @@ html[lang="en"] .shop-preview-info {
     }
 
     .tactical-side-panel {
-        max-height: 175px !important;
+        max-height: 165px !important;
         font-size: 0.68rem !important;
     }
 
@@ -7219,7 +7226,7 @@ html[lang="en"] .shop-preview-info {
 
     /* Live Scoreboard Modal */
     .scoreboard-window {
-        max-width: min(98vw, 800px) !important;
+        max-width: min(94vw, 700px) !important;
     }
 
     .scoreboard-table-wrap {
@@ -7240,7 +7247,7 @@ html[lang="en"] .shop-preview-info {
 
     /* Rank Leaderboard Modal */
     .rank-modal-card {
-        max-width: min(98vw, 800px) !important;
+        max-width: min(94vw, 700px) !important;
     }
 
     .rank-tiers-legend {
@@ -7273,7 +7280,7 @@ html[lang="en"] .shop-preview-info {
 
     /* Weapon Picker Dialog */
     .weapon-picker-dialog {
-        max-width: min(98vw, 800px) !important;
+        max-width: min(94vw, 700px) !important;
     }
 
     #weapon-picker-grid {
@@ -7289,7 +7296,7 @@ html[lang="en"] .shop-preview-info {
         flex-wrap: nowrap !important;
         justify-content: center !important;
         gap: 6px !important;
-        max-width: min(98vw, 840px) !important;
+        max-width: min(94vw, 700px) !important;
         max-height: 75vh !important;
         overflow-y: auto !important;
         padding: 4px !important;
