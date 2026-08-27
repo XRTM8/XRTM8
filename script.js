@@ -2936,9 +2936,18 @@ function playSoundOriginal(type) {
         function renderLobbyHeroCanvas() {
             const canvas = document.getElementById('lobby-hero-canvas');
             if (!canvas) return;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const cssW = canvas.clientWidth || 200;
+            const cssH = canvas.clientHeight || 120;
+            if (canvas.width !== Math.floor(cssW * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
+                canvas.width = Math.floor(cssW * dpr);
+                canvas.height = Math.floor(cssH * dpr);
+            }
             const ctx = canvas.getContext('2d');
-            const w = canvas.width, h = canvas.height;
-            ctx.clearRect(0, 0, w, h);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, cssW, cssH);
+            const w = cssW, h = cssH;
 
             const now = performance.now();
             let previewSkinId = (equippedCosmetics && equippedCosmetics.chassis) ? equippedCosmetics.chassis : (activeCosmeticSkin || 'default');
@@ -2957,7 +2966,7 @@ function playSoundOriginal(type) {
             }
 
             ctx.save();
-            ctx.translate(w / 2, h / 2 + 6);
+            ctx.translate(w / 2, h / 2 + 4);
 
             // Gentle floating & rotation
             let rot = Math.sin(now * 0.0018) * 0.28;
@@ -3255,12 +3264,21 @@ function playSoundOriginal(type) {
             classes.forEach(cId => {
                 const canvas = document.getElementById(`arsenal-canvas-${cId}`);
                 if (canvas) {
+                    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                    const cssW = canvas.clientWidth || 90;
+                    const cssH = canvas.clientHeight || 70;
+                    if (canvas.width !== Math.floor(cssW * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
+                        canvas.width = Math.floor(cssW * dpr);
+                        canvas.height = Math.floor(cssH * dpr);
+                    }
                     const ctx = canvas.getContext('2d');
-                    const w = canvas.width, h = canvas.height;
-                    ctx.clearRect(0, 0, w, h);
+                    ctx.setTransform(1, 0, 0, 1, 0, 0);
+                    ctx.scale(dpr, dpr);
+                    ctx.clearRect(0, 0, cssW, cssH);
+                    const w = cssW, h = cssH;
 
                     ctx.save();
-                    ctx.translate(w / 2, h / 2 + 5);
+                    ctx.translate(w / 2, h / 2 + 3);
 
                     // دوران 3D هادئ وانسيابي
                     let rot = (now * 0.0012);
@@ -5473,9 +5491,18 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         function updateShopPreviewCanvas() {
             const canvas = document.getElementById('shop-preview-canvas');
             if (!canvas) return;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const cssW = canvas.clientWidth || 72;
+            const cssH = canvas.clientHeight || 72;
+            if (canvas.width !== Math.floor(cssW * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
+                canvas.width = Math.floor(cssW * dpr);
+                canvas.height = Math.floor(cssH * dpr);
+            }
             const ctx = canvas.getContext('2d');
-            const w = canvas.width, h = canvas.height;
-            ctx.clearRect(0, 0, w, h);
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+            ctx.clearRect(0, 0, cssW, cssH);
+            const w = cssW, h = cssH;
 
             let item = selectedShopPreviewItem;
             if (!item) {
