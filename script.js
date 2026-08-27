@@ -1,17 +1,82 @@
 
-// Mobile Touch Auto-Detection & Virtual Controls Activator
+// ===================================================================
+// MOBILE TOUCH AUTO-DETECTION, COORDINATE MAPPING & FULLSCREEN CONTROLS
+// ===================================================================
 function isMobileTouchActive() {
-    return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (window.innerWidth <= 1024);
+    return ('ontouchstart' in window) || 
+           (navigator.maxTouchPoints > 0) || 
+           (navigator.msMaxTouchPoints > 0) || 
+           (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || 
+           (window.innerWidth <= 1024);
 }
 
 function updateMobileControlsVisibility() {
     const touchContainer = document.getElementById('touch-controls-container');
-    if (!touchContainer) return;
-    if (isMobileTouchActive() && !isGameOver && player) {
-        touchContainer.style.display = 'flex';
-        touchContainer.classList.remove('hidden');
-    } else if (!isMobileTouchActive()) {
-        touchContainer.style.display = 'none';
+    const isTouch = isMobileTouchActive();
+    if (isTouch && !isGameOver && player) {
+        if (touchContainer) {
+            touchContainer.style.display = 'block';
+            touchContainer.classList.remove('hidden');
+        }
+        if (joystickBase) joystickBase.style.display = 'flex';
+        if (joystickAimBase) joystickAimBase.style.display = 'flex';
+        if (hudInstructions) hudInstructions.style.display = 'none';
+    } else {
+        if (touchContainer) {
+            touchContainer.style.display = 'none';
+        }
+        if (joystickBase) joystickBase.style.display = 'none';
+        if (joystickAimBase) joystickAimBase.style.display = 'none';
+        if (hudInstructions && !isGameOver && player) {
+            hudInstructions.style.display = 'block';
+        }
+    }
+}
+
+// Convert screen viewport coordinates (clientX, clientY) to internal canvas space
+function getCanvasTouchCoords(clientX, clientY) {
+    const cvs = document.getElementById('gameCanvas');
+    if (!cvs) return { canvasX: clientX, canvasY: clientY, screenX: clientX, screenY: clientY };
+    const rect = cvs.getBoundingClientRect();
+    const scaleX = cvs.width / (rect.width || 1);
+    const scaleY = cvs.height / (rect.height || 1);
+    return {
+        canvasX: (clientX - rect.left) * scaleX,
+        canvasY: (clientY - rect.top) * scaleY,
+        screenX: clientX - rect.left,
+        screenY: clientY - rect.top
+    };
+}
+
+// Seamless cross-browser fullscreen toggler for mobile & desktop
+function toggleFullScreen() {
+    try {
+        const doc = window.document;
+        const docEl = doc.documentElement;
+        const requestFullScreen = docEl.requestFullscreen || 
+                                  docEl.mozRequestFullScreen || 
+                                  docEl.webkitRequestFullScreen || 
+                                  docEl.msRequestFullscreen;
+        const cancelFullScreen = doc.exitFullscreen || 
+                                 doc.mozCancelFullScreen || 
+                                 doc.webkitExitFullscreen || 
+                                 doc.msExitFullscreen;
+
+        if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+            if (requestFullScreen) {
+                requestFullScreen.call(docEl).catch(err => {
+                    console.warn('Fullscreen request bypassed/rejected:', err);
+                });
+            }
+        } else {
+            if (cancelFullScreen) {
+                cancelFullScreen.call(doc).catch(err => {
+                    console.warn('Fullscreen exit error:', err);
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('Fullscreen toggle failed:', e);
     }
 }
 
@@ -5340,11 +5405,12 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
 
         // --- Mouse Aiming & Shooting (PC) ---
         window.addEventListener('mousemove', (e) => {
-            mouseScreenX = e.clientX;
-            mouseScreenY = e.clientY;
+            const coords = getCanvasTouchCoords(e.clientX, e.clientY);
+            mouseScreenX = coords.screenX;
+            mouseScreenY = coords.screenY;
             hasMouseMoved = true;
             lastMouseMoveTime = performance.now();
-            let isMobile = (width < 850 || height < 600 || ('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+            let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
             let cameraZoom = isMobile ? 0.72 : 1.0;
             mouseWorldX = camX + (mouseScreenX / cameraZoom);
             mouseWorldY = camY + (mouseScreenY / cameraZoom);
@@ -5370,16 +5436,52 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (e.target && (e.target.closest('.hud-action-btn') || e.target.closest('.overlay-screen') || e.target.closest('.modal-backdrop') || e.target.closest('button') || e.target.closest('input'))) return;
             if (e.button === 0) {
                 isMouseDown = true;
-                mouseScreenX = e.clientX;
-                mouseScreenY = e.clientY;
+                const coords = getCanvasTouchCoords(e.clientX, e.clientY);
+                mouseScreenX = coords.screenX;
+                mouseScreenY = coords.screenY;
                 hasMouseMoved = true;
                 lastMouseMoveTime = performance.now();
-                let isMobile = (width < 850 || height < 600 || ('ontouchstart' in window) || navigator.maxTouchPoints > 0);
+                let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
                 let cameraZoom = isMobile ? 0.72 : 1.0;
                 mouseWorldX = camX + (mouseScreenX / cameraZoom);
                 mouseWorldY = camY + (mouseScreenY / cameraZoom);
             }
         });
+
+        // تحويل لمسات الشاشة على الكانفاس مباشرة للتصويب والتفاعل التكتيكي
+        if (canvas) {
+            canvas.addEventListener('touchstart', (e) => {
+                if (isGameOver || isGamePaused || isModalActive || (mainMenu && mainMenu.style.display !== 'none')) return;
+                if (e.touches && e.touches.length > 0) {
+                    const t = e.touches[0];
+                    const coords = getCanvasTouchCoords(t.clientX, t.clientY);
+                    mouseScreenX = coords.screenX;
+                    mouseScreenY = coords.screenY;
+                    hasMouseMoved = true;
+                    lastMouseMoveTime = performance.now();
+                    let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
+                    let cameraZoom = isMobile ? 0.72 : 1.0;
+                    mouseWorldX = camX + (mouseScreenX / cameraZoom);
+                    mouseWorldY = camY + (mouseScreenY / cameraZoom);
+                }
+            }, { passive: true });
+
+            canvas.addEventListener('touchmove', (e) => {
+                if (isGameOver || isGamePaused || isModalActive || (mainMenu && mainMenu.style.display !== 'none')) return;
+                if (e.touches && e.touches.length > 0) {
+                    const t = e.touches[0];
+                    const coords = getCanvasTouchCoords(t.clientX, t.clientY);
+                    mouseScreenX = coords.screenX;
+                    mouseScreenY = coords.screenY;
+                    hasMouseMoved = true;
+                    lastMouseMoveTime = performance.now();
+                    let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
+                    let cameraZoom = isMobile ? 0.72 : 1.0;
+                    mouseWorldX = camX + (mouseScreenX / cameraZoom);
+                    mouseWorldY = camY + (mouseScreenY / cameraZoom);
+                }
+            }, { passive: true });
+        }
 
         window.addEventListener('mouseup', (e) => {
             if (e.button === 0) {
@@ -5430,13 +5532,14 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             width = Math.max(320, window.innerWidth || 800);
             height = Math.max(240, window.innerHeight || 600);
             let dpr = Math.min(window.devicePixelRatio || 1, gameSettings.lowEnd ? 1.0 : 2.0);
-            canvas.width = width * dpr;
-            canvas.height = height * dpr;
+            canvas.width = Math.floor(width * dpr);
+            canvas.height = Math.floor(height * dpr);
             canvas.style.width = width + 'px';
             canvas.style.height = height + 'px';
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
             updateJoystickCenter();
+            updateMobileControlsVisibility();
         }
         window.addEventListener('resize', resize);
         resize();

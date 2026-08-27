@@ -206,6 +206,11 @@
                 <polyline points="3.27 6.96 12 12.01 20.73 6.96" fill="none" stroke="currentColor" stroke-width="2"/>
                 <line x1="12" y1="22.08" x2="12" y2="12" stroke="currentColor" stroke-width="2"/>
             </g>
+
+            <!-- 31. Fullscreen / Maximize -->
+            <g id="icon-fullscreen" viewBox="0 0 24 24">
+                <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+            </g>
         </defs>
     </svg>
 
@@ -398,12 +403,15 @@
     <div id="hazard-warning-banner" data-i18n="hazardWarning"> تحذير: نشاط بيئي غير مستقر في الساحة </div>
     <div id="boss-warning-banner" data-i18n="bossWarning"> تحذير: اقتراب الزعيم </div>
     
-    <div id="joystick-base" title="جويستيك الحركة">
-        <div id="joystick-thumb"></div>
-    </div>
+    <!-- طبقة التحكم باللمس المخصصة للأجهزة المحمولة والهواتف (Mobile Touch Controls Overlay) -->
+    <div id="touch-controls-container" class="touch-controls-overlay">
+        <div id="joystick-base" title="جويستيك الحركة">
+            <div id="joystick-thumb"></div>
+        </div>
 
-    <div id="joystick-aim-base" title="جويستيك التصويب وإطلاق النار">
-        <div id="joystick-aim-thumb"></div>
+        <div id="joystick-aim-base" title="جويستيك التصويب وإطلاق النار">
+            <div id="joystick-aim-thumb"></div>
+        </div>
     </div>
 
     <!-- القائمة الرئيسية -->
@@ -415,6 +423,10 @@
                 <span class="mode-counters">(PVE: <span id="pve-count-val">0</span> | PVP: <span id="pvp-count-val">0</span> | RAID: <span id="raid-count-val">0</span>)</span>
             </div>
             <div class="header-actions-group">
+                <!-- زر ملء الشاشة الفوري للهواتف والأجهزة المحمولة -->
+                <button id="fullscreen-toggle-btn" class="admin-trigger-btn btn-fullscreen-glow" onclick="toggleFullScreen()" title="ملء الشاشة (Fullscreen)">
+                    <svg class="c-icon"><use href="#icon-fullscreen"></use></svg> <span class="btn-text-tag" data-i18n="btnFullscreen">شاشة كاملة</span>
+                </button>
                 <!-- زر تثبيت اللعبة كتطبيق أصلي (PWA) -->
                 <button id="pwa-install-btn" class="admin-trigger-btn btn-pwa-glow" style="display: none;" onclick="triggerPwaInstall()" title=" تثبيت اللعبة كتطبيق (Install App)">
                     <svg class="c-icon"><use href="#icon-download"></use></svg> <span class="btn-text-tag" data-i18n="pwaInstallBtn">تثبيت</span>

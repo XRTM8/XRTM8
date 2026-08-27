@@ -408,8 +408,12 @@
         }
 
         @media (min-width: 900px) and (min-height: 600px) {
-            /* Desktop HUD layout - Hide touch joysticks and touch button cluster on PC */
-            #joystick-base, #joystick-aim-base, #hud-abilities-cluster {
+            /* Desktop HUD layout - Hide touch joysticks, overlay, and mobile touch button cluster on PC */
+            .touch-controls-overlay,
+            #touch-controls-container,
+            #joystick-base,
+            #joystick-aim-base,
+            #hud-abilities-cluster {
                 display: none !important;
             }
         }
@@ -3843,6 +3847,39 @@ html[lang="en"] .title-sub {
     background: rgba(0, 243, 255, 0.25) !important;
     box-shadow: 0 0 18px rgba(0, 243, 255, 0.6) !important;
     transform: translateY(-2px);
+}
+
+/* Fullscreen Toggle Button Glow */
+.btn-fullscreen-glow {
+    background: rgba(0, 255, 136, 0.12) !important;
+    border-color: #00ff88 !important;
+    color: #00ff88 !important;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.btn-fullscreen-glow:hover {
+    background: rgba(0, 255, 136, 0.25) !important;
+    box-shadow: 0 0 18px rgba(0, 255, 136, 0.6) !important;
+    transform: translateY(-2px);
+}
+
+/* Mobile Touch Controls Layer Overlay */
+.touch-controls-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 25;
+    touch-action: none;
+    display: none;
+}
+
+.touch-controls-overlay > * {
+    pointer-events: auto;
 }
 
 /* 4. New Mode Cards: Boss Raid, Free Roam, Custom Squad */
