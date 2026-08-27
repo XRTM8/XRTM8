@@ -534,7 +534,7 @@ const I18N_DICTIONARY = {
         tabSettings: 'الإعدادات والتحكم',
         btnRank: 'الرانك',
         btnAccount: 'الحساب',
-        btnLeaderboard: 'PTS الليدربورد',
+        btnLeaderboard: 'لوحة الأبطال PTS',
         menuDescTxt: 'اختر نمط المعركة التكتيكي للانطلاق في الساحة السيبرانية:',
         modeSoloTitle: 'فردي أوفلاين (Solo Offline)',
         modeSoloDesc: 'خض معركة البقاء الفردية مع نظام تمدد الوقت (Time Dilation).',
@@ -3164,11 +3164,12 @@ function updateGoogleUI() {
 
         function getRankTierClient(trophies = 0) {
             trophies = Math.max(0, Number(trophies) || 0);
-            if (trophies >= 3500) return { id: 'grandmaster', name: 'Grandmaster Apex God (إمبراطور الساحة)', badge: '', color: '#ffd700', nextTier: null, nextTrophies: 3500 };
-            if (trophies >= 2000) return { id: 'diamond', name: 'Diamond Cyberlord (دياموند سايبر)', badge: '', color: '#00f3ff', nextTier: 'Grandmaster', nextTrophies: 3500 };
-            if (trophies >= 1000) return { id: 'gold', name: 'Gold Apex Vanguard (ذهبي نخبوي)', badge: '', color: '#ffaa00', nextTier: 'Diamond', nextTrophies: 2000 };
-            if (trophies >= 500) return { id: 'silver', name: 'Silver Striker (مهاجم فضي)', badge: '', color: '#e0e0e0', nextTier: 'Gold', nextTrophies: 1000 };
-            return { id: 'bronze', name: 'Bronze Agent (عميل برونزي)', badge: '', color: '#cd7f32', nextTier: 'Silver', nextTrophies: 500 };
+            const isAr = (typeof currentLanguage !== 'undefined' && currentLanguage === 'ar');
+            if (trophies >= 3500) return { id: 'grandmaster', name: isAr ? 'إمبراطور الساحة (Grandmaster)' : 'Grandmaster Apex God', badge: '', color: '#ffd700', nextTier: null, nextTrophies: 3500 };
+            if (trophies >= 2000) return { id: 'diamond', name: isAr ? 'دياموند سايبر (Diamond)' : 'Diamond Cyberlord', badge: '', color: '#00f3ff', nextTier: isAr ? 'الغراند ماستر' : 'Grandmaster', nextTrophies: 3500 };
+            if (trophies >= 1000) return { id: 'gold', name: isAr ? 'ذهبي نخبوي (Gold)' : 'Gold Apex Vanguard', badge: '', color: '#ffaa00', nextTier: isAr ? 'الدياموند' : 'Diamond', nextTrophies: 2000 };
+            if (trophies >= 500) return { id: 'silver', name: isAr ? 'مهاجم فضي (Silver)' : 'Silver Striker', badge: '', color: '#e0e0e0', nextTier: isAr ? 'الذهبي' : 'Gold', nextTrophies: 1000 };
+            return { id: 'bronze', name: isAr ? 'عميل برونزي (Bronze)' : 'Bronze Agent', badge: '', color: '#cd7f32', nextTier: isAr ? 'الفضي' : 'Silver', nextTrophies: 500 };
         }
 
         function updatePlayerRankCardUI() {
@@ -3177,6 +3178,7 @@ function updateGoogleUI() {
             const fillEl = document.getElementById('player-rank-fill');
             const trophiesValEl = document.getElementById('player-trophies-val');
             const nextInfoEl = document.getElementById('player-rank-next-info');
+            const isAr = (typeof currentLanguage !== 'undefined' && currentLanguage === 'ar');
 
             const tier = getRankTierClient(playerTrophies);
             if (badgeEl) badgeEl.innerText = tier.badge;
@@ -3190,10 +3192,18 @@ function updateGoogleUI() {
                 let prevTierFloor = tier.id === 'bronze' ? 0 : (tier.id === 'silver' ? 500 : (tier.id === 'gold' ? 1000 : 2000));
                 let progressPct = Math.min(100, Math.max(0, ((playerTrophies - prevTierFloor) / (tier.nextTrophies - prevTierFloor)) * 100));
                 if (fillEl) fillEl.style.width = `${progressPct}%`;
-                if (nextInfoEl) nextInfoEl.innerText = `${tier.nextTrophies - playerTrophies} كأس للترقية إلى ${tier.nextTier}`;
+                if (nextInfoEl) {
+                    nextInfoEl.innerText = isAr 
+                        ? `${tier.nextTrophies - playerTrophies} كأس للترقية إلى ${tier.nextTier}` 
+                        : `${tier.nextTrophies - playerTrophies} PTS to reach ${tier.nextTier}`;
+                }
             } else {
                 if (fillEl) fillEl.style.width = '100%';
-                if (nextInfoEl) nextInfoEl.innerText = 'وصلت لأعلى رتبة أسطورية في الساحة!';
+                if (nextInfoEl) {
+                    nextInfoEl.innerText = isAr 
+                        ? 'وصلت لأعلى رتبة أسطورية في الساحة!' 
+                        : 'Reached Maximum Apex Grandmaster Tier!';
+                }
             }
         }
 
