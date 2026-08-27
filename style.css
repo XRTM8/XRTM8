@@ -347,6 +347,11 @@
             right: max(14px, env(safe-area-inset-right, 14px));
             z-index: 26;
             pointer-events: none;
+            display: none;
+        }
+
+        #hud-abilities-cluster.hidden {
+            display: none !important;
         }
 
         #dash-btn-hud {
@@ -2791,7 +2796,6 @@ body {
     width: 68px !important;
     height: 68px !important;
     --btn-color: var(--dash-color) !important;
-    display: flex !important;
 }
 
 #class-skill-btn-hud {
@@ -2801,7 +2805,6 @@ body {
     width: 60px !important;
     height: 60px !important;
     --btn-color: #00ff88 !important;
-    display: flex !important;
 }
 
 #ult-btn-hud {
@@ -2811,7 +2814,6 @@ body {
     width: 56px !important;
     height: 56px !important;
     --btn-color: var(--ult-color) !important;
-    display: flex !important;
 }
 
 #swap-weapon-btn-hud {
@@ -2824,7 +2826,6 @@ body {
     border-color: rgba(189, 0, 255, 0.6) !important;
     background: radial-gradient(circle, rgba(14, 6, 24, 0.96) 58%, transparent 62%),
                 conic-gradient(#bd00ff var(--fill-pct, 100%), rgba(255, 255, 255, 0.07) var(--fill-pct, 100%)) !important;
-    display: flex !important;
 }
 
 #reload-btn-hud {
@@ -2834,7 +2835,6 @@ body {
     width: 52px !important;
     height: 52px !important;
     --btn-color: #00f3ff !important;
-    display: flex !important;
 }
 
 #super-emp-btn-hud, .over-btn {
@@ -2848,7 +2848,6 @@ body {
     background: radial-gradient(circle, rgba(20, 5, 35, 0.95) 58%, transparent 62%),
                 conic-gradient(#bd00ff var(--fill-pct, 0%), rgba(255, 255, 255, 0.07) var(--fill-pct, 0%)) !important;
     box-shadow: 0 0 16px rgba(189, 0, 255, 0.5), inset 0 0 8px rgba(189, 0, 255, 0.3) !important;
-    display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     justify-content: center !important;
@@ -6861,7 +6860,15 @@ html[lang="en"] .shop-preview-info {
         box-sizing: border-box !important;
     }
 
-    .cyber-modal.hidden, .modal-backdrop.hidden, .overlay-screen.hidden, .hidden {
+    .cyber-modal.hidden,
+    .modal-backdrop.hidden,
+    .overlay-screen.hidden,
+    .radial-menu-overlay.hidden,
+    .tactical-wheel-overlay.hidden,
+    #radial-weapon-menu.hidden,
+    #tactical-ping-wheel.hidden,
+    #portrait-orientation-warning.hidden,
+    .hidden {
         display: none !important;
     }
 
@@ -7370,7 +7377,6 @@ html[lang="en"] .shop-preview-info {
         right: 144px !important;
         width: 56px !important;
         height: 56px !important;
-        display: flex !important;
     }
 
     #class-skill-btn-hud {
@@ -7379,7 +7385,6 @@ html[lang="en"] .shop-preview-info {
         right: 144px !important;
         width: 48px !important;
         height: 48px !important;
-        display: flex !important;
     }
 
     #swap-weapon-btn-hud {
@@ -7388,7 +7393,6 @@ html[lang="en"] .shop-preview-info {
         right: 208px !important;
         width: 46px !important;
         height: 46px !important;
-        display: flex !important;
     }
 
     #super-emp-btn-hud, #overcharge-btn-hud {
@@ -7397,7 +7401,6 @@ html[lang="en"] .shop-preview-info {
         right: 202px !important;
         width: 44px !important;
         height: 44px !important;
-        display: flex !important;
     }
 
     #ult-btn-hud {
@@ -7406,7 +7409,6 @@ html[lang="en"] .shop-preview-info {
         right: 68px !important;
         width: 48px !important;
         height: 48px !important;
-        display: flex !important;
     }
 
     #reload-btn-hud {
@@ -7415,7 +7417,6 @@ html[lang="en"] .shop-preview-info {
         right: 14px !important;
         width: 44px !important;
         height: 44px !important;
-        display: flex !important;
     }
 
     #class-skill2-btn-hud {
@@ -7432,7 +7433,6 @@ html[lang="en"] .shop-preview-info {
         right: 182px !important;
         width: 42px !important;
         height: 42px !important;
-        display: flex !important;
     }
 
     .hud-action-btn .btn-text {
@@ -7444,16 +7444,27 @@ html[lang="en"] .shop-preview-info {
     }
 
     /* Radial Wheels & Pings */
-    #radial-weapon-menu, #tactical-ping-wheel {
+    .radial-menu-overlay, .tactical-wheel-overlay {
         position: fixed !important;
         inset: 0 !important;
         width: 100vw !important;
         height: 100vh !important;
         height: 100dvh !important;
-        display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        z-index: 50 !important;
+        z-index: 90 !important;
+    }
+
+    .radial-menu-overlay:not(.hidden),
+    .tactical-wheel-overlay:not(.hidden) {
+        display: flex !important;
+    }
+
+    .radial-menu-overlay.hidden,
+    .tactical-wheel-overlay.hidden,
+    #radial-weapon-menu.hidden,
+    #tactical-ping-wheel.hidden {
+        display: none !important;
     }
 
     .radial-center-hub, .wheel-center-node {

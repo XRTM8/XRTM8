@@ -56,6 +56,7 @@ function updateMobileControlsVisibility() {
     const touchContainer = document.getElementById('touch-controls-container');
     const jBase = document.getElementById('joystick-base');
     const jAimBase = document.getElementById('joystick-aim-base');
+    const hudCluster = document.getElementById('hud-abilities-cluster');
     const isTouch = isMobileTouchActive();
     const isPlaying = !isGameOver && !isGamePaused && (!mainMenu || mainMenu.style.display === 'none');
     
@@ -66,14 +67,23 @@ function updateMobileControlsVisibility() {
         }
         if (jBase) jBase.style.display = 'flex';
         if (jAimBase) jAimBase.style.display = 'flex';
+        if (hudCluster) {
+            hudCluster.style.display = 'block';
+            hudCluster.classList.remove('hidden');
+        }
         if (hudInstructions) hudInstructions.style.display = 'none';
         updateJoystickCenter();
     } else {
         if (touchContainer) {
             touchContainer.style.display = 'none';
+            touchContainer.classList.add('hidden');
         }
         if (jBase) jBase.style.display = 'none';
         if (jAimBase) jAimBase.style.display = 'none';
+        if (hudCluster && !isPlaying) {
+            hudCluster.style.display = 'none';
+            hudCluster.classList.add('hidden');
+        }
         if (hudInstructions && isPlaying) {
             hudInstructions.style.display = 'block';
         }
@@ -3870,6 +3880,33 @@ function updateGoogleUI() {
                     wheel.style.display = 'none';
                 }
             }
+        };
+
+        window.toggleRadialWeaponMenu = function(force) {
+            const radial = document.getElementById('radial-weapon-menu');
+            if (!radial) return;
+            if (force !== undefined) {
+                if (force) { radial.classList.remove('hidden'); radial.style.display = 'flex'; }
+                else { radial.classList.add('hidden'); radial.style.display = 'none'; }
+            } else {
+                if (radial.classList.contains('hidden') || radial.style.display === 'none') {
+                    radial.classList.remove('hidden');
+                    radial.style.display = 'flex';
+                } else {
+                    radial.classList.add('hidden');
+                    radial.style.display = 'none';
+                }
+            }
+        };
+
+        window.selectWeaponFromRadial = function(weaponType) {
+            window.toggleRadialWeaponMenu(false);
+            if (player && typeof player.setPrimaryWeapon === 'function') {
+                player.setPrimaryWeapon(weaponType);
+            } else if (player) {
+                player.currentWeapon = weaponType;
+            }
+            if (typeof playSound === 'function') playSound('click');
         };
 
         window.triggerTacticalPing = function(type, emote, text) {
@@ -10116,6 +10153,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             const dock = document.getElementById('online-leaderboard-dock');
             if (dock) dock.style.display = 'none';
             stopPingMeasurement();
+            if (typeof toggleRadialWeaponMenu === 'function') toggleRadialWeaponMenu(false);
+            if (typeof toggleTacticalPingWheel === 'function') toggleTacticalPingWheel(false);
 
             bossHudContainer.style.display = 'none'; dashBtnHud.style.display = 'none'; if (reloadBtnHud) reloadBtnHud.style.display = 'none'; if (superEmpBtnHud) superEmpBtnHud.style.display = 'none'; ultBtnHud.style.display = 'none';
             if (joystickBase) joystickBase.style.display = 'none';
