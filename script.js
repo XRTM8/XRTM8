@@ -5571,6 +5571,26 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             }
         }
 
+        // Global Window Touch/Pointer Fallbacks for uninterrupted fluid joystick motion
+        window.addEventListener('pointermove', (e) => {
+            if (joystickPointerId !== null && e.pointerId === joystickPointerId) {
+                handleJoystickMove(e.clientX, e.clientY);
+            }
+            if (aimJoystickPointerId !== null && e.pointerId === aimJoystickPointerId) {
+                handleAimJoystickMove(e.clientX, e.clientY);
+            }
+        }, { passive: true });
+
+        window.addEventListener('pointerup', (e) => {
+            if (joystickPointerId !== null && e.pointerId === joystickPointerId) resetJoystick(e);
+            if (aimJoystickPointerId !== null && e.pointerId === aimJoystickPointerId) resetAimJoystick(e);
+        }, { passive: true });
+
+        window.addEventListener('pointercancel', (e) => {
+            if (joystickPointerId !== null && e.pointerId === joystickPointerId) resetJoystick(e);
+            if (aimJoystickPointerId !== null && e.pointerId === aimJoystickPointerId) resetAimJoystick(e);
+        }, { passive: true });
+
         // --- Mouse Aiming & Shooting (PC) ---
         window.addEventListener('mousemove', (e) => {
             const coords = getCanvasTouchCoords(e.clientX, e.clientY);
@@ -6921,14 +6941,14 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     moveAngle = customAngle;
                 } else {
                     let inputDx = 0, inputDy = 0;
-                    if (isMoving && isJoystickActive) {
+                    if (isMoving && joystickPower > 0.05) {
                         inputDx = Math.cos(joystickAngle);
                         inputDy = Math.sin(joystickAngle);
                     } else {
                         if (keys.a) inputDx -= 1;
                         if (keys.d) inputDx += 1;
                         if (keys.w) inputDy -= 1;
-                        if (keys.s) inputDy += 1;
+                        if (keys.s) inputDy -= 1;
                     }
                     if (inputDx !== 0 || inputDy !== 0) {
                         moveAngle = Math.atan2(inputDy, inputDx);
@@ -7113,9 +7133,10 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 // حساب متجهات الحركة من لوحة المفاتيح أو الجويستيك
                 let inputDx = 0;
                 let inputDy = 0;
-                if (isMoving && isJoystickActive) {
-                    inputDx = joystickPower * Math.cos(joystickAngle) * joystickSensMultiplier;
-                    inputDy = joystickPower * Math.sin(joystickAngle) * joystickSensMultiplier;
+                if (isMoving && joystickPower > 0.05) {
+                    let sens = (typeof joystickSensMultiplier !== 'undefined') ? joystickSensMultiplier : 1.0;
+                    inputDx = Math.cos(joystickAngle) * joystickPower * sens;
+                    inputDy = Math.sin(joystickAngle) * joystickPower * sens;
                 } else {
                     if (keys.a) inputDx -= 1;
                     if (keys.d) inputDx += 1;
