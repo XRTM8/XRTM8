@@ -4740,17 +4740,28 @@ html[lang="ar"] .mode-desc, html[lang="ar"] .card-desc {
     width: 1.15em;
     height: 1.15em;
     display: inline-block;
-    vertical-align: -0.2em;
-    stroke: currentColor;
-    fill: none;
+    vertical-align: middle;
     flex-shrink: 0;
+    pointer-events: none;
+    overflow: visible;
+    shape-rendering: geometricPrecision;
     transition: transform 0.2s ease, filter 0.2s ease;
 }
 
-.c-icon-sm { width: 0.9em; height: 0.9em; vertical-align: -0.12em; }
-.c-icon-md { width: 1.3em; height: 1.3em; vertical-align: -0.22em; }
-.c-icon-lg { width: 1.7em; height: 1.7em; vertical-align: -0.25em; }
-.c-icon-xl { width: 2.4em; height: 2.4em; vertical-align: -0.3em; }
+.c-icon path,
+.c-icon line,
+.c-icon polyline,
+.c-icon polygon,
+.c-icon circle,
+.c-icon rect,
+.c-icon ellipse {
+    vector-effect: non-scaling-stroke;
+}
+
+.c-icon-sm { width: 0.9em; height: 0.9em; vertical-align: middle; }
+.c-icon-md { width: 1.3em; height: 1.3em; vertical-align: middle; }
+.c-icon-lg { width: 1.7em; height: 1.7em; vertical-align: middle; }
+.c-icon-xl { width: 2.4em; height: 2.4em; vertical-align: middle; }
 
 .c-icon-cyan { color: #00f3ff; filter: drop-shadow(0 0 6px rgba(0, 243, 255, 0.6)); }
 .c-icon-gold { color: #ffd700; filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.6)); }
@@ -4763,6 +4774,12 @@ html[lang="ar"] .mode-desc, html[lang="ar"] .card-desc {
  * MOBILE & TOUCH VIEWPORT STABILITY RULES
  * =================================================================== */
 html, body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    image-rendering: -webkit-optimize-contrast;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
     touch-action: pan-x pan-y;
     -webkit-touch-callout: none;
     -webkit-user-select: none;

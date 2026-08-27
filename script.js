@@ -2936,16 +2936,20 @@ function playSoundOriginal(type) {
         function renderLobbyHeroCanvas() {
             const canvas = document.getElementById('lobby-hero-canvas');
             if (!canvas) return;
-            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
             const cssW = canvas.clientWidth || 200;
             const cssH = canvas.clientHeight || 120;
-            if (canvas.width !== Math.floor(cssW * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
-                canvas.width = Math.floor(cssW * dpr);
-                canvas.height = Math.floor(cssH * dpr);
+            const targetW = Math.round(cssW * dpr);
+            const targetH = Math.round(cssH * dpr);
+            if (canvas.width !== targetW || canvas.height !== targetH) {
+                canvas.width = targetW;
+                canvas.height = targetH;
             }
             const ctx = canvas.getContext('2d');
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
             ctx.clearRect(0, 0, cssW, cssH);
             const w = cssW, h = cssH;
 
@@ -3268,16 +3272,20 @@ function playSoundOriginal(type) {
             classes.forEach(cId => {
                 const canvas = document.getElementById(`arsenal-canvas-${cId}`);
                 if (canvas) {
-                    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                    const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
                     const cssW = canvas.clientWidth || 90;
                     const cssH = canvas.clientHeight || 70;
-                    if (canvas.width !== Math.floor(cssW * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
-                        canvas.width = Math.floor(cssW * dpr);
-                        canvas.height = Math.floor(cssH * dpr);
+                    const targetW = Math.round(cssW * dpr);
+                    const targetH = Math.round(cssH * dpr);
+                    if (canvas.width !== targetW || canvas.height !== targetH) {
+                        canvas.width = targetW;
+                        canvas.height = targetH;
                     }
                     const ctx = canvas.getContext('2d');
                     ctx.setTransform(1, 0, 0, 1, 0, 0);
                     ctx.scale(dpr, dpr);
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
                     ctx.clearRect(0, 0, cssW, cssH);
                     const w = cssW, h = cssH;
 
@@ -5499,16 +5507,20 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         function updateShopPreviewCanvas() {
             const canvas = document.getElementById('shop-preview-canvas');
             if (!canvas) return;
-            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
             const cssW = canvas.clientWidth || 72;
             const cssH = canvas.clientHeight || 72;
-            if (canvas.width !== Math.floor(cssW * dpr) || canvas.height !== Math.floor(cssH * dpr)) {
-                canvas.width = Math.floor(cssW * dpr);
-                canvas.height = Math.floor(cssH * dpr);
+            const targetW = Math.round(cssW * dpr);
+            const targetH = Math.round(cssH * dpr);
+            if (canvas.width !== targetW || canvas.height !== targetH) {
+                canvas.width = targetW;
+                canvas.height = targetH;
             }
             const ctx = canvas.getContext('2d');
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
             ctx.clearRect(0, 0, cssW, cssH);
             const w = cssW, h = cssH;
 
@@ -6309,10 +6321,10 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         function resize() {
             width = Math.max(320, window.innerWidth || 800);
             height = Math.max(240, window.innerHeight || 600);
-            let maxDpr = gameSettings.lowEnd ? 1.0 : Math.min(window.devicePixelRatio || 1, 2.5);
+            let maxDpr = gameSettings.lowEnd ? 1.0 : Math.min(window.devicePixelRatio || 1, 3.0);
             let dpr = maxDpr;
-            canvas.width = Math.floor(width * dpr);
-            canvas.height = Math.floor(height * dpr);
+            canvas.width = Math.round(width * dpr);
+            canvas.height = Math.round(height * dpr);
             canvas.style.width = width + 'px';
             canvas.style.height = height + 'px';
             ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -10391,7 +10403,21 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         function drawExpandedTacticalMap() {
             if (!expandedMapCtx || !expandedMapCanvas) return;
             const c = expandedMapCtx;
-            const size = expandedMapCanvas.width;
+            const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+            const cssW = expandedMapCanvas.clientWidth || 160;
+            const cssH = expandedMapCanvas.clientHeight || 160;
+            const targetW = Math.round(cssW * dpr);
+            const targetH = Math.round(cssH * dpr);
+            if (expandedMapCanvas.width !== targetW || expandedMapCanvas.height !== targetH) {
+                expandedMapCanvas.width = targetW;
+                expandedMapCanvas.height = targetH;
+            }
+            c.setTransform(1, 0, 0, 1, 0, 0);
+            c.scale(dpr, dpr);
+            c.imageSmoothingEnabled = true;
+            c.imageSmoothingQuality = 'high';
+
+            const size = cssW;
             const scale = size / WORLD_W;
 
             c.save();
