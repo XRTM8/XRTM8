@@ -1,7 +1,7 @@
 /**
  * Chrono Drift - Offline Cache & PWA Service Worker
  */
-const CACHE_NAME = 'chronodrift-v90-cache';
+const CACHE_NAME = 'chronodrift-v102-cache';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

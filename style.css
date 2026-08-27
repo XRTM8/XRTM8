@@ -126,20 +126,40 @@
             pointer-events: auto;
             width: 38px;
             height: 38px;
-            background: var(--panel-bg);
-            border: 1px solid var(--panel-border);
-            border-radius: 8px;
+            min-width: 38px;
+            background: rgba(6, 12, 22, 0.90);
+            border: 1.5px solid rgba(0, 243, 255, 0.45);
+            border-radius: 9px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: var(--player-color);
-            font-size: 1.1rem;
             cursor: pointer;
             backdrop-filter: blur(10px);
-            box-shadow: 0 4px 14px rgba(0,0,0,0.6);
-            transition: transform 0.12s, background 0.12s;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), 0 0 10px rgba(0, 243, 255, 0.2);
+            transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
-        #pause-btn-hud:active { transform: scale(0.9); background: rgba(0, 243, 255, 0.25); }
+        #pause-btn-hud:active {
+            transform: scale(0.90);
+            background: rgba(0, 243, 255, 0.25);
+            border-color: #00f3ff;
+            box-shadow: 0 0 18px rgba(0, 243, 255, 0.6);
+        }
+        .pause-hud-svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+            filter: drop-shadow(0 0 6px rgba(0, 243, 255, 0.8));
+            transition: transform 0.15s ease;
+            pointer-events: none;
+        }
+        #pause-btn-hud:hover .pause-hud-svg,
+        #pause-btn-hud:active .pause-hud-svg {
+            transform: scale(1.12);
+            filter: drop-shadow(0 0 10px rgba(0, 243, 255, 1));
+        }
 
         #fps-hud-tag {
             font-family: 'Share Tech Mono', monospace;
@@ -364,70 +384,189 @@
             box-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
         }
 
-        /* Tactical Ability Cluster (Responsive Dock on Desktop PC & Touch Cluster on Mobile) */
+        /* ====================================================================
+           DESKTOP PC & MOBILE ABILITIES CLUSTER STYLES
+           ==================================================================== */
         #hud-abilities-cluster {
             position: fixed;
-            bottom: max(14px, env(safe-area-inset-bottom, 14px));
-            right: max(14px, env(safe-area-inset-right, 14px));
-            z-index: 30;
+            bottom: max(16px, env(safe-area-inset-bottom, 16px));
+            right: max(20px, env(safe-area-inset-right, 20px));
+            z-index: 26;
             pointer-events: none;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 12px;
-            background: rgba(4, 9, 18, 0.75);
-            border: 1px solid rgba(0, 243, 255, 0.25);
-            border-radius: 40px;
-            backdrop-filter: blur(12px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(0, 243, 255, 0.05);
-        }
-
-        #hud-abilities-cluster > * {
-            pointer-events: auto;
         }
 
         #hud-abilities-cluster.hidden {
             display: none !important;
         }
 
-        #hud-abilities-cluster .hud-action-btn {
-            position: relative !important;
-            bottom: auto !important;
-            right: auto !important;
-            width: 52px;
-            height: 52px;
-            flex-shrink: 0;
+        /* --- DESKTOP DOCK (HORIZONTAL CAPSULE) --- */
+        body.desktop-mode #hud-abilities-cluster,
+        #hud-abilities-cluster.desktop-dock {
+            width: auto !important;
+            height: auto !important;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 10px !important;
+            padding: 8px 16px !important;
+            background: rgba(6, 12, 22, 0.88) !important;
+            border: 1.5px solid rgba(0, 243, 255, 0.3) !important;
+            border-radius: 40px !important;
+            backdrop-filter: blur(14px) !important;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.65), 0 0 15px rgba(0, 243, 255, 0.1) !important;
+        }
+
+        body.desktop-mode #hud-abilities-cluster > *,
+        #hud-abilities-cluster.desktop-dock > * {
             pointer-events: auto !important;
         }
 
-        #dash-btn-hud {
-            width: 58px !important;
-            height: 58px !important;
-            --btn-color: var(--dash-color);
+        body.desktop-mode #hud-abilities-cluster .hud-action-btn,
+        #hud-abilities-cluster.desktop-dock .hud-action-btn {
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            bottom: auto !important;
+            right: auto !important;
+            transform: none !important;
+            width: 52px !important;
+            height: 52px !important;
+            flex-shrink: 0 !important;
+            pointer-events: auto !important;
+            cursor: pointer !important;
+            border-radius: 50% !important;
         }
+
+        body.desktop-mode #hud-abilities-cluster .hud-action-btn:active,
+        #hud-abilities-cluster.desktop-dock .hud-action-btn:active {
+            transform: scale(0.92) !important;
+        }
+
+        /* --- MOBILE RADIAL SEMI-CIRCLE (AROUND RIGHT JOYSTICK) --- */
+        body.mobile-touch-mode #hud-abilities-cluster,
+        #hud-abilities-cluster.mobile-radial,
+        #hud-abilities-cluster:not(.desktop-dock) {
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+        }
+
+        body.mobile-touch-mode #hud-abilities-cluster .hud-action-btn,
+        #hud-abilities-cluster.mobile-radial .hud-action-btn,
+        #hud-abilities-cluster:not(.desktop-dock) .hud-action-btn {
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            bottom: auto !important;
+            right: auto !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            pointer-events: auto !important;
+            z-index: 26 !important;
+            transform: translate(calc(-50% + var(--rx, 0px)), calc(-50% + var(--ry, 0px))) scale(1);
+            transition: transform 0.14s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease, filter 0.2s ease, border-color 0.2s ease;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            backdrop-filter: blur(10px);
+        }
+
+        body.mobile-touch-mode #hud-abilities-cluster .hud-action-btn:active,
+        #hud-abilities-cluster.mobile-radial .hud-action-btn:active,
+        #hud-abilities-cluster:not(.desktop-dock) .hud-action-btn:active {
+            transform: translate(calc(-50% + var(--rx, 0px)), calc(-50% + var(--ry, 0px))) scale(0.88) !important;
+            filter: brightness(1.3) !important;
+        }
+
+        /* 1. DASH (Mobility Anchor - Left, Angle ~8°) */
+        #dash-btn-hud {
+            width: 54px !important;
+            height: 54px !important;
+            --rx: -102px;
+            --ry: -14px;
+            --btn-color: var(--dash-color, #00f3ff);
+        }
+
+        /* 2. SPRINT / Class Active Skill (Angle ~30°) */
         #class-skill-btn-hud {
+            width: 48px !important;
+            height: 48px !important;
+            --rx: -88px;
+            --ry: -52px;
             --btn-color: #00ff88;
         }
-        #class-skill2-btn-hud {
-            --btn-color: #ffd700;
-        }
-        #swap-weapon-btn-hud {
-            --btn-color: #00f3ff;
-        }
+
+        /* 3. RELOAD (Angle ~52°) */
         #reload-btn-hud {
+            width: 46px !important;
+            height: 46px !important;
+            --rx: -64px;
+            --ry: -82px;
             --btn-color: #38bdf8;
         }
-        #super-emp-btn-hud, #overcharge-btn-hud {
-            --btn-color: var(--overcharge-color);
+
+        /* 4. SWAP WEAPON (Angle ~74°) */
+        #swap-weapon-btn-hud {
+            width: 46px !important;
+            height: 46px !important;
+            --rx: -28px;
+            --ry: -99px;
+            --btn-color: #00f3ff;
         }
+
+        /* 5. NOVA / SUPER EMP (Angle ~94° - Top) */
+        #super-emp-btn-hud, .over-btn {
+            width: 48px !important;
+            height: 48px !important;
+            --rx: 7px;
+            --ry: -103px;
+            --btn-color: var(--overcharge-color, #bd00ff);
+        }
+
+        /* 6. ULTIMATE (Outer Radial Crown - Angle ~42°) */
+        #ult-btn-hud {
+            width: 54px !important;
+            height: 54px !important;
+            --rx: -114px;
+            --ry: -104px;
+            --btn-color: var(--ult-color, #ffaa00);
+        }
+
+        /* 7. RADIAL ARSENAL MENU (Hidden) */
         #radial-trigger-btn-hud {
+            display: none !important;
+            width: 44px !important;
+            height: 44px !important;
+            --rx: -46px;
+            --ry: -144px;
             --btn-color: #f59e0b;
         }
-        #ult-btn-hud {
-            width: 58px !important;
-            height: 58px !important;
-            --btn-color: var(--ult-color);
+
+        /* 8. CLASS SKILL 2 / SMOKE (Angle ~18°, Outer Orbit) */
+        #class-skill2-btn-hud {
+            width: 44px !important;
+            height: 44px !important;
+            --rx: -146px;
+            --ry: -48px;
+            --btn-color: #ffd700;
+        }
+
+        /* 9. SANDBOX (Angle ~98°, Outer Orbit) */
+        #sandbox-btn-hud {
+            width: 44px !important;
+            height: 44px !important;
+            --rx: 20px;
+            --ry: -150px;
+            --btn-color: #00ff88;
         }
 
         .stealth-indicator-tag {
@@ -543,8 +682,8 @@
             text-shadow: 0 0 6px #ff0055, 0 0 12px #ffd700;
         }
 
-        @media (min-width: 900px) and (min-height: 600px) and (pointer: fine) {
-            /* Desktop HUD layout - Hide touch joysticks but display ability cluster cleanly */
+        @media (min-width: 850px) and (min-height: 480px) {
+            /* Desktop HUD layout - Hide touch joysticks but display ability cluster cleanly in horizontal dock */
             .touch-controls-overlay,
             #touch-controls-container,
             #joystick-base,
@@ -554,21 +693,52 @@
 
             #hud-abilities-cluster {
                 display: flex !important;
-                flex-direction: row;
-                gap: 12px;
-                bottom: 24px;
-                right: 28px;
-                pointer-events: none;
+                flex-direction: row !important;
+                align-items: center !important;
+                gap: 10px !important;
+                padding: 8px 14px !important;
+                background: rgba(4, 9, 18, 0.82) !important;
+                border: 1px solid rgba(0, 243, 255, 0.28) !important;
+                border-radius: 40px !important;
+                backdrop-filter: blur(14px) !important;
+                box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(0, 243, 255, 0.05) !important;
+                width: auto !important;
+                height: auto !important;
+                bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
+                right: max(22px, env(safe-area-inset-right, 22px)) !important;
+                pointer-events: none !important;
+            }
+
+            #hud-abilities-cluster > * {
+                pointer-events: auto !important;
             }
 
             #hud-abilities-cluster .hud-action-btn {
                 position: relative !important;
+                top: auto !important;
+                left: auto !important;
                 bottom: auto !important;
                 right: auto !important;
+                transform: none !important;
+                width: 52px !important;
+                height: 52px !important;
+                flex-shrink: 0 !important;
+                pointer-events: auto !important;
+                cursor: pointer !important;
+            }
+
+            #hud-abilities-cluster .hud-action-btn:active {
+                transform: scale(0.92) !important;
+            }
+
+            #dash-btn-hud {
                 width: 58px !important;
                 height: 58px !important;
-                pointer-events: auto !important;
-                cursor: pointer;
+            }
+
+            #ult-btn-hud {
+                width: 58px !important;
+                height: 58px !important;
             }
         }
 
@@ -2831,87 +3001,10 @@ body {
 }
 
 /* ====================================================================
-   CLEAN ERGONOMIC ABILITY DOCK & PURPLE OVER CHARGE
+   PURPLE OVERCHARGE & SPECIAL BUTTON EFFECTS
    ==================================================================== */
-#dash-btn-hud {
-    position: absolute !important;
-    bottom: 22px !important;
-    right: 22px !important;
-    width: 68px !important;
-    height: 68px !important;
-    --btn-color: var(--dash-color) !important;
-}
-
-#class-skill-btn-hud {
-    position: absolute !important;
-    bottom: 102px !important;
-    right: 22px !important;
-    width: 60px !important;
-    height: 60px !important;
-    --btn-color: #00ff88 !important;
-}
-
-#ult-btn-hud {
-    position: absolute !important;
-    bottom: 174px !important;
-    right: 26px !important;
-    width: 56px !important;
-    height: 56px !important;
-    --btn-color: var(--ult-color) !important;
-}
-
-#swap-weapon-btn-hud {
-    position: absolute !important;
-    bottom: 22px !important;
-    right: 102px !important;
-    width: 58px !important;
-    height: 58px !important;
-    --btn-color: #bd00ff !important;
-    border-color: rgba(189, 0, 255, 0.6) !important;
-    background: radial-gradient(circle, rgba(14, 6, 24, 0.96) 58%, transparent 62%),
-                conic-gradient(#bd00ff var(--fill-pct, 100%), rgba(255, 255, 255, 0.07) var(--fill-pct, 100%)) !important;
-}
-
-#reload-btn-hud {
-    position: absolute !important;
-    bottom: 92px !important;
-    right: 94px !important;
-    width: 52px !important;
-    height: 52px !important;
-    --btn-color: #00f3ff !important;
-}
-
-#super-emp-btn-hud, .over-btn {
-    position: absolute !important;
-    bottom: 156px !important;
-    right: 94px !important;
-    width: 52px !important;
-    height: 52px !important;
-    --btn-color: #bd00ff !important;
-    border: 2px solid #bd00ff !important;
-    background: radial-gradient(circle, rgba(20, 5, 35, 0.95) 58%, transparent 62%),
-                conic-gradient(#bd00ff var(--fill-pct, 0%), rgba(255, 255, 255, 0.07) var(--fill-pct, 0%)) !important;
-    box-shadow: 0 0 16px rgba(189, 0, 255, 0.5), inset 0 0 8px rgba(189, 0, 255, 0.3) !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border-radius: 50% !important;
-    z-index: 25 !important;
-    cursor: pointer !important;
-    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-}
-
-#class-skill2-btn-hud {
-    position: absolute !important;
-    bottom: 220px !important;
-    right: 94px !important;
-    width: 48px !important;
-    height: 48px !important;
-    --btn-color: #ffd700 !important;
-}
-
 #super-emp-btn-hud:hover, .over-btn:hover {
-    transform: scale(1.08) !important;
+    transform: translate(calc(-50% + var(--rx, 0px)), calc(-50% + var(--ry, 0px))) scale(1.08) !important;
     box-shadow: 0 0 26px #bd00ff, inset 0 0 12px #bd00ff !important;
     border-color: #ff00ea !important;
 }
@@ -2923,88 +3016,7 @@ body {
 
 @keyframes purplePulse {
     from { box-shadow: 0 0 14px #bd00ff, inset 0 0 6px #bd00ff; }
-    to { box-shadow: 0 0 30px #ff00ea, inset 0 0 14px #ff00ea; transform: scale(1.06); }
-}
-
-/* ====================================================================
-   MOBILE RESPONSIVE HUD - Prevent button overlap with aim joystick
-   ==================================================================== */
-@media (max-width: 600px), (max-height: 500px), (pointer: coarse) {
-    /* Column 1: Right side, shifted left of aim joystick */
-    #dash-btn-hud {
-        bottom: 18px !important;
-        right: 138px !important;
-        width: 58px !important;
-        height: 58px !important;
-    }
-    #class-skill-btn-hud {
-        bottom: 86px !important;
-        right: 138px !important;
-        width: 52px !important;
-        height: 52px !important;
-    }
-    #ult-btn-hud {
-        bottom: 148px !important;
-        right: 138px !important;
-        width: 50px !important;
-        height: 50px !important;
-    }
-
-    /* Column 2: Further left */
-    #swap-weapon-btn-hud {
-        bottom: 18px !important;
-        right: 206px !important;
-        width: 50px !important;
-        height: 50px !important;
-    }
-    #reload-btn-hud {
-        bottom: 78px !important;
-        right: 206px !important;
-        width: 46px !important;
-        height: 46px !important;
-    }
-    #super-emp-btn-hud, .over-btn {
-        bottom: 134px !important;
-        right: 206px !important;
-        width: 46px !important;
-        height: 46px !important;
-    }
-    #class-skill2-btn-hud {
-        bottom: 190px !important;
-        right: 206px !important;
-        width: 42px !important;
-        height: 42px !important;
-    }
-
-    /* Slightly smaller joysticks for more screen space */
-    #joystick-base {
-        width: 108px !important;
-        height: 108px !important;
-        bottom: 16px !important;
-        left: 16px !important;
-    }
-    #joystick-aim-base {
-        width: 108px !important;
-        height: 108px !important;
-        bottom: 16px !important;
-        right: 16px !important;
-    }
-    #joystick-thumb {
-        width: 42px !important;
-        height: 42px !important;
-    }
-    #joystick-aim-thumb {
-        width: 40px !important;
-        height: 40px !important;
-    }
-
-    /* Smaller HUD button text */
-    .hud-action-btn .btn-text {
-        font-size: 0.62rem !important;
-    }
-    .hud-action-btn .btn-sub {
-        font-size: 0.45rem !important;
-    }
+    to { box-shadow: 0 0 30px #ff00ea, inset 0 0 14px #ff00ea; transform: translate(calc(-50% + var(--rx, 0px)), calc(-50% + var(--ry, 0px))) scale(1.06); }
 }
 
 /* ====================================================================
@@ -7772,43 +7784,44 @@ html[lang="en"] .shop-preview-info {
         transform: translate(-50%, -50%) !important;
     }
 
+    /* Radial Abilities Cluster on Mobile - Responsive & Orientation Handling */
+    #hud-abilities-cluster {
+        position: fixed !important;
+        bottom: max(14px, env(safe-area-inset-bottom, 14px)) !important;
+        right: max(14px, env(safe-area-inset-right, 14px)) !important;
+        width: 130px !important;
+        height: 130px !important;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        pointer-events: none !important;
+        z-index: 26 !important;
+    }
+
     #hud-abilities-cluster .hud-action-btn {
-        width: 46px !important;
-        height: 46px !important;
+        position: absolute !important;
+        top: 50% !important;
+        left: 50% !important;
+        bottom: auto !important;
+        right: auto !important;
+        border-radius: 50% !important;
+        pointer-events: auto !important;
+        z-index: 26 !important;
+        transform: translate(calc(-50% + var(--rx, 0px)), calc(-50% + var(--ry, 0px))) scale(1) !important;
+    }
+
+    #hud-abilities-cluster .hud-action-btn:active {
+        transform: translate(calc(-50% + var(--rx, 0px)), calc(-50% + var(--ry, 0px))) scale(0.88) !important;
+        filter: brightness(1.3) !important;
     }
 
     .hud-action-btn .btn-text {
-        font-size: 0.68rem !important;
+        font-size: 0.65rem !important;
     }
 
     .hud-action-btn .btn-sub {
-        font-size: 0.50rem !important;
-    }
-
-    .mobile-only-btn {
-        display: flex !important;
-    }
-
-    #mobile-pause-btn-hud {
-        position: absolute !important;
-        top: max(8px, env(safe-area-inset-top, 8px)) !important;
-        right: max(8px, env(safe-area-inset-right, 8px)) !important;
-        width: 38px !important;
-        height: 38px !important;
-        border-radius: 50% !important;
-        z-index: 30 !important;
-        bottom: auto !important;
-    }
-
-    #mobile-map-btn-hud {
-        position: absolute !important;
-        top: max(8px, env(safe-area-inset-top, 8px)) !important;
-        right: max(54px, calc(env(safe-area-inset-right, 8px) + 46px)) !important;
-        width: 38px !important;
-        height: 38px !important;
-        border-radius: 50% !important;
-        z-index: 30 !important;
-        bottom: auto !important;
+        font-size: 0.46rem !important;
     }
 
     /* Radial Wheels & Pings */
@@ -7851,31 +7864,98 @@ html[lang="en"] .shop-preview-info {
     }
 }
 
-/* --- 4. ULTRA-COMPACT MOBILE PHONES (< 480px height or width) --- */
-@media (max-height: 480px), (max-width: 480px) and (pointer: coarse) {
-    #hud-abilities-cluster {
-        transform: scale(0.88) !important;
-        transform-origin: bottom right !important;
-    }
-
+/* --- 4. PORTRAIT & ULTRA-COMPACT MOBILE PHONES (< 540px width or portrait) --- */
+@media (orientation: portrait), (max-width: 540px) and (pointer: coarse) {
     #joystick-base {
-        width: 118px !important;
-        height: 118px !important;
+        width: 112px !important;
+        height: 112px !important;
+        bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+        left: max(12px, env(safe-area-inset-left, 12px)) !important;
     }
-
     #joystick-thumb {
         width: 44px !important;
         height: 44px !important;
     }
 
     #joystick-aim-base {
-        width: 118px !important;
-        height: 118px !important;
+        width: 112px !important;
+        height: 112px !important;
+        bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+        right: max(12px, env(safe-area-inset-right, 12px)) !important;
     }
-
     #joystick-aim-thumb {
         width: 44px !important;
         height: 44px !important;
+    }
+
+    #hud-abilities-cluster {
+        width: 112px !important;
+        height: 112px !important;
+        bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+        right: max(12px, env(safe-area-inset-right, 12px)) !important;
+    }
+
+    /* Scaled Radial semi-circle in Portrait to prevent screen overflow */
+    #dash-btn-hud {
+        width: 48px !important;
+        height: 48px !important;
+        --rx: -90px;
+        --ry: -12px;
+    }
+    #class-skill-btn-hud {
+        width: 42px !important;
+        height: 42px !important;
+        --rx: -78px;
+        --ry: -46px;
+    }
+    #reload-btn-hud {
+        width: 40px !important;
+        height: 40px !important;
+        --rx: -56px;
+        --ry: -72px;
+    }
+    #swap-weapon-btn-hud {
+        width: 40px !important;
+        height: 40px !important;
+        --rx: -24px;
+        --ry: -88px;
+    }
+    #super-emp-btn-hud, .over-btn {
+        width: 42px !important;
+        height: 42px !important;
+        --rx: 6px;
+        --ry: -92px;
+    }
+    #ult-btn-hud {
+        width: 48px !important;
+        height: 48px !important;
+        --rx: -100px;
+        --ry: -92px;
+    }
+    #radial-trigger-btn-hud {
+        width: 38px !important;
+        height: 38px !important;
+        --rx: -38px;
+        --ry: -126px;
+    }
+    #class-skill2-btn-hud {
+        width: 38px !important;
+        height: 38px !important;
+        --rx: -128px;
+        --ry: -42px;
+    }
+    #sandbox-btn-hud {
+        width: 38px !important;
+        height: 38px !important;
+        --rx: 16px;
+        --ry: -130px;
+    }
+
+    .hud-action-btn .btn-text {
+        font-size: 0.58rem !important;
+    }
+    .hud-action-btn .btn-sub {
+        font-size: 0.42rem !important;
     }
 
     .screen-title {

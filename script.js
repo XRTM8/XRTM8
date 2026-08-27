@@ -133,12 +133,14 @@ if (typeof MutationObserver !== 'undefined') {
 // ===================================================================
 // MOBILE TOUCH AUTO-DETECTION, COORDINATE MAPPING & FULLSCREEN CONTROLS
 // ===================================================================
+// PLATFORM & TOUCH DETECTION
+// ===================================================================
 function isMobileTouchActive() {
-    return ('ontouchstart' in window) || 
-           (navigator.maxTouchPoints > 0) || 
-           (navigator.msMaxTouchPoints > 0) || 
-           (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) || 
-           (window.innerWidth <= 1024);
+    if (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) return true;
+    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    if (isMobileUA) return true;
+    if (window.innerWidth <= 850 && (('ontouchstart' in window) || (navigator.maxTouchPoints > 0))) return true;
+    return false;
 }
 
 function updateMobileControlsVisibility() {
@@ -152,8 +154,24 @@ function updateMobileControlsVisibility() {
     const isTouch = isMobileTouchActive();
     const isPlaying = !isGameOver && !isGamePaused && (!mainMenu || mainMenu.style.display === 'none');
     
+    if (isTouch) {
+        document.body.classList.add('mobile-touch-mode');
+        document.body.classList.remove('desktop-mode');
+        if (hudCluster) {
+            hudCluster.classList.add('mobile-radial');
+            hudCluster.classList.remove('desktop-dock');
+        }
+    } else {
+        document.body.classList.add('desktop-mode');
+        document.body.classList.remove('mobile-touch-mode');
+        if (hudCluster) {
+            hudCluster.classList.add('desktop-dock');
+            hudCluster.classList.remove('mobile-radial');
+        }
+    }
+
     if (sbBtn) {
-        if (isPlaying && (activeGameMode === 'sandbox' || activeGameMode === 'training')) {
+        if (isPlaying && activeGameMode === 'sandbox') {
             sbBtn.style.display = 'flex';
         } else {
             sbBtn.style.display = 'none';
@@ -176,7 +194,7 @@ function updateMobileControlsVisibility() {
         if (superEmp) superEmp.style.display = 'flex';
         if (reloadBtn) reloadBtn.style.display = 'flex';
         if (swapWepBtn) swapWepBtn.style.display = 'flex';
-        if (radialBtn) radialBtn.style.display = 'flex';
+        if (radialBtn) radialBtn.style.display = 'none';
 
         if (isTouch) {
             if (touchContainer) {
@@ -185,8 +203,8 @@ function updateMobileControlsVisibility() {
             }
             if (jBase) jBase.style.display = 'flex';
             if (jAimBase) jAimBase.style.display = 'flex';
-            if (mobilePauseBtn) mobilePauseBtn.style.display = 'flex';
-            if (mobileMapBtn) mobileMapBtn.style.display = 'flex';
+            if (mobilePauseBtn) mobilePauseBtn.style.display = 'none';
+            if (mobileMapBtn) mobileMapBtn.style.display = 'none';
             if (hudInstructions) hudInstructions.style.display = 'none';
             updateJoystickCenter();
         } else {
@@ -1658,7 +1676,7 @@ function isSandboxMode() {
                 id: 'assault',
                 name: 'الهجومي (Assault)',
                 title: 'المهاجم الخفيف والسريع',
-                desc: 'خفيف وسريع، صحة/درع أقل، +10% ضرر. زر مهارة: ركض بسرعة مضاعفة (Adrenaline Sprint).',
+                desc: 'خفيف وسريع، صحة/درع أقل، +10% ضرر. زر مهارة: انطلاق فرط حركي نفاث وموجة بلازما ساحقة (Adrenaline Sprint 2.5x).',
                 baseSpeed: 7.6,
                 hp: 90,
                 shieldCharges: 2,
@@ -1670,14 +1688,14 @@ function isSandboxMode() {
                 color: '#00f3ff',
                 skillName: 'SPRINT',
                 skillKey: 'E',
-                skillDesc: 'ركض بسرعة مضاعفة 2x',
-                skillCooldown: 9000
+                skillDesc: 'انطلاق نفاث فرط حركي 2.5x مع درع حصانة وموجة بلازما',
+                skillCooldown: 8000
             },
             breacher: {
                 id: 'breacher',
                 name: 'الكاسر (Breacher)',
                 title: 'مقاتل الشوتكن والاقتحام القريب',
-                desc: 'مصفح بشدة، +25% صحة، تدمير ساحق في المدى القريب. زر مهارة: صدمة حركية كاسحة (Kinetic Shockwave Ram) تدفع الأعداء وتدمر الرصاص.',
+                desc: 'مصفح بشدة، +25% صحة، تدمير ساحق في المدى القريب. زر مهارة: صدمة التيتان الكاسحة (Seismic Ram) تبيد الرصاص وتصعق الأعداء بضرر 180.',
                 baseSpeed: 6.2,
                 hp: 140,
                 shieldCharges: 3,
@@ -1689,14 +1707,14 @@ function isSandboxMode() {
                 color: '#ff5500',
                 skillName: 'RAM',
                 skillKey: 'E',
-                skillDesc: 'اندفاع صدمي كاسح يمزق الأعداء ويصد المقذوفات',
-                skillCooldown: 10000
+                skillDesc: 'اندفاع تيتان كاسح يبيد المقذوفات ويصعق الأعداء بضرر 180',
+                skillCooldown: 9000
             },
             support: {
                 id: 'support',
                 name: 'الدعم (Support)',
                 title: 'الحصن الثقيل والممدد',
-                desc: 'ثقيل وبطيء، صحة/درع أعلى، +10% سعة رصاص. زر مهارة: رمي سموك 5ث يخفي ويعالج، وزر إمداد ذخيرة.',
+                desc: 'ثقيل وبطيء، صحة/درع أعلى، +15% سعة رصاص. زر مهارة: حقل ضباب نانوي 280px (شفاء وتخفي وحمض)، وزر إمداد فوري للذخيرة والدروع.',
                 baseSpeed: 5.4,
                 hp: 135,
                 shieldCharges: 3,
@@ -1708,18 +1726,18 @@ function isSandboxMode() {
                 color: '#00ff88',
                 skillName: 'SMOKE',
                 skillKey: 'E',
-                skillDesc: 'رمي سموك 5ث (تخفي وعلاج)',
-                skillCooldown: 13000,
+                skillDesc: 'حقل ضباب نانوي عملاق 280px (شفاء وتخفي وحمض للأعداء)',
+                skillCooldown: 10000,
                 skill2Name: 'AMMO+',
                 skill2Key: 'C',
-                skill2Desc: 'إمداد فوري للذخيرة والدرع',
-                skill2Cooldown: 11000
+                skill2Desc: 'إمداد كامل فوري للذخيرة وشحن درعين مع موجة دفع',
+                skill2Cooldown: 10000
             },
             engineer: {
                 id: 'engineer',
                 name: 'المهندس (Engineer)',
                 title: 'المهندس التكتيكي المتوازن',
-                desc: 'متوازن، +10% سرعة شحن معدات وقدرات. زر مهارة: نشر مدفع آلي (Turret) يطلق النار تلقائياً.',
+                desc: 'متوازن، +10% سرعة شحن معدات وقدرات. زر مهارة: نشر مدفع بلازما آلي مطور (Apex Turret) بنطاق 750px ومدافع مزدوجة.',
                 baseSpeed: 6.4,
                 hp: 105,
                 shieldCharges: 2,
@@ -1731,27 +1749,27 @@ function isSandboxMode() {
                 color: '#ffd700',
                 skillName: 'TURRET',
                 skillKey: 'E',
-                skillDesc: 'نشر مدفع آلي دفاعي (12ث)',
-                skillCooldown: 15000
+                skillDesc: 'نشر مدفع بلازما آلي فائق (نطاق 750px ومدافع مزدوجة)',
+                skillCooldown: 11000
             },
             sniper: {
                 id: 'sniper',
                 name: 'القناص (Sniper)',
                 title: 'القناص الشبح والمستطلع',
-                desc: 'سرعة متوسطة لمنع استغلال الركض، +10% مدى رؤية، أقل صحة/درع. ميزة تلقائية: التخفي عند الثبات لثانيتين. زر مهارة: كشف الأعداء.',
-                baseSpeed: 5.8, // Strictly medium speed to eliminate speed running exploit
+                desc: 'سرعة متوسطة لمنع استغلال الركض، +10% مدى رؤية، أقل صحة/درع. ميزة تلقائية: التخفي عند الثبات لثانيتين. زر مهارة: رادار مداري كامل + صدمة EMP (+50% ضرر).',
+                baseSpeed: 5.8,
                 hp: 75,
                 shieldCharges: 1,
                 dmgMultiplier: 1.0,
                 magMultiplier: 1.0,
                 cooldownMultiplier: 1.0,
-                visionMultiplier: 1.10, // +10% vision
+                visionMultiplier: 1.10,
                 icon: '',
                 color: '#bd00ff',
                 skillName: 'RECON',
                 skillKey: 'E',
-                skillDesc: 'كشف الأعداء ومضاعفة الضرر',
-                skillCooldown: 14000,
+                skillDesc: 'رادار مداري: كشف كامل الساحة + صدمة EMP (+50% ضرر)',
+                skillCooldown: 11000,
                 passiveName: 'Stealth',
                 passiveDesc: 'تخفي تام عند الثبات لـ 2 ثانية'
             }
@@ -6937,6 +6955,10 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             updateMobileControlsVisibility();
         }
         window.addEventListener('resize', resize);
+        window.addEventListener('orientationchange', () => {
+            setTimeout(resize, 100);
+            setTimeout(resize, 300);
+        });
         resize();
 
         
@@ -7554,22 +7576,28 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
 
         
         // ====================================================================
-        // كيانات القدرات التكتيكية الميدانية (Deployable Turret & Smoke Zone)
+        // كيانات القدرات التكتيكية الميدانية (Cyber Apex Turret & Nano-Mist Sanctuary)
         // ====================================================================
         class DeployableTurret {
-            constructor(x, y, duration = 12000) {
+            constructor(x, y, duration = 18000) {
                 this.x = x;
                 this.y = y;
-                this.radius = 16;
+                this.radius = 24;
                 this.duration = duration;
                 this.maxDuration = duration;
                 this.lifeTimer = duration;
                 this.isDead = false;
                 this.shootTimer = 0;
-                this.shootInterval = 220; // إطلاق نبضات سريعة
+                this.shootInterval = 120; // 120ms rapid-fire twin plasma railguns
+                this.range = 750; // 750px wide tactical reach
                 this.targetAngle = 0;
-                this.hp = 120;
-                this.maxHp = 120;
+                this.hp = 350;
+                this.maxHp = 350;
+                this.spawnTimer = 400; // 400ms holographic unfolding animation
+                this.barrelIndex = 0;
+                this.barrelRecoil = [0, 0];
+                this.pulseTimer = 0;
+                this.targetEnemy = null;
             }
 
             update(delta = 16.666, effectiveDelta = 16.666, timeScale = 1.0, frameFactor = 1.0) {
@@ -7577,45 +7605,73 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 if (typeof timeScale !== 'number' || isNaN(timeScale) || timeScale <= 0) timeScale = 1.0;
                 if (typeof delta !== 'number' || isNaN(delta)) delta = 16.666;
                 if (typeof effectiveDelta !== 'number' || isNaN(effectiveDelta)) effectiveDelta = delta;
+
+                if (this.spawnTimer > 0) {
+                    this.spawnTimer -= effectiveDelta * timeScale;
+                    return;
+                }
+
                 this.lifeTimer -= effectiveDelta * timeScale;
                 if (this.lifeTimer <= 0 || this.hp <= 0) {
                     this.isDead = true;
-                    createExplosion(this.x, this.y, '#ffd700', 25, 12);
+                    createExplosion(this.x, this.y, '#ffd700', 45, 20);
+                    triggerShockwave(this.x, this.y, '#ffd700', 220);
                     playSound('explosion');
                     return;
                 }
 
-                // استهداف أقرب عدو في نطاق 450px
+                // Recover barrel recoil
+                this.barrelRecoil[0] = Math.max(0, this.barrelRecoil[0] - 0.3 * frameFactor);
+                this.barrelRecoil[1] = Math.max(0, this.barrelRecoil[1] - 0.3 * frameFactor);
+
+                // Pulse timer
+                this.pulseTimer += effectiveDelta * timeScale;
+
+                // Target nearest threat (priority to Bosses & Elites!)
                 let nearestEnemy = null;
-                let nearestDistSq = 450 ** 2;
+                let nearestDistSq = this.range ** 2;
                 for (let e of enemies) {
                     if (e && !e.isDead) {
                         let dSq = distSq(this.x, this.y, e.x, e.y);
-                        if (dSq < nearestDistSq) {
-                            nearestDistSq = dSq;
+                        let priorityWeight = e.type === 'boss' ? 0.35 : (e.isElite ? 0.65 : 1.0);
+                        if (dSq * priorityWeight < nearestDistSq) {
+                            nearestDistSq = dSq * priorityWeight;
                             nearestEnemy = e;
                         }
                     }
                 }
 
+                this.targetEnemy = nearestEnemy;
+
                 if (nearestEnemy) {
-                    this.targetAngle = Math.atan2(nearestEnemy.y - this.y, nearestEnemy.x - this.x);
-                    this.shootTimer += delta * timeScale;
+                    let desiredAngle = Math.atan2(nearestEnemy.y - this.y, nearestEnemy.x - this.x);
+                    let diff = desiredAngle - this.targetAngle;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    this.targetAngle += diff * 0.22 * frameFactor;
+
+                    this.shootTimer += effectiveDelta * timeScale;
                     if (this.shootTimer >= this.shootInterval) {
                         this.shootTimer = 0;
                         this.shoot();
                     }
                 } else {
-                    this.targetAngle += 0.03 * frameFactor;
+                    this.targetAngle += 0.02 * frameFactor;
                 }
             }
 
             shoot() {
                 playSound('shoot_rapid');
-                let dmg = 18 * (player ? (CLASSES_CONFIG[player.playerClass]?.dmgMultiplier || 1.0) : 1.0);
-                let spawnX = this.x + Math.cos(this.targetAngle) * 20;
-                let spawnY = this.y + Math.sin(this.targetAngle) * 20;
-                spawnPlayerBullet(spawnX, spawnY, this.targetAngle, 22.0, dmg, false, false);
+                let dmg = 32 * (player ? (CLASSES_CONFIG[player.playerClass]?.dmgMultiplier || 1.0) : 1.0);
+                this.barrelIndex = 1 - this.barrelIndex;
+                this.barrelRecoil[this.barrelIndex] = 6;
+                
+                let sideOffset = (this.barrelIndex === 0 ? -7 : 7);
+                let spawnX = this.x + Math.cos(this.targetAngle) * 26 + Math.cos(this.targetAngle + Math.PI / 2) * sideOffset;
+                let spawnY = this.y + Math.sin(this.targetAngle) * 26 + Math.sin(this.targetAngle + Math.PI / 2) * sideOffset;
+                
+                spawnPlayerBullet(spawnX, spawnY, this.targetAngle + (Math.random() - 0.5) * 0.03, 26.0, dmg, true, false);
+                createExplosion(spawnX, spawnY, '#ffd700', 8, 4);
             }
 
             draw() {
@@ -7623,69 +7679,179 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 ctx.translate(this.x, this.y);
 
                 let lifePct = Math.max(0, this.lifeTimer / this.maxDuration);
-                // حلقة المؤقت المحيطة
+                let hpPct = Math.max(0, this.hp / this.maxHp);
+
+                // Spawn Unfolding Hologram Animation
+                if (this.spawnTimer > 0) {
+                    let prog = Math.max(0, Math.min(1.0, 1 - (this.spawnTimer / 400)));
+                    ctx.beginPath();
+                    ctx.arc(0, 0, Math.max(0.1, this.radius * prog * 2), 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(255, 215, 0, ${1 - prog})`;
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+                    
+                    ctx.fillStyle = `rgba(255, 215, 0, ${0.4 * prog})`;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, Math.max(0.1, this.radius * prog), 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                    return;
+                }
+
+                // Radar Scanning Pulse Ring (every 1.8s)
+                let pulsePhase = (this.pulseTimer % 1800) / 1800;
                 ctx.beginPath();
-                ctx.arc(0, 0, this.radius + 4, 0, Math.PI * 2);
-                ctx.fillStyle = 'rgba(10, 16, 26, 0.85)';
-                ctx.fill();
-                ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
+                ctx.arc(0, 0, Math.max(0.1, this.radius + pulsePhase * 110), 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(255, 215, 0, ${(1 - pulsePhase) * 0.35})`;
                 ctx.lineWidth = 1.5;
                 ctx.stroke();
 
-                ctx.beginPath();
-                ctx.arc(0, 0, this.radius + 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * lifePct);
-                ctx.strokeStyle = '#ffd700';
-                ctx.lineWidth = 2.5;
-                ctx.stroke();
+                // Targeting Laser Beam to Enemy
+                if (this.targetEnemy && !this.targetEnemy.isDead) {
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    let ex = this.targetEnemy.x - this.x;
+                    let ey = this.targetEnemy.y - this.y;
+                    ctx.lineTo(ex, ey);
+                    ctx.strokeStyle = 'rgba(255, 215, 0, 0.35)';
+                    ctx.lineWidth = 1.2;
+                    ctx.setLineDash([6, 4]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.restore();
+                }
 
-                // قاعدة البرج السداسية
+                // 1. Heavy Armored Base (Double Hexagon with glowing edges)
                 ctx.beginPath();
                 for (let i = 0; i < 6; i++) {
                     let angle = (i * Math.PI) / 3;
+                    let hx = Math.cos(angle) * (this.radius + 6);
+                    let hy = Math.sin(angle) * (this.radius + 6);
+                    if (i === 0) ctx.moveTo(hx, hy);
+                    else ctx.lineTo(hx, hy);
+                }
+                ctx.closePath();
+                ctx.fillStyle = '#0b111c';
+                ctx.fill();
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 2.2;
+                ctx.stroke();
+
+                // Inner Hexagon
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    let angle = (i * Math.PI) / 3 + Math.PI / 6;
                     let hx = Math.cos(angle) * this.radius;
                     let hy = Math.sin(angle) * this.radius;
                     if (i === 0) ctx.moveTo(hx, hy);
                     else ctx.lineTo(hx, hy);
                 }
                 ctx.closePath();
-                ctx.fillStyle = '#1e293b';
+                ctx.fillStyle = '#162238';
                 ctx.fill();
-                ctx.strokeStyle = '#ffd700';
+                ctx.strokeStyle = 'rgba(255, 215, 0, 0.6)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // 2. Life Ring Gauge
+                ctx.beginPath();
+                ctx.arc(0, 0, this.radius + 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * lifePct);
+                ctx.strokeStyle = '#00f3ff';
+                ctx.lineWidth = 2.5;
+                ctx.stroke();
+
+                // 3. Rotating Turret Cannon Head
+                ctx.save();
+                ctx.rotate(this.targetAngle);
+
+                let leftRecoil = this.barrelRecoil[0];
+                let rightRecoil = this.barrelRecoil[1];
+
+                // Left Barrel
+                ctx.fillStyle = '#e2b007';
+                ctx.fillRect(-leftRecoil, -9, 22 - leftRecoil, 4.5);
+                ctx.fillStyle = '#00f3ff';
+                ctx.fillRect(16 - leftRecoil, -8.5, 4, 3.5);
+
+                // Right Barrel
+                ctx.fillStyle = '#e2b007';
+                ctx.fillRect(-rightRecoil, 4.5, 22 - rightRecoil, 4.5);
+                ctx.fillStyle = '#00f3ff';
+                ctx.fillRect(16 - rightRecoil, 5, 4, 3.5);
+
+                // Central Heavy Mantlet Core
+                ctx.beginPath();
+                ctx.arc(0, 0, 10, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffd700';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 1.8;
                 ctx.stroke();
 
-                // مدفع البرج الدوار
-                ctx.rotate(this.targetAngle);
-                ctx.fillStyle = '#ffd700';
-                ctx.fillRect(0, -3, 18, 6);
-                ctx.fillStyle = '#ffffff';
+                // Glowing Core Eye
                 ctx.beginPath();
-                ctx.arc(0, 0, 6, 0, Math.PI * 2);
+                ctx.arc(3, 0, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#00f3ff';
                 ctx.fill();
+
+                ctx.restore();
+
+                // Overhead HUD Tag & HP Bar
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                ctx.fillRect(-22, -this.radius - 18, 44, 5);
+                ctx.fillStyle = hpPct > 0.5 ? '#00ff88' : (hpPct > 0.25 ? '#ffd700' : '#ff0055');
+                ctx.fillRect(-22, -this.radius - 18, 44 * hpPct, 5);
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+                ctx.lineWidth = 0.8;
+                ctx.strokeRect(-22, -this.radius - 18, 44, 5);
+
+                ctx.fillStyle = '#ffd700';
+                ctx.font = 'bold 8.5px Chakra Petch';
+                ctx.textAlign = 'center';
+                ctx.fillText(`TURRET ${(this.lifeTimer / 1000).toFixed(0)}s`, 0, -this.radius - 22);
 
                 ctx.restore();
             }
         }
 
         class SmokeScreenCloud {
-            constructor(x, y, duration = 5000, radius = 160) {
+            constructor(x, y, duration = 7500, radius = 280) {
                 this.x = x;
                 this.y = y;
                 this.duration = duration;
                 this.maxDuration = duration;
                 this.lifeTimer = duration;
                 this.radius = radius;
+                this.currentRadius = 20;
                 this.isActive = true;
+                this.healTickTimer = 0;
+                this.dmgTickTimer = 0;
                 this.particles = [];
-                for (let i = 0; i < 16; i++) {
-                    let angle = Math.random() * Math.PI * 2;
+                this.spores = [];
+                
+                // Dynamic dense cloud swirls
+                for (let i = 0; i < 28; i++) {
+                    let angle = (i / 28) * Math.PI * 2 + Math.random() * 0.3;
                     let r = Math.random() * (radius * 0.75);
                     this.particles.push({
                         x: Math.cos(angle) * r,
                         y: Math.sin(angle) * r,
-                        r: 25 + Math.random() * 20,
-                        speed: (Math.random() - 0.5) * 0.02,
-                        angle: angle
+                        r: 45 + Math.random() * 35,
+                        angle: angle,
+                        rotSpeed: (Math.random() - 0.5) * 0.015,
+                        pulseOffset: Math.random() * Math.PI * 2
+                    });
+                }
+
+                // Floating Nano-Spores
+                for (let i = 0; i < 24; i++) {
+                    this.spores.push({
+                        x: (Math.random() - 0.5) * radius * 1.4,
+                        y: (Math.random() - 0.5) * radius * 1.4,
+                        vy: -0.4 - Math.random() * 0.6,
+                        size: 2 + Math.random() * 3.5,
+                        alpha: 0.3 + Math.random() * 0.7
                     });
                 }
             }
@@ -7696,38 +7862,134 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     this.isActive = false;
                     return;
                 }
+
+                // Smooth expanding cloud opening
+                if (this.currentRadius < this.radius) {
+                    this.currentRadius = Math.min(this.radius, this.currentRadius + effectiveDelta * 0.65);
+                }
+
+                // Rotate cloud particles
                 for (let p of this.particles) {
-                    p.angle += p.speed;
+                    p.angle += p.rotSpeed * timeScale;
+                    p.pulseOffset += 0.04;
+                }
+
+                // Float spores upward and loop inside radius
+                for (let s of this.spores) {
+                    s.y += s.vy * timeScale;
+                    if (s.x ** 2 + s.y ** 2 > this.radius ** 2 || s.y < -this.radius * 0.9) {
+                        s.y = this.radius * 0.7;
+                        s.x = (Math.random() - 0.5) * this.radius * 1.3;
+                    }
+                }
+
+                // Periodic Healing for Player inside Cloud (every 400ms: +10 HP, +6 Shield)
+                this.healTickTimer += effectiveDelta * timeScale;
+                if (this.healTickTimer >= 400) {
+                    this.healTickTimer = 0;
+                    if (player && distSq(player.x, player.y, this.x, this.y) < this.radius ** 2) {
+                        player.isStealthed = true;
+                        player.stealthTimer = Math.max(player.stealthTimer || 0, 1000);
+                        if (player.health < player.maxHealth) {
+                            player.health = Math.min(player.maxHealth, player.health + 10);
+                            spawnFloatingText(player.x + (Math.random() - 0.5) * 30, player.y - 30, '+10 HP', '#00ff88');
+                        }
+                        if (player.shieldCharges < player.shieldMaxCharges && Math.random() < 0.35) {
+                            player.shieldCharges = Math.min(player.shieldMaxCharges, player.shieldCharges + 1);
+                            player.hasShield = true;
+                            spawnFloatingText(player.x, player.y - 45, '+SHIELD', '#00f3ff');
+                        }
+                    }
+                }
+
+                // Periodic Damage and Severe Slow for Enemies inside Cloud (every 500ms: 30 DMG + 50% slow)
+                this.dmgTickTimer += effectiveDelta * timeScale;
+                if (this.dmgTickTimer >= 500) {
+                    this.dmgTickTimer = 0;
+                    enemies.forEach(e => {
+                        if (e && !e.isDead && distSq(e.x, e.y, this.x, this.y) < this.radius ** 2) {
+                            e.health -= 30;
+                            e.hitFlashTimer = 80;
+                            e.stunTimer = Math.max(e.stunTimer || 0, 800);
+                            spawnFloatingText(e.x, e.y - 20, '-30 NANO CORROSION', '#00ff88');
+                            createExplosion(e.x, e.y, '#00ff88', 6, 3);
+                        }
+                    });
                 }
             }
 
             draw() {
                 if (!this.isActive) return;
-                let alpha = Math.min(1.0, this.lifeTimer / 600) * 0.45;
+                let fadePct = Math.min(1.0, this.lifeTimer / 800);
+                let safeRadius = Math.max(2.0, this.currentRadius);
                 ctx.save();
                 ctx.translate(this.x, this.y);
 
+                // 1. Multi-layered Dense Atmospheric Glow
+                let radGrad = ctx.createRadialGradient(0, 0, Math.min(20, safeRadius * 0.2), 0, 0, safeRadius);
+                radGrad.addColorStop(0, `rgba(0, 255, 136, ${0.32 * fadePct})`);
+                radGrad.addColorStop(0.5, `rgba(0, 243, 255, ${0.18 * fadePct})`);
+                radGrad.addColorStop(1, 'rgba(0, 255, 136, 0)');
+
+                ctx.beginPath();
+                ctx.arc(0, 0, safeRadius, 0, Math.PI * 2);
+                ctx.fillStyle = radGrad;
+                ctx.fill();
+
+                // 2. Swirling Dense Cloud Nebulas
                 for (let p of this.particles) {
+                    let scale = safeRadius / this.radius;
+                    let px = Math.cos(p.angle) * (p.x * scale);
+                    let py = Math.sin(p.angle) * (p.y * scale);
+                    let pr = Math.max(2.0, p.r * scale + Math.sin(p.pulseOffset) * 4);
+
                     ctx.beginPath();
-                    let px = Math.cos(p.angle) * 40 + p.x * 0.7;
-                    let py = Math.sin(p.angle) * 40 + p.y * 0.7;
-                    ctx.arc(px, py, p.r, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(0, 255, 136, ${alpha * 0.35})`;
+                    ctx.arc(px, py, pr, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0, 255, 160, ${0.14 * fadePct})`;
                     ctx.fill();
                 }
 
+                // 3. Floating Sparkling Nano-Spores
+                for (let s of this.spores) {
+                    if (s.x ** 2 + s.y ** 2 < safeRadius ** 2) {
+                        ctx.beginPath();
+                        ctx.arc(s.x, s.y, Math.max(0.5, s.size), 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(0, 255, 200, ${s.alpha * fadePct})`;
+                        ctx.shadowColor = '#00ff88';
+                        ctx.shadowBlur = 8;
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+                    }
+                }
+
+                // 4. Hexagonal Sanctuary Perimeter & HUD Rings
                 ctx.beginPath();
-                ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
-                ctx.strokeStyle = `rgba(0, 255, 136, ${alpha * 0.7})`;
-                ctx.lineWidth = 2;
-                ctx.setLineDash([8, 6]);
+                ctx.arc(0, 0, safeRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = `rgba(0, 255, 136, ${0.65 * fadePct})`;
+                ctx.lineWidth = 2.2;
+                ctx.setLineDash([12, 8]);
                 ctx.stroke();
                 ctx.setLineDash([]);
 
-                ctx.fillStyle = `rgba(0, 255, 136, ${alpha * 1.5})`;
+                // Hexagonal Inscribed Hologram
+                ctx.beginPath();
+                for (let i = 0; i < 6; i++) {
+                    let angle = (i * Math.PI) / 3 + performance.now() * 0.0004;
+                    let hx = Math.cos(angle) * (safeRadius * 0.96);
+                    let hy = Math.sin(angle) * (safeRadius * 0.96);
+                    if (i === 0) ctx.moveTo(hx, hy);
+                    else ctx.lineTo(hx, hy);
+                }
+                ctx.closePath();
+                ctx.strokeStyle = `rgba(0, 243, 255, ${0.35 * fadePct})`;
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+
+                // 5. Center Healing Glyphs & Header
+                ctx.fillStyle = `rgba(0, 255, 136, ${0.9 * fadePct})`;
                 ctx.font = 'bold 11px Chakra Petch';
                 ctx.textAlign = 'center';
-                ctx.fillText(' حقل دخان (تخفي + علاج)', 0, -this.radius - 8);
+                ctx.fillText(`⚕ NANO-SANCTUARY [HEAL & STEALTH] ${(this.lifeTimer / 1000).toFixed(1)}s`, 0, -safeRadius - 10);
 
                 ctx.restore();
             }
@@ -7898,58 +8160,90 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 this.classSkillCooldown = cCfg.skillCooldown * this.cooldownMultiplier;
 
                 if (this.playerClass === 'assault') {
-                    // Assault Adrenaline Sprint: Instant snappy charging with vibrant shockwave
-                    this.sprintTimer = 4000;
-                    this.dashInvulnerableTimer = 500;
+                    // Assault Adrenaline Super-Sprint: Blazing hyper-speed + invulnerability + plasma blast
+                    this.sprintTimer = 5000;
+                    this.dashInvulnerableTimer = 1000;
+                    this.vx = Math.cos(this.facingAngle) * 28;
+                    this.vy = Math.sin(this.facingAngle) * 28;
                     playSound('overcharge');
-                    createExplosion(this.x, this.y, '#00ff88', 28, 14);
-                    triggerShockwave(this.x, this.y, '#00ff88', 240);
-                    spawnFloatingText(this.x, this.y - 45, ' انطلاق أدرينالين نفاث (SPRINT 2.2x)!', '#00ff88');
-                } else if (this.playerClass === 'support') {
-                    // Support Smoke Screen: Deploy smoke cloud for 5s (stealth + heals team)
-                    smokeClouds.push(new SmokeScreenCloud(this.x, this.y, 5000, 160));
-                    playSound('portal');
-                    triggerShockwave(this.x, this.y, '#00ff88', 160);
-                    spawnFloatingText(this.x, this.y - 45, ' تم رمي قنبلة الدخان (تخفي + علاج)!', '#00ff88');
-                } else if (this.playerClass === 'engineer') {
-                    // Engineer Auto-Turret: Deploy automatic defense turret for 12s
-                    playerTurrets.push(new DeployableTurret(this.x, this.y, 12000));
-                    playSound('tesla');
-                    createExplosion(this.x, this.y, '#ffd700', 25, 12);
-                    triggerShockwave(this.x, this.y, '#ffd700', 140);
-                    spawnFloatingText(this.x, this.y - 45, ' تم نشر المدفع الآلي (TURRET)!', '#ffd700');
-                } else if (this.playerClass === 'breacher') {
-                    // Breacher Kinetic Shockwave Ram: Instantly surges forward, destroys bullets, stuns/damages nearby enemies
-                    this.dashInvulnerableTimer = 750;
-                    this.vx = Math.cos(this.facingAngle) * 26;
-                    this.vy = Math.sin(this.facingAngle) * 26;
-                    playSound('overcharge');
-                    createExplosion(this.x, this.y, '#ff5500', 38, 20);
-                    triggerShockwave(this.x, this.y, '#ff5500', 320);
-                    // Destroy enemy bullets in radius
-                    bullets = bullets.filter(b => !b || distSq(this.x, this.y, b.x, b.y) > 280**2);
-                    // Damage and push back enemies
+                    createExplosion(this.x, this.y, '#00ff88', 45, 22);
+                    triggerShockwave(this.x, this.y, '#00ff88', 350);
+                    triggerShockwave(this.x, this.y, '#00f3ff', 200);
+                    bullets = bullets.filter(b => !b || distSq(this.x, this.y, b.x, b.y) > 260**2);
                     enemies.forEach(e => {
-                        if (e && !e.isDead && distSq(this.x, this.y, e.x, e.y) < 320**2) {
-                            e.health -= 70;
-                            e.stunTimer = 1600;
-                            let pushAngle = Math.atan2(e.y - this.y, e.x - this.x);
-                            e.x += Math.cos(pushAngle) * 110;
-                            e.y += Math.sin(pushAngle) * 110;
-                            spawnFloatingText(e.x, e.y - 20, '-70 KINETIC RAM!', '#ff5500');
+                        if (e && !e.isDead && distSq(this.x, this.y, e.x, e.y) < 280**2) {
+                            e.health -= 85;
+                            e.hitFlashTimer = 100;
+                            spawnFloatingText(e.x, e.y - 20, '-85 PLASMA BLAST', '#00ff88');
                         }
                     });
-                    spawnFloatingText(this.x, this.y - 45, ' صدمة كاسحة (KINETIC RAM)!', '#ff5500');
+                    spawnFloatingText(this.x, this.y - 45, '⚡ انطلاق فرط حركي نفاث (SUPER SPRINT 2.5x)!', '#00ff88');
+                } else if (this.playerClass === 'support') {
+                    // Support Nano-Mist Sanctuary: 280px massive healing & stealth zone
+                    smokeClouds.push(new SmokeScreenCloud(this.x, this.y, 7500, 280));
+                    playSound('portal');
+                    playSound('shield');
+                    createExplosion(this.x, this.y, '#00ff88', 40, 20);
+                    triggerShockwave(this.x, this.y, '#00ff88', 320);
+                    triggerShockwave(this.x, this.y, '#00f3ff', 180);
+                    spawnFloatingText(this.x, this.y - 45, '⚕ نشر حقل الضباب النانوي (شفاء + تخفي + حمض)!', '#00ff88');
+                } else if (this.playerClass === 'engineer') {
+                    // Engineer Apex Cyber Sentry Turret: 750px twin railgun automated turret
+                    if (playerTurrets.length >= 3) {
+                        let oldT = playerTurrets.shift();
+                        if (oldT) createExplosion(oldT.x, oldT.y, '#ffd700', 30, 15);
+                    }
+                    playerTurrets.push(new DeployableTurret(this.x, this.y, 18000));
+                    playSound('tesla');
+                    createExplosion(this.x, this.y, '#ffd700', 42, 20);
+                    triggerShockwave(this.x, this.y, '#ffd700', 260);
+                    triggerShockwave(this.x, this.y, '#ffffff', 140);
+                    spawnFloatingText(this.x, this.y - 45, '🤖 تم نشر المدفع الآلي المطور (APEX TURRET)!', '#ffd700');
+                } else if (this.playerClass === 'breacher') {
+                    // Breacher Seismic Titan Ram: Surges forward, vaporizes bullets, deals 180 DMG + massive stun
+                    this.dashInvulnerableTimer = 1200;
+                    this.vx = Math.cos(this.facingAngle) * 32;
+                    this.vy = Math.sin(this.facingAngle) * 32;
+                    playSound('overcharge');
+                    playSound('explosion');
+                    createExplosion(this.x, this.y, '#ff5500', 55, 30);
+                    triggerShockwave(this.x, this.y, '#ff5500', 450);
+                    triggerShockwave(this.x, this.y, '#ffd700', 280);
+                    // Vaporize enemy bullets in wide radius
+                    bullets = bullets.filter(b => !b || distSq(this.x, this.y, b.x, b.y) > 420**2);
+                    // Smash and push back enemies
+                    enemies.forEach(e => {
+                        if (e && !e.isDead && distSq(this.x, this.y, e.x, e.y) < 420**2) {
+                            e.health -= 180;
+                            e.hitFlashTimer = 120;
+                            e.stunTimer = 2500;
+                            let pushAngle = Math.atan2(e.y - this.y, e.x - this.x);
+                            e.x += Math.cos(pushAngle) * 180;
+                            e.y += Math.sin(pushAngle) * 180;
+                            spawnFloatingText(e.x, e.y - 20, '-180 TITAN RAM!', '#ff5500');
+                        }
+                    });
+                    spawnFloatingText(this.x, this.y - 45, '💥 صدمة التيتان الكاسحة (SEISMIC RAM)!', '#ff5500');
                 } else if (this.playerClass === 'sniper') {
-                    // Sniper Recon Scan: Reveals all enemies, highlights with radar and +25% vulnerability
+                    // Sniper Quantum Orbital Recon: Reveals all enemies (+50% vulnerability), slows them, deals EMP damage
                     isReconActive = true;
-                    reconTimer = 6000;
+                    reconTimer = 8000;
                     playSound('relic');
-                    triggerShockwave(this.x, this.y, '#bd00ff', 450);
-                    triggerShockwave(this.x, this.y, '#ffffff', 250);
-                    spawnFloatingText(this.x, this.y - 45, ' استطلاع راداري: كشف الأعداء (+25% ضرر)!', '#bd00ff');
+                    playSound('tesla');
+                    createExplosion(this.x, this.y, '#bd00ff', 48, 22);
+                    triggerShockwave(this.x, this.y, '#bd00ff', 650);
+                    triggerShockwave(this.x, this.y, '#ffffff', 400);
+                    enemies.forEach(e => {
+                        if (e && !e.isDead) {
+                            e.health -= 75;
+                            e.hitFlashTimer = 100;
+                            e.stunTimer = 1200;
+                            spawnFloatingText(e.x, e.y - 20, '-75 EMP RECON!', '#bd00ff');
+                        }
+                    });
+                    spawnFloatingText(this.x, this.y - 45, '🛰️ رادار مداري: كشف كامل + صدمة EMP (+50% ضرر)!', '#bd00ff');
                 }
-                if (gameSettings.shake) screenShakeTime = 200;
+                if (gameSettings.shake) screenShakeTime = 280;
             }
 
             triggerClassSkill2() {
@@ -7962,14 +8256,26 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 this.secondaryAmmo = WEAPON_CONFIGS['secondary_pistol'].baseMag;
                 this.isReloading = false;
                 this.reloadTimer = 0;
-                if (this.shieldCharges < this.shieldMaxCharges) {
-                    this.shieldCharges++;
-                    this.hasShield = true;
-                }
+                this.shieldCharges = Math.min(this.shieldMaxCharges, this.shieldCharges + 2);
+                this.hasShield = true;
+                
                 playSound('gold');
-                createExplosion(this.x, this.y, '#ffd700', 22, 10);
-                triggerShockwave(this.x, this.y, '#ffd700', 160);
-                spawnFloatingText(this.x, this.y - 45, ' إمداد ذخيرة كامل + شحن درع!', '#ffd700');
+                playSound('shield');
+                createExplosion(this.x, this.y, '#ffd700', 36, 18);
+                triggerShockwave(this.x, this.y, '#ffd700', 350);
+                triggerShockwave(this.x, this.y, '#00f3ff', 220);
+                
+                // Clear nearby bullets and push enemies away
+                bullets = bullets.filter(b => !b || distSq(this.x, this.y, b.x, b.y) > 350**2);
+                enemies.forEach(e => {
+                    if (e && !e.isDead && distSq(this.x, this.y, e.x, e.y) < 350**2) {
+                        e.stunTimer = 1600;
+                        let pushAngle = Math.atan2(e.y - this.y, e.x - this.x);
+                        e.x += Math.cos(pushAngle) * 140;
+                        e.y += Math.sin(pushAngle) * 140;
+                    }
+                });
+                spawnFloatingText(this.x, this.y - 45, '🔋 إمداد كامل فوري + شحن مضاعف للدروع!', '#ffd700');
             }
 
             reload() {
@@ -9652,125 +9958,65 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     this.health = this.maxHealth;
                     this.maxStagger = 20 + Math.min(30, bossTier * 5);
                     this.staggerImmunityTimer = 0;
-                } else if (type === 'neon_shooter') {
-                    this.name = this.isOverclocked ? 'أوفركلوك المسدس' : (this.isElite ? 'نخبة المسدس' : 'المسدس');
-                    this.radius = this.isElite ? 20 : 15; this.health = this.isOverclocked ? 7 : (this.isElite ? 5 : 3); this.maxHealth = this.health;
-                } else if (type === 'mine') {
-                    this.name = 'لغم موقوت'; this.radius = 14; this.health = 2; this.maxHealth = 2;
-                } else if (type === 'drone') {
-                    this.name = 'طائرة درع'; this.radius = 12; this.health = 1; this.maxHealth = 1;
-                } else if (type === 'splitter') {
-                    this.name = this.isElite ? 'نخبة المنشطر' : 'المنشطر المدرع';
-                    this.radius = 20; this.health = this.isElite ? 6 : 4; this.maxHealth = this.health;
-                } else if (type === 'micro_splitter') {
-                    this.name = 'شظية منشطرة'; this.radius = 10; this.health = 1; this.maxHealth = 1;
-                } else if (type === 'phantom') {
-                    this.name = this.isElite ? 'نخبة الشبح' : 'الشبح المتخفي';
-                    this.radius = 16; this.health = this.isElite ? 5 : 3; this.maxHealth = this.health;
-                } else if (type === 'orbiter') {
-                    this.name = this.isElite ? 'نخبة المداري' : 'المداري المطوق';
-                    this.radius = 17; this.health = this.isElite ? 6 : 3.5; this.maxHealth = this.health;
-                } else if (type === 'juggernaut') {
-                    this.name = this.isElite ? 'نخبة العملاق' : 'العملاق البلازمي';
-                    this.radius = 26; this.health = this.isElite ? 14 : 8; this.maxHealth = this.health;
-                } else if (type === 'architect') {
-                    this.name = this.isElite ? 'كبير المهندسين' : 'المهندس';
-                    this.radius = 20; this.health = this.isElite ? 10 : 6; this.maxHealth = this.health;
-                } else if (type === 'turret') {
-                    this.name = 'برج ليزر'; this.radius = 14; this.health = 4; this.maxHealth = 4;
-                } else if (type === 'flanker') {
-                    this.name = this.isElite ? 'المراوغ المتقدم' : 'المراوغ';
-                    this.radius = 16; this.health = this.isElite ? 5 : 3; this.maxHealth = this.health;
-                } else if (type === 'mirror') {
-                    this.name = this.isElite ? 'نخبة العاكس' : 'العاكس';
-                    this.radius = 20; this.health = this.isElite ? 8 : 5; this.maxHealth = this.health;
-                } else if (type === 'swarm_queen') {
-                    this.name = this.isElite ? 'ملكة السرب الأكبر' : 'حاضنة السرب';
-                    this.radius = 28; this.health = this.isElite ? 22 : 14; this.maxHealth = this.health;
-                } else if (type === 'micro_swarm') {
-                    this.name = 'حشرة السرب'; this.radius = 8; this.health = 1; this.maxHealth = 1;
-                } else if (type === 'leech') {
-                    this.name = this.isElite ? 'نخبة الممتص' : 'ممتص الطاقة';
-                    this.radius = 15; this.health = this.isElite ? 6 : 3.5; this.maxHealth = this.health;
-                } else if (type === 'chronomancer') {
-                    this.name = this.isElite ? 'سيد الزمن' : 'مشوه الزمن';
-                    this.radius = 18; this.health = this.isElite ? 9 : 5; this.maxHealth = this.health;
-                } else if (type === 'tether') {
-                    this.name = this.isElite ? 'سجان الأبعاد' : 'المُقيِّد';
-                    this.radius = 22; this.health = this.isElite ? 14 : 8; this.maxHealth = this.health;
-                } else if (type === 'artillery') {
-                    this.name = this.isElite ? 'هاون النخبة' : 'مدفعية الهاون';
-                    this.radius = 24; this.health = this.isElite ? 12 : 7; this.maxHealth = this.health;
-                } else if (type === 'hacker') {
-                    this.name = this.isElite ? 'زعيم الاختراق' : 'المخترق';
-                    this.radius = 16; this.health = this.isElite ? 6 : 3.5; this.maxHealth = this.health;
-                } else if (type === 'volatile') {
-                    this.name = this.isElite ? 'المنصهر العنيف' : 'المنصهر';
-                    this.radius = 18; this.health = this.isElite ? 8 : 4; this.maxHealth = this.health;
-                // --- 20 NEW ENEMY TYPES ---
-                } else if (type === 'cyber_vanguard') {
-                    this.name = this.isElite ? 'نخبة الفانغارد' : 'فانغارد سيبراني';
-                    this.radius = 22; this.health = this.isElite ? 16 : 9; this.maxHealth = this.health;
-                } else if (type === 'plasma_mortar') {
-                    this.name = this.isElite ? 'هاون البلازما الفائق' : 'هاون البلازما';
-                    this.radius = 21; this.health = this.isElite ? 11 : 6.5; this.maxHealth = this.health;
-                } else if (type === 'tesla_coil') {
-                    this.name = this.isElite ? 'ملف تيسلا المشحون' : 'ملف تيسلا';
-                    this.radius = 19; this.health = this.isElite ? 10 : 6; this.maxHealth = this.health;
-                } else if (type === 'cryo_drifter') {
-                    this.name = this.isElite ? 'حائم الصقيع الأزلي' : 'حائم الجليد';
-                    this.radius = 18; this.health = this.isElite ? 9 : 5; this.maxHealth = this.health;
-                } else if (type === 'void_stalker') {
-                    this.name = this.isElite ? 'متسلل الفراغ الأعظم' : 'متسلل الفراغ';
-                    this.radius = 17; this.health = this.isElite ? 8 : 4.5; this.maxHealth = this.health;
-                } else if (type === 'cluster_bomber') {
-                    this.name = this.isElite ? 'قاذف العناقيد الثقيل' : 'قاذف القنابل العنقودية';
-                    this.radius = 23; this.health = this.isElite ? 13 : 7.5; this.maxHealth = this.health;
-                } else if (type === 'hyper_sniper') {
-                    this.name = this.isElite ? 'القناص الفائق المطور' : 'قناص الليزر الفائق';
-                    this.radius = 19; this.health = this.isElite ? 7 : 4; this.maxHealth = this.health;
-                } else if (type === 'magneto_drone') {
-                    this.name = this.isElite ? 'درون المغناطيس الكوني' : 'درون الجاذبية المغناطيسية';
-                    this.radius = 16; this.health = this.isElite ? 8 : 4.5; this.maxHealth = this.health;
-                } else if (type === 'echo_mimic') {
-                    this.name = this.isElite ? 'محاكي الصدى المتكيف' : 'المحاكي الصدى';
-                    this.radius = 18; this.health = this.isElite ? 10 : 5.5; this.maxHealth = this.health;
-                } else if (type === 'solar_rammer') {
-                    this.name = this.isElite ? 'الكاسح الشمسي الحارق' : 'الكاسح الشمسي';
-                    this.radius = 21; this.health = this.isElite ? 14 : 8; this.maxHealth = this.health;
-                } else if (type === 'glitch_specter') {
-                    this.name = this.isElite ? 'شبح الخلل المشوه' : 'طيف الخلل البرمجي';
-                    this.radius = 16; this.health = this.isElite ? 7 : 4; this.maxHealth = this.health;
-                } else if (type === 'ion_interceptor') {
-                    this.name = this.isElite ? 'معترض الأيونات السريع' : 'معترض الأيونات';
-                    this.radius = 16; this.health = this.isElite ? 7 : 3.8; this.maxHealth = this.health;
-                } else if (type === 'vortex_carrier') {
-                    this.name = this.isElite ? 'حاملة الدوامة الكبرى' : 'حاملة الدرونات';
-                    this.radius = 27; this.health = this.isElite ? 24 : 15; this.maxHealth = this.health;
-                } else if (type === 'blaze_hound') {
-                    this.name = this.isElite ? 'كلب اللهب المتوحش' : 'كلب اللهب';
-                    this.radius = 17; this.health = this.isElite ? 8 : 4.5; this.maxHealth = this.health;
-                } else if (type === 'quantum_wraith') {
-                    this.name = this.isElite ? 'شبح الكم المتعدد' : 'شبح الكم';
-                    this.radius = 18; this.health = this.isElite ? 9 : 5; this.maxHealth = this.health;
-                } else if (type === 'apex_dreadnought') {
-                    this.name = this.isElite ? 'المدرعة الفضائية العظمى' : 'مدرعة القمة المصغرة';
-                    this.radius = 32; this.health = this.isElite ? 35 : 22; this.maxHealth = this.health;
-                } else if (type === 'bio_hazard') {
-                    this.name = this.isElite ? 'الناشر السام المتفجر' : 'الناشر السام';
-                    this.radius = 20; this.health = this.isElite ? 11 : 6; this.maxHealth = this.health;
-                } else if (type === 'stasis_weaver') {
-                    this.name = this.isElite ? 'ناسج التجميد الأزلي' : 'ناسج التجميد الزمني';
-                    this.radius = 20; this.health = this.isElite ? 10 : 5.5; this.maxHealth = this.health;
-                } else if (type === 'plasma_hydra') {
-                    this.name = this.isElite ? 'هايدرا البلازما الثلاثية' : 'هايدرا البلازما';
-                    this.radius = 24; this.health = this.isElite ? 14 : 8; this.maxHealth = this.health;
-                } else if (type === 'orbital_sentinel') {
-                    this.name = this.isElite ? 'الحارس المداري الحصين' : 'الحارس المداري';
-                    this.radius = 22; this.health = this.isElite ? 15 : 9; this.maxHealth = this.health;
                 } else {
-                    this.radius = this.isElite ? 20 : 15; this.health = this.isOverclocked ? 6 : (this.isElite ? 4 : 2.5); this.maxHealth = this.health;
-                    this.name = this.isOverclocked ? 'أوفركلوك القناص' : (this.isElite ? 'نخبة القناص' : 'قناص');
+                    const ENEMY_BASE_ARCHETYPES = {
+                        neon_shooter: { name: 'المسدس', radius: 15, health: 3.5 },
+                        sniper: { name: 'قناص', radius: 15, health: 3.5 },
+                        dasher: { name: 'مندفع', radius: 16, health: 4.0 },
+                        burst: { name: 'زخات', radius: 16, health: 4.5 },
+                        mine: { name: 'لغم موقوت', radius: 14, health: 2.5 },
+                        drone: { name: 'طائرة درع', radius: 12, health: 2.0 },
+                        splitter: { name: 'المنشطر المدرع', radius: 18, health: 5.0 },
+                        micro_splitter: { name: 'شظية منشطرة', radius: 10, health: 1.5 },
+                        phantom: { name: 'الشبح المتخفي', radius: 16, health: 3.5 },
+                        orbiter: { name: 'المداري المطوق', radius: 16, health: 4.0 },
+                        juggernaut: { name: 'العملاق البلازمي', radius: 24, health: 9.0 },
+                        architect: { name: 'المهندس', radius: 18, health: 7.0 },
+                        turret: { name: 'برج ليزر', radius: 14, health: 4.5 },
+                        flanker: { name: 'المراوغ', radius: 16, health: 3.5 },
+                        mirror: { name: 'العاكس الكهرومغناطيسي', radius: 18, health: 6.0 },
+                        swarm_queen: { name: 'حاضنة السرب', radius: 26, health: 16.0 },
+                        micro_swarm: { name: 'حشرة السرب', radius: 8, health: 1.0 },
+                        leech: { name: 'ممتص الطاقة', radius: 15, health: 4.0 },
+                        chronomancer: { name: 'مشوه الزمن', radius: 18, health: 5.5 },
+                        tether: { name: 'المُقيِّد', radius: 20, health: 8.5 },
+                        artillery: { name: 'مدفعية الهاون', radius: 22, health: 7.5 },
+                        hacker: { name: 'المخترق', radius: 16, health: 4.0 },
+                        volatile: { name: 'المنصهر', radius: 17, health: 4.5 },
+                        cyber_vanguard: { name: 'فانغارد سيبراني', radius: 20, health: 9.0 },
+                        plasma_mortar: { name: 'هاون البلازما', radius: 20, health: 7.0 },
+                        tesla_coil: { name: 'ملف تيسلا', radius: 18, health: 6.5 },
+                        cryo_drifter: { name: 'حائم الجليد', radius: 17, health: 5.5 },
+                        void_stalker: { name: 'متسلل الفراغ', radius: 16, health: 5.0 },
+                        cluster_bomber: { name: 'قاذف القنابل العنقودية', radius: 21, health: 8.0 },
+                        hyper_sniper: { name: 'قناص الليزر الفائق', radius: 18, health: 4.5 },
+                        magneto_drone: { name: 'درون الجاذبية', radius: 15, health: 5.0 },
+                        echo_mimic: { name: 'المحاكي الصدى', radius: 17, health: 6.0 },
+                        solar_rammer: { name: 'الكاسح الشمسي', radius: 19, health: 8.5 },
+                        glitch_specter: { name: 'طيف الخلل البرمجي', radius: 16, health: 4.5 },
+                        ion_interceptor: { name: 'معترض الأيونات', radius: 15, health: 4.0 },
+                        vortex_carrier: { name: 'حاملة الدرونات', radius: 25, health: 16.0 },
+                        blaze_hound: { name: 'كلب اللهب', radius: 16, health: 5.0 },
+                        quantum_wraith: { name: 'شبح الكم', radius: 17, health: 5.5 },
+                        apex_dreadnought: { name: 'مدرعة القمة المصغرة', radius: 28, health: 24.0 },
+                        bio_hazard: { name: 'الناشر السام', radius: 19, health: 6.5 },
+                        stasis_weaver: { name: 'ناسج التجميد الزمني', radius: 19, health: 6.0 },
+                        plasma_hydra: { name: 'هايدرا البلازما', radius: 22, health: 8.5 },
+                        orbital_sentinel: { name: 'الحارس المداري', radius: 20, health: 9.5 }
+                    };
+
+                    let base = ENEMY_BASE_ARCHETYPES[type] || { name: 'قناص', radius: 15, health: 3.5 };
+                    if (this.isElite || this.isOverclocked) {
+                        this.radius = Math.round(base.radius * 1.5); // +50% larger size for ALL elites
+                        this.health = Math.round(base.health * 2.0); // 2x double health / power
+                        this.maxHealth = this.health;
+                        this.name = this.isOverclocked ? `⚡ ${base.name} (أوفركلوك)` : `★ ${base.name} (نخبة)`;
+                    } else {
+                        this.radius = base.radius;
+                        this.health = base.health;
+                        this.maxHealth = this.health;
+                        this.name = base.name;
+                    }
                 }
 
                 if (this.type === 'boss') {
@@ -10538,7 +10784,14 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
                 } else if (this.type === 'mirror') {
                     ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2); ctx.fillStyle = drawColor; ctx.fill();
-                    ctx.beginPath(); ctx.arc(0, 0, this.radius + 6, -1.2, 1.2); ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 4.5; ctx.stroke();
+                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.0; ctx.stroke();
+                    // درع كهرومغناطيسي عاكس عالي التوهج في الواجهة الأمامية
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius + 6, -1.22, 1.22);
+                    ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 5.5; ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius + 3, -1.0, 1.0);
+                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.0; ctx.stroke();
+                    // توهج طاقة نيون في مركز المرآة
+                    ctx.beginPath(); ctx.arc(6, 0, 4.5, 0, Math.PI * 2); ctx.fillStyle = '#00f3ff'; ctx.fill();
                 } else if (this.type === 'swarm_queen') {
                     ctx.beginPath();
                     for (let i = 0; i < 5; i++) { let angle = (i * Math.PI * 2) / 5 - Math.PI/2, px = Math.cos(angle) * this.radius, py = Math.sin(angle) * this.radius; if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py); }
@@ -10744,11 +10997,40 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 ctx.restore();
 
                 if (this.type !== 'boss' && this.type !== 'micro_swarm') {
-                    ctx.save(); ctx.translate(this.x, this.y);
-                    let heartsCount = Math.max(0, Math.ceil(this.health)), hearts = ''.repeat(Math.min(10, heartsCount));
-                    ctx.fillStyle = this.isOverclocked ? '#ff00aa' : (this.isElite ? colors.gold : '#fff'); 
-                    ctx.font = this.isElite ? 'bold 11px sans-serif' : '10px sans-serif'; 
-                    ctx.textAlign = 'center'; ctx.fillText(`${this.name} ${hearts}`, 0, -this.radius - 8); ctx.restore();
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+
+                    let maxHp = Math.max(1, this.maxHealth || 1);
+                    let hpRatio = Math.max(0, Math.min(1.0, this.health / maxHp));
+                    let barW = Math.max(28, this.radius * 1.8);
+                    let barH = 4;
+                    let barY = -this.radius - 12;
+
+                    // 1. خلفية شريط الصحة السيبراني
+                    ctx.fillStyle = 'rgba(4, 8, 16, 0.82)';
+                    ctx.fillRect(-barW / 2, barY, barW, barH);
+                    
+                    // 2. تعبئة الدم بلون ديناميكي حسب النسبة
+                    let hpColor = hpRatio > 0.5 ? '#00ff88' : (hpRatio > 0.25 ? '#ffd700' : '#ff0055');
+                    if (this.isOverclocked) hpColor = '#ff00aa';
+                    else if (this.isElite) hpColor = '#ffd700';
+
+                    ctx.fillStyle = hpColor;
+                    ctx.fillRect(-barW / 2, barY, barW * hpRatio, barH);
+
+                    // 3. إطار الشريط الدقيق
+                    ctx.strokeStyle = this.isElite ? '#ffd700' : (this.isOverclocked ? '#ff00aa' : 'rgba(255, 255, 255, 0.35)');
+                    ctx.lineWidth = 0.8;
+                    ctx.strokeRect(-barW / 2, barY, barW, barH);
+
+                    // 4. اسم العدو ومقدار الدم الرقمي
+                    ctx.fillStyle = this.isOverclocked ? '#ff00aa' : (this.isElite ? '#ffd700' : '#ffffff');
+                    ctx.font = 'bold 8.5px Chakra Petch, sans-serif';
+                    ctx.textAlign = 'center';
+                    let tag = this.isElite ? '★ ' : (this.isOverclocked ? '⚡ ' : '');
+                    ctx.fillText(`${tag}${this.name} [${Math.ceil(this.health)}]`, 0, barY - 3);
+
+                    ctx.restore();
                 }
             }
         }
@@ -11050,6 +11332,9 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
 
         const _nearbyTmp = [];
         function getNearbyEnemies(x, y) {
+            if (!enemies || enemies.length === 0) return [];
+            if (enemies.length <= 35) return enemies;
+            if (enemyGrid.size === 0) updateEnemyGrid();
             let cellX = Math.floor(x / CELL_SIZE), cellY = Math.floor(y / CELL_SIZE);
             _nearbyTmp.length = 0;
             for (let dx = -1; dx <= 1; dx++) {
@@ -11058,12 +11343,12 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     let cell = enemyGrid.get(key);
                     if (cell && cell.length > 0) {
                         for (let i = 0; i < cell.length; i++) {
-                            if (!cell[i].isDead) _nearbyTmp.push(cell[i]);
+                            if (cell[i] && !cell[i].isDead) _nearbyTmp.push(cell[i]);
                         }
                     }
                 }
             }
-            return _nearbyTmp;
+            return _nearbyTmp.length > 0 ? _nearbyTmp : enemies;
         }
 
 
@@ -11262,6 +11547,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             enemies = []; bullets = []; bulletPool = []; playerBullets = []; playerBulletPool = []; particles = []; particlePool = []; floatingTexts = []; floatingTextPool = []; energyCubes = []; goldenCubes = []; ammoDrops = []; activeTacticalZone = null; activeRicochetCount = 0;
             enemyTimeBubbles = []; mortarWarnings = []; toxicPools = [];
             playerMines = []; teslaRenderArcs = []; arenaLaserWalls = []; temporalRifts = []; shockwaves = [];
+            smokeClouds = []; playerTurrets = [];
             portals = [
                 new Portal(450, 450),
                 new Portal(WORLD_W - 450, 450),
@@ -11531,9 +11817,16 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 }
             }
 
-            // Enemies
+            // Enemies (Tactical Radar Visibility: Hidden unless Boss, close to player, or Sniper Recon is active!)
             for (let e of enemies) {
                 if (e && !e.isDead) {
+                    let isVisibleOnRadar = (
+                        isReconActive || 
+                        e.type === 'boss' || 
+                        (player && distSq(player.x, player.y, e.x, e.y) < 400**2)
+                    );
+                    if (!isVisibleOnRadar) continue;
+
                     if (e.type === 'boss') {
                         let bpX = e.x * scale, bpY = e.y * scale;
                         c.fillStyle = colors.enemyBoss;
@@ -11555,6 +11848,11 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                         c.beginPath();
                         c.arc(e.x * scale, e.y * scale, e.isElite ? 3.5 : 2.5, 0, Math.PI * 2);
                         c.fill();
+                        if (isReconActive) {
+                            c.strokeStyle = '#ff0055';
+                            c.lineWidth = 1;
+                            c.stroke();
+                        }
                     }
                 }
             }
@@ -11703,13 +12001,27 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 }
             }
 
-            // Enemies (EXACT ORIGINAL COLORS PRESERVED 100%)
+            // Enemies (Tactical Radar Visibility: Hidden unless Boss, close to player, or Sniper Recon is active!)
             for (let e of enemies) {
                 if (e && !e.isDead) {
-                    ctx.fillStyle = e.type === 'boss' ? colors.enemyBoss : (e.isElite ? colors.enemyElite : (e.color || colors.enemySniper));
+                    let isVisibleOnRadar = (
+                        isReconActive || 
+                        e.type === 'boss' || 
+                        (player && distSq(player.x, player.y, e.x, e.y) < 320**2)
+                    );
+                    if (!isVisibleOnRadar) continue;
+
+                    let eCol = e.type === 'boss' ? colors.enemyBoss : (e.isElite ? colors.enemyElite : (e.color || colors.enemySniper));
+                    ctx.fillStyle = eCol;
                     ctx.beginPath();
-                    ctx.arc(rx + e.x * scale, ry + e.y * scale, e.type === 'boss' ? 4.2 : 1.8, 0, Math.PI * 2);
+                    ctx.arc(rx + e.x * scale, ry + e.y * scale, e.type === 'boss' ? 4.2 : (isReconActive ? 2.4 : 1.8), 0, Math.PI * 2);
                     ctx.fill();
+
+                    if (isReconActive) {
+                        ctx.strokeStyle = '#ff0055';
+                        ctx.lineWidth = 0.8;
+                        ctx.stroke();
+                    }
                 }
             }
 
@@ -11878,8 +12190,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             // زر المهارة التكتيكية النشطة: مدعوم لجميع الكلاسات الخمسة
             if (classSkillBtnHud && player) {
                 classSkillBtnHud.style.display = 'flex';
-                let skillNames = { assault: 'SPRINT', breacher: 'RAM', sniper: 'CLOAK', engineer: 'TURRET', support: 'HEAL' };
-                let skillColors = { assault: '#00ff88', breacher: '#ff5500', sniper: '#bd00ff', engineer: '#ffd700', support: '#00f3ff' };
+                let skillNames = { assault: 'SPRINT', breacher: 'RAM', sniper: 'RECON', engineer: 'TURRET', support: 'SMOKE' };
+                let skillColors = { assault: '#00ff88', breacher: '#ff5500', sniper: '#bd00ff', engineer: '#ffd700', support: '#00ff88' };
                 let skillPct = player.classSkillCooldown <= 0 ? 100 : Math.max(0, Math.min(100, (1 - (player.classSkillCooldown / (player.classSkillMaxCooldown || 6000))) * 100));
                 let sCol = skillColors[player.playerClass] || '#00ff88';
                 let sTxt = skillNames[player.playerClass] || 'SKILL';
@@ -11894,7 +12206,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 else classSkillBtnHud.classList.remove('ready');
             }
 
-            // تحديث زر مهارة الدعم الإضافية (سحابة الدخان)
+            // تحديث زر مهارة الدعم الإضافية (إمداد الذخيرة والدرع)
             if (classSkill2BtnHud) {
                 if (player && player.playerClass === 'support') {
                     classSkill2BtnHud.style.display = 'flex';
@@ -12084,6 +12396,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             for (let i = temporalRifts.length - 1; i >= 0; i--) { let tr = temporalRifts[i]; tr.timer -= effectiveDelta; if (tr.timer <= 0) temporalRifts.splice(i, 1); }
             for (let i = shockwaves.length - 1; i >= 0; i--) { let sw = shockwaves[i]; if (!sw || sw.isDead) { let rsw = shockwaves.splice(i, 1)[0]; if (rsw && shockwavePool.length < 15) shockwavePool.push(rsw); continue; } sw.update(frameFactor); }
 
+            updateEnemyGrid();
             for (let i = playerMines.length - 1; i >= 0; i--) {
                 let m = playerMines[i];
                 if (!m || m.isDead) { let rm = playerMines.splice(i, 1)[0]; if (rm && playerMinePool.length < 20) playerMinePool.push(rm); continue; }
@@ -12116,26 +12429,30 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                         toxicPools.push(new ToxicPool(e.x, e.y));
                         createExplosion(e.x, e.y, colors.enemyVolatile, 25, 12);
                         playSound('explosion');
+                    } else if (e.type === 'mirror') {
+                        createExplosion((player.x + e.x)/2, (player.y + e.y)/2, '#00f3ff', 18, 9);
+                        triggerShockwave(e.x, e.y, '#00f3ff', 130);
+                        playSound('parry');
+                        spawnFloatingText(player.x, player.y - 35, '⚡ صدمة درع العاكس! ⚡', '#00f3ff');
                     }
                     if (!player.takeHit()) { e.stunTimer = 1500; let pushAngle = Math.atan2(e.y - player.y, e.x - player.x); e.x = player.x + Math.cos(pushAngle) * (player.radius + e.radius + 60); e.y = player.y + Math.sin(pushAngle) * (player.radius + e.radius + 60); }
                     else { triggerGameOver(); }
                 }
             }
+            updateEnemyGrid();
             
-            // تحديث ورسم حقول الدخان التكتيكية
+            // تحديث حقول الدخان التكتيكية
             for (let i = smokeClouds.length - 1; i >= 0; i--) {
                 let sc = smokeClouds[i];
                 if (!sc || !sc.isActive) { smokeClouds.splice(i, 1); continue; }
                 sc.update(effectiveDelta, timeScale);
-                sc.draw();
             }
 
-            // تحديث ورسم المدافع الآلية للمهندس
+            // تحديث المدافع الآلية للمهندس
             for (let i = playerTurrets.length - 1; i >= 0; i--) {
                 let t = playerTurrets[i];
                 if (!t || t.isDead) { playerTurrets.splice(i, 1); continue; }
                 t.update(delta, effectiveDelta, timeScale, frameFactor);
-                t.draw();
             }
 
             // تحديث زمن استطلاع القناص (Recon Pulse)
@@ -12218,22 +12535,27 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     let e = nearbyEnemies[j];
                     if (e && !e.isDead && distSq(pb.x, pb.y, e.x, e.y) < (pb.radius + e.radius)**2) {
                         let protectedByDrone = false;
-                        if (e.type !== 'drone') { let activeDrone = enemies.find(d => d && !d.isDead && d.type === 'drone'); if (activeDrone) protectedByDrone = true; }
+                        if (e.type === 'boss' || e.type === 'vortex_carrier') {
+                            let activeDrone = enemies.find(d => d && !d.isDead && d.type === 'drone' && distSq(d.x, d.y, e.x, e.y) < 110**2);
+                            if (activeDrone) protectedByDrone = true;
+                        }
                         if (protectedByDrone) { createExplosion(pb.x, pb.y, '#00ffcc', 3, 2); hitEnemy = true; break; }
 
-                        // --- بداية كود صد الطلقات للعدو "العاكس" ---
+                        // --- بداية كود صد وعكس الطلقات للعدو "العاكس" ---
                         if (e.type === 'mirror') {
                             let angleFromEnemyToBullet = Math.atan2(pb.y - e.y, pb.x - e.x);
-                            let mFacing = (e.vx !== 0 || e.vy !== 0) ? Math.atan2(e.vy, e.vx) : 0;
+                            let mFacing = player ? Math.atan2(player.y - e.y, player.x - e.x) : 0;
                             let angleDiff = Math.abs(angleFromEnemyToBullet - mFacing);
                             while (angleDiff > Math.PI) angleDiff = Math.abs(angleDiff - 2 * Math.PI);
                             
-                            // إذا ضربت الطلقة الواجهة المباشرة للعاكس
-                            if (angleDiff < 0.6) { 
+                            // إذا ضربت الطلقة الواجهة الأمامية للعاكس (قوس 140 درجة = 1.22 راديان)
+                            if (angleDiff < 1.22) { 
                                 playSound('parry');
-                                createExplosion(pb.x, pb.y, colors.enemyMirror, 8, 5);
-                                let reflectAngle = Math.atan2(-pb.vy, -pb.vx);
-                                spawnEnemyBullet(pb.x, pb.y, reflectAngle, pb.speed * 1.1, e, '#00f3ff');
+                                createExplosion(pb.x, pb.y, colors.enemyMirror, 14, 7);
+                                triggerShockwave(e.x, e.y, '#00f3ff', 110);
+                                let reflectAngle = player ? Math.atan2(player.y - pb.y, player.x - pb.x) + (Math.random() - 0.5) * 0.08 : Math.atan2(-pb.vy, -pb.vx);
+                                spawnEnemyBullet(pb.x, pb.y, reflectAngle, Math.max(11.0, pb.speed * 1.1), e, '#00f3ff', 6.0);
+                                spawnFloatingText(e.x, e.y - 25, '⚡ انعكاس الدرع! ⚡', '#00f3ff');
                                 hitEnemy = true; 
                                 break;
                             }
@@ -12636,6 +12958,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             for (let z of tacticalZones) if (z && !z.isDead) z.draw();
             drawActiveTimeAnomalies(ctx, camX, camY);
             for (let p of portals) if (p) p.draw();
+            for (let sc of smokeClouds) if (sc && sc.isActive) sc.draw();
+            for (let t of playerTurrets) if (t && !t.isDead) t.draw();
             for (let c of energyCubes) if (c) c.draw();
             for (let gc of goldenCubes) if (gc) gc.draw();
             for (let ad of ammoDrops) if (ad) ad.draw();

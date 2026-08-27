@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@600;700;800;900&family=Cairo:wght@600;700;800;900&family=Changa:wght@700;800;900&family=Chakra+Petch:wght@700;900&family=Rajdhani:wght@700;900&family=Share+Tech+Mono&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=102">
     <meta name="theme-color" content="#00f3ff">
     <script>
         // Load PWA manifest and Google Identity services safely on HTTP/HTTPS environments
@@ -287,6 +287,12 @@
                 <line x1="18" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 <circle cx="12" cy="12" r="2" fill="currentColor"/>
             </symbol>
+
+            <!-- 40. Pause -->
+            <symbol id="icon-pause" viewBox="0 0 24 24">
+                <rect x="5" y="4" width="4.5" height="16" rx="1.5" fill="currentColor"/>
+                <rect x="14.5" y="4" width="4.5" height="16" rx="1.5" fill="currentColor"/>
+            </symbol>
         </defs>
     </svg>
 
@@ -309,7 +315,7 @@
         <button class="minimap-open-btn mobile-show" onclick="toggleTacticalMapModal()" style="display:none;"><svg class="c-icon" style="width:14px;height:14px;"><use href="#icon-radar"></use></svg></button>
     </div>
 
-    <!-- مصفوفة أزرار القدرات بتنسيق هندسي مريح وعصري -->
+    <!-- مصفوفة أزرار القدرات بتنسيق نصف دائري حول الجويستك ودوك على الكمبيوتر -->
     <div id="hud-abilities-cluster">
         <div id="dash-btn-hud" class="hud-action-btn" title="Dash (Space)">
             <span class="btn-text" data-i18n="hudDash">DASH</span>
@@ -327,9 +333,9 @@
             <span class="btn-sub" id="swap-btn-sub">[1/2]</span>
         </div>
 
-        <div id="class-skill2-btn-hud" class="hud-action-btn" style="display: none;" title="Support Smoke Cloud (C)">
-            <span class="btn-text" id="class-skill2-btn-txt" data-i18n="hudSmoke">دخان</span>
-            <span class="btn-sub" id="class-skill2-btn-sub">جاهز [C]</span>
+        <div id="class-skill2-btn-hud" class="hud-action-btn" style="display: none;" title="Support Ammo & Shield Overdrive (C)">
+            <span class="btn-text" id="class-skill2-btn-txt">AMMO+</span>
+            <span class="btn-sub" id="class-skill2-btn-sub">C</span>
         </div>
 
         <div id="reload-btn-hud" class="hud-action-btn" title="Reload (R)" onclick="if(player) player.reload();">
@@ -342,7 +348,7 @@
             <span class="btn-sub" id="super-emp-btn-sub" style="color:#ffffff;">Q</span>
         </div>
 
-        <div id="radial-trigger-btn-hud" class="hud-action-btn" title="Radial Arsenal Menu (Tab)" onclick="toggleRadialWeaponMenu()">
+        <div id="radial-trigger-btn-hud" class="hud-action-btn" title="Radial Arsenal Menu (Tab)" onclick="toggleRadialWeaponMenu()" style="display: none;">
             <span class="btn-text">WEP</span>
             <span class="btn-sub">TAB</span>
         </div>
@@ -355,14 +361,6 @@
         <div id="sandbox-btn-hud" class="hud-action-btn" title="Sandbox Control (B)" onclick="toggleSandboxControlModal()" style="display:none; --btn-color:#00ff88;">
             <span class="btn-text" style="color:#00ff88;">SANDBOX</span>
             <span class="btn-sub">B</span>
-        </div>
-
-        <div id="mobile-pause-btn-hud" class="hud-action-btn mobile-only-btn" title="Pause" onclick="togglePause()" style="display:none;">
-            <span class="btn-text" style="font-size:0.9rem;">⏸</span>
-        </div>
-
-        <div id="mobile-map-btn-hud" class="hud-action-btn mobile-only-btn" title="Map" onclick="toggleTacticalMapModal()" style="display:none;">
-            <span class="btn-text" style="font-size:0.6rem;">MAP</span>
         </div>
     </div>
 
@@ -1268,7 +1266,9 @@
 
     <div id="ui-layer">
         <div class="hud-top-left-dock">
-            <div id="pause-btn-hud" onclick="togglePause()" title="توقيف اللعبة"></div>
+            <div id="pause-btn-hud" onclick="togglePause()" title="توقيف اللعبة" aria-label="Pause">
+                <svg class="c-icon pause-hud-svg"><use href="#icon-pause"></use></svg>
+            </div>
             
             <div class="vitals-dock">
                 <div class="vital-row" title="Health">
@@ -1907,6 +1907,6 @@
 
     <!-- تضمين مكتبة Socket.IO للعب الجماعي المباشر محلياً وأوفلاين (Tauri/Capacitor App Support) -->
     <script src="socket.io.min.js"></script>
-    <script src="script.js"></script>
+    <script src="script.js?v=102"></script>
 </body>
 </html>
