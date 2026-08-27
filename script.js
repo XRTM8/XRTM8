@@ -1,3 +1,45 @@
+// ===================================================================
+// BULLETPROOF SAFE LOCAL STORAGE ENGINE (In-Memory Fallback)
+// ===================================================================
+const memoryStorage = {};
+const safeStorage = {
+    getItem(key, fallback = null) {
+        try {
+            const val = localStorage.getItem(key);
+            return val !== null ? val : fallback;
+        } catch (e) {
+            return memoryStorage[key] !== undefined ? memoryStorage[key] : fallback;
+        }
+    },
+    setItem(key, value) {
+        try {
+            localStorage.setItem(key, String(value));
+        } catch (e) {
+            memoryStorage[key] = String(value);
+        }
+    },
+    removeItem(key) {
+        try {
+            localStorage.removeItem(key);
+        } catch (e) {
+            delete memoryStorage[key];
+        }
+    },
+    getJSON(key, fallback = null) {
+        try {
+            const raw = safeStorage.getItem(key);
+            if (!raw) return fallback;
+            return JSON.parse(raw);
+        } catch (e) {
+            return fallback;
+        }
+    },
+    setJSON(key, obj) {
+        try {
+            safeStorage.setItem(key, JSON.stringify(obj));
+        } catch (e) {}
+    }
+};
 
 // ===================================================================
 // MOBILE TOUCH AUTO-DETECTION, COORDINATE MAPPING & FULLSCREEN CONTROLS
@@ -89,7 +131,7 @@ function toggleFullScreen() {
 // Safe LocalStorage JSON Parser Shield
 function safeGetJson(key, defaultVal = null) {
     try {
-        const item = localStorage.getItem(key);
+        const item = safeStorage.getItem(key);
         if (!item) return defaultVal;
         return JSON.parse(item);
     } catch (e) {
@@ -407,7 +449,7 @@ let dailyLoginData = {
 };
 
 try {
-    const savedDaily = localStorage.getItem('chrono_daily_rewards');
+    const savedDaily = safeStorage.getItem('chrono_daily_rewards');
     if (savedDaily) dailyLoginData = JSON.parse(savedDaily);
 } catch (e) {}
 
@@ -497,7 +539,7 @@ window.claimDailyReward = function() {
     if (dailyLoginData.streakCount < 7) dailyLoginData.streakCount++;
     else { dailyLoginData.streakCount = 1; dailyLoginData.claimedDays = []; }
 
-    localStorage.setItem('chrono_daily_rewards', JSON.stringify(dailyLoginData));
+    safeStorage.setItem('chrono_daily_rewards', JSON.stringify(dailyLoginData));
 
     playSound('gold');
     triggerHaptic('nova');
@@ -540,6 +582,9 @@ const I18N_DICTIONARY = {
         btnRank: 'الرانك',
         btnAccount: 'الحساب',
         btnLeaderboard: 'لوحة الأبطال PTS',
+        btnStartBattle: '⚡ بدء المعركة (BATTLE)',
+        btnStartBattleSub: 'اختر النمط وانطلق في الساحة',
+        modeSelectModalTitle: ' مصفوفة أطوار المعركة التكتيكية (Game Modes)',
         menuDescTxt: 'اختر نمط المعركة التكتيكي للانطلاق في الساحة السيبرانية:',
         modeSoloTitle: 'فردي أوفلاين (Solo Offline)',
         modeSoloDesc: 'خض معركة البقاء الفردية مع نظام تمدد الوقت (Time Dilation).',
@@ -582,9 +627,7 @@ const I18N_DICTIONARY = {
         currentLangLabel: 'لغة الواجهة الحالية:',
         settingsJoyGroup: ' التحكم وحساسية اللمس',
         joySensLabel: 'حساسية الجويستك (Joystick Sens):',
-        aimAssistLabel: 'مساعد التصويب (Aim Assist):',
         floatingJoyLabel: 'الجويستيك العائم (Dynamic Joystick):',
-        pauseAimAssist: 'مساعد التصويب للموبايل',
         pauseFloatingJoy: 'الجويستيك العائم للموبايل',
         masterVolLabel: 'مستوى الصوت العام (Master Volume):',
         settingsGraphicsGroup: ' الرسوميات وتحسين الأداء (Performance)',
@@ -729,6 +772,9 @@ const I18N_DICTIONARY = {
         btnRank: 'Rank',
         btnAccount: 'Profile',
         btnLeaderboard: 'PTS Leaderboard',
+        btnStartBattle: '⚡ BATTLE / START',
+        btnStartBattleSub: 'Select Combat Mode & Deploy',
+        modeSelectModalTitle: ' Tactical Combat Mode Matrix',
         menuDescTxt: 'Select your tactical combat mode to launch into the cybernetic arena:',
         modeSoloTitle: 'Solo Offline',
         modeSoloDesc: 'Single-player survival mode with dynamic time-dilation mechanics.',
@@ -771,9 +817,7 @@ const I18N_DICTIONARY = {
         currentLangLabel: 'Interface Language:',
         settingsJoyGroup: ' Controls & Touch Sensitivity',
         joySensLabel: 'Joystick Sensitivity:',
-        aimAssistLabel: 'Mobile Aim Assist:',
         floatingJoyLabel: 'Dynamic Floating Joystick:',
-        pauseAimAssist: 'Mobile Aim Assist',
         pauseFloatingJoy: 'Dynamic Floating Joystick',
         masterVolLabel: 'Master Audio Volume:',
         settingsGraphicsGroup: ' Graphics & Performance',
@@ -901,7 +945,7 @@ const I18N_DICTIONARY = {
     }
 };
 
-let currentLanguage = localStorage.getItem('chrono_drift_lang') || 'ar';
+let currentLanguage = safeStorage.getItem('chrono_drift_lang') || 'ar';
 
 function t(key, fallback) {
     const langObj = I18N_DICTIONARY[currentLanguage] || I18N_DICTIONARY.ar;
@@ -911,7 +955,7 @@ function t(key, fallback) {
 function setAppLanguage(lang) {
     if (lang !== 'ar' && lang !== 'en') lang = 'ar';
     currentLanguage = lang;
-    localStorage.setItem('chrono_drift_lang', lang);
+    safeStorage.setItem('chrono_drift_lang', lang);
 
     document.documentElement.lang = lang;
     document.documentElement.dir = (lang === 'ar' ? 'rtl' : 'ltr');
@@ -1300,25 +1344,25 @@ const tacticalMapModal = document.getElementById('tactical-map-modal');
         let teslaRenderArcs = [], arenaLaserWalls = [], temporalRifts = [], shockwaves = [], shockwavePool = [];
 
         const SAVE_VERSION = '_v75_overhaul';
-        let metaCurrency = parseInt(localStorage.getItem('chrono_meta_currency' + SAVE_VERSION)) || 0;
-        let playerXP = parseInt(localStorage.getItem('chrono_player_xp' + SAVE_VERSION)) || 0;
-        let playerLevel = parseInt(localStorage.getItem('chrono_player_level' + SAVE_VERSION)) || 1;
-        let highestWaveRecord = parseInt(localStorage.getItem('chrono_highest_wave' + SAVE_VERSION)) || 1;
-        let metaUpgrades = JSON.parse(localStorage.getItem('chrono_meta_upgrades' + SAVE_VERSION)) || { 
+        let metaCurrency = parseInt(safeStorage.getItem('chrono_meta_currency' + SAVE_VERSION)) || 0;
+        let playerXP = parseInt(safeStorage.getItem('chrono_player_xp' + SAVE_VERSION)) || 0;
+        let playerLevel = parseInt(safeStorage.getItem('chrono_player_level' + SAVE_VERSION)) || 1;
+        let highestWaveRecord = parseInt(safeStorage.getItem('chrono_highest_wave' + SAVE_VERSION)) || 1;
+        let metaUpgrades = JSON.parse(safeStorage.getItem('chrono_meta_upgrades' + SAVE_VERSION)) || { 
             dash: 0, shield: 0, ultGain: 0, magnet: 0, damage: 0
         };
-        let unlockedItems = JSON.parse(localStorage.getItem('chrono_unlocked_items' + SAVE_VERSION)) || {
+        let unlockedItems = JSON.parse(safeStorage.getItem('chrono_unlocked_items' + SAVE_VERSION)) || {
             weapons: { blaster: true, shotgun: false, rapid: false, railgun: false },
             attachments: { none: true, heavy: false, thermal: false, magnet: false },
             loadouts: { shield: true, emp: false, agile: false }
         };
-        let weaponLevels = JSON.parse(localStorage.getItem('chrono_weapon_levels' + SAVE_VERSION)) || {
+        let weaponLevels = JSON.parse(safeStorage.getItem('chrono_weapon_levels' + SAVE_VERSION)) || {
             blaster: 1, shotgun: 1, rapid: 1, railgun: 1
         };
 
         // مصفوفة البيركات التكتيكية النشطة (3 مجهزة فقط) وتطويراتها الثلاثية
-        let equippedPerks = JSON.parse(localStorage.getItem('chrono_equipped_perks' + SAVE_VERSION)) || ['shield_core', 'hyper_fire', 'chrono_drift'];
-        let perkLevels = JSON.parse(localStorage.getItem('chrono_perk_levels' + SAVE_VERSION)) || {
+        let equippedPerks = JSON.parse(safeStorage.getItem('chrono_equipped_perks' + SAVE_VERSION)) || ['shield_core', 'hyper_fire', 'chrono_drift'];
+        let perkLevels = JSON.parse(safeStorage.getItem('chrono_perk_levels' + SAVE_VERSION)) || {
             shield_core: 1, evo_plasma: 1, evo_frost: 1, sub_drone: 1, sub_tesla: 1, sub_mines: 1,
             hyper_fire: 1, kinetic_blast: 1, chrono_drift: 1, vampiric_siphon: 1, ricochet_flak: 1, orbital_crest: 1
         };
@@ -1330,9 +1374,9 @@ const tacticalMapModal = document.getElementById('tactical-map-modal');
             engineer: { id: 'rapid', name: 'الرشاش الخفيف (SMG)', role: 'رشاش خفيف سريع جداً للمناورات والمدى القريب' }
         };
 
-        let selectedClass = localStorage.getItem('chrono_selected_class' + SAVE_VERSION) || 'assault';
+        let selectedClass = safeStorage.getItem('chrono_selected_class' + SAVE_VERSION) || 'assault';
         let selectedChassis = selectedClass;
-        let classWeapons = JSON.parse(localStorage.getItem('chrono_class_weapons' + SAVE_VERSION)) || {
+        let classWeapons = JSON.parse(safeStorage.getItem('chrono_class_weapons' + SAVE_VERSION)) || {
             assault: 'blaster',
             sniper: 'railgun',
             support: 'lmg',
@@ -1357,11 +1401,11 @@ function isPvPMode() {
         let isSocketConnected = false;
         let remotePlayers = new Map();
         let lastNetworkSyncTime = 0;
-        let tacticalUsername = localStorage.getItem('chrono_tactical_username') || 'Apex_Agent_' + Math.floor(Math.random() * 899 + 100);
-        let unlockedCosmeticSkins = new Set(JSON.parse(localStorage.getItem('chrono_skins' + SAVE_VERSION)) || ['default']);
+        let tacticalUsername = safeStorage.getItem('chrono_tactical_username') || 'Apex_Agent_' + Math.floor(Math.random() * 899 + 100);
+        let unlockedCosmeticSkins = new Set(JSON.parse(safeStorage.getItem('chrono_skins' + SAVE_VERSION)) || ['default']);
         let ownedCosmeticSkins = Array.from(unlockedCosmeticSkins);
         let activeCosmeticSkin = 'default';
-        let rawSettings = JSON.parse(localStorage.getItem('chrono_settings_v74')) || {};
+        let rawSettings = JSON.parse(safeStorage.getItem('chrono_settings_v74')) || {};
         let gameSettings = {
             sound: rawSettings.sound !== undefined ? rawSettings.sound : true,
             shake: rawSettings.shake !== undefined ? rawSettings.shake : true,
@@ -1371,11 +1415,10 @@ function isPvPMode() {
             lowEnd: rawSettings.lowEnd !== undefined ? rawSettings.lowEnd : false,
             bloom: rawSettings.bloom !== undefined ? rawSettings.bloom : true,
             haptic: rawSettings.haptic !== undefined ? rawSettings.haptic : true,
-            aimAssist: rawSettings.aimAssist !== undefined ? rawSettings.aimAssist : true,
             floatingJoystick: rawSettings.floatingJoystick !== undefined ? rawSettings.floatingJoystick : true
         };
 
-        let achievements = JSON.parse(localStorage.getItem('chrono_achievements' + SAVE_VERSION)) || {
+        let achievements = JSON.parse(safeStorage.getItem('chrono_achievements' + SAVE_VERSION)) || {
             survivor: { title: "ناجي الزمن", desc: "اصمد لمدة 60 ثانية في جولة واحدة", unlocked: false, reward: 20 },
             brawler: { title: "صائد الأعداء", desc: "دمر 15 عدواً في جولة واحدة", unlocked: false, reward: 15 },
             collector: { title: "جامع الكريستال", desc: "اجمع 50 مكعب كريستال إجمالاً", unlocked: false, reward: 25 },
@@ -1383,7 +1426,7 @@ function isPvPMode() {
             apexOverlord: { title: "سيد الأبعاد المطلق", desc: "تغلب على زعيم الموجة 20 بنجاح", unlocked: false, reward: 50 }
         };
 
-        let contracts = JSON.parse(localStorage.getItem('chrono_contracts' + SAVE_VERSION)) || {
+        let contracts = JSON.parse(safeStorage.getItem('chrono_contracts' + SAVE_VERSION)) || {
             c_survive: { title: "عقد البقاء", desc: "اصمد لمدة 45 ثانية في جولة واحدة", unlocked: false, reward: 15 },
             c_parry: { title: "عقد الصد الفوري", desc: "نفذ 3 عمليات Parry في جولة واحدة", unlocked: false, reward: 20 },
             c_energy: { title: "عقد طاقة النبض", desc: "اجمع 5 مكعبات طاقة في جولة واحدة", unlocked: false, reward: 10 }
@@ -1740,7 +1783,7 @@ function isPvPMode() {
         let currentShopCategory = 'skins';
         let selectedShopPreviewItem = null;
         let shopPreviewAnimFrame = null;
-        let equippedCosmetics = JSON.parse(localStorage.getItem('chrono_equipped_cosmetics' + SAVE_VERSION)) || {
+        let equippedCosmetics = JSON.parse(safeStorage.getItem('chrono_equipped_cosmetics' + SAVE_VERSION)) || {
             chassis: 'default',
             weapon: 'wep_default',
             trail: 'trail_default',
@@ -1984,7 +2027,7 @@ function isPvPMode() {
         let currentBounty = null, bountyTimer = 0;
 
         function saveSettings() {
-            try { localStorage.setItem('chrono_settings_v74', JSON.stringify(gameSettings)); } catch(e) {}
+            try { safeStorage.setItem('chrono_settings_v74', JSON.stringify(gameSettings)); } catch(e) {}
             updateSettingsUI();
         }
 
@@ -2016,16 +2059,12 @@ function isPvPMode() {
             const pBtnBloom = document.getElementById('p-setting-bloom-btn');
             if (pBtnLowEnd) { pBtnLowEnd.innerText = gameSettings.lowEnd ? 'مفعل' : 'معطل'; pBtnLowEnd.className = `toggle-btn ${gameSettings.lowEnd ? 'active' : ''}`; }
             if (pBtnBloom) { pBtnBloom.innerText = gameSettings.bloom ? 'مفعل' : 'معطل'; pBtnBloom.className = `toggle-btn ${gameSettings.bloom ? 'active' : ''}`; }
-            // Mobile aim assist, floating joystick and haptic vibration buttons
+            // Mobile floating joystick and haptic vibration buttons
             const btnHaptic = document.getElementById('setting-haptic-btn');
-            const btnAimAssist = document.getElementById('setting-aim-assist-btn');
-            const pBtnAimAssist = document.getElementById('p-setting-aim-assist-btn');
             const btnFloatingJoy = document.getElementById('setting-floating-joy-btn');
             const pBtnFloatingJoy = document.getElementById('p-setting-floating-joy-btn');
 
             if (btnHaptic) { btnHaptic.innerText = gameSettings.haptic ? 'مفعل' : 'معطل'; btnHaptic.className = `toggle-btn ${gameSettings.haptic ? 'active' : ''}`; }
-            if (btnAimAssist) { btnAimAssist.innerText = gameSettings.aimAssist ? 'مفعل' : 'معطل'; btnAimAssist.className = `toggle-btn ${gameSettings.aimAssist ? 'active' : ''}`; }
-            if (pBtnAimAssist) { pBtnAimAssist.innerText = gameSettings.aimAssist ? 'مفعل' : 'معطل'; pBtnAimAssist.className = `toggle-btn ${gameSettings.aimAssist ? 'active' : ''}`; }
             if (btnFloatingJoy) { btnFloatingJoy.innerText = gameSettings.floatingJoystick ? 'مفعل' : 'معطل'; btnFloatingJoy.className = `toggle-btn ${gameSettings.floatingJoystick ? 'active' : ''}`; }
             if (pBtnFloatingJoy) { pBtnFloatingJoy.innerText = gameSettings.floatingJoystick ? 'مفعل' : 'معطل'; pBtnFloatingJoy.className = `toggle-btn ${gameSettings.floatingJoystick ? 'active' : ''}`; }
         }
@@ -2414,7 +2453,7 @@ function playSoundOriginal(type) {
             } catch(e) {}
         }
 
-        const tabNames = ['play', 'arsenal', 'shop', 'perks', 'missions', 'settings'];
+        const tabNames = ['play', 'arsenal', 'shop', 'missions', 'settings'];
         let currentTabIdx = 0;
 
         const MASTER_PERKS = {
@@ -2565,6 +2604,77 @@ function playSoundOriginal(type) {
             }
         };
 
+        let lobbyHeroAnimFrame = null;
+        function renderLobbyHeroCanvas() {
+            const canvas = document.getElementById('lobby-hero-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width, h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+
+            const now = performance.now();
+            let previewSkinId = (equippedCosmetics && equippedCosmetics.chassis) ? equippedCosmetics.chassis : (activeCosmeticSkin || 'default');
+            let previewClass = selectedClass || 'assault';
+
+            // Update header badges
+            const classBadge = document.getElementById('lobby-ship-class-badge');
+            const skinBadge = document.getElementById('lobby-ship-skin-badge');
+            if (classBadge) {
+                const classNames = { assault: 'ASSAULT STRIKER', tank: 'TITAN JUGGERNAUT', sniper: 'PHANTOM SNIPER', engineer: 'QUANTUM ENGINEER' };
+                classBadge.innerText = classNames[previewClass] || previewClass.toUpperCase();
+            }
+            if (skinBadge) {
+                const skinObj = (typeof COSMETICS_CATALOG !== 'undefined' && COSMETICS_CATALOG.skins) ? COSMETICS_CATALOG.skins.find(s => s.id === previewSkinId) : null;
+                skinBadge.innerText = skinObj ? skinObj.title.toUpperCase() : 'CHASSIS MK-I';
+            }
+
+            ctx.save();
+            ctx.translate(w / 2, h / 2 + 6);
+
+            // Gentle floating & rotation
+            let rot = Math.sin(now * 0.0018) * 0.28;
+            let floatY = Math.sin(now * 0.003) * 4;
+            ctx.translate(0, floatY);
+            ctx.rotate(rot);
+
+            // Engine Thruster Flame
+            let flameLen = 14 + Math.sin(now * 0.02) * 4 + Math.random() * 3;
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(-6, 20);
+            ctx.lineTo(0, 20 + flameLen);
+            ctx.lineTo(6, 20);
+            ctx.fillStyle = '#00f3ff';
+            ctx.shadowColor = '#00f3ff';
+            ctx.shadowBlur = 12;
+            ctx.fill();
+            ctx.restore();
+
+            // Ship Geometry
+            if (typeof drawCustomShipGeometry === 'function') {
+                drawCustomShipGeometry(ctx, previewSkinId, previewClass, 28, false, false, 0, now);
+            }
+
+            ctx.restore();
+
+            const playTab = document.getElementById('tab-play');
+            const isPlaying = !isGameOver && !isGamePaused && (!mainMenu || mainMenu.style.display !== 'none');
+            if (playTab && playTab.classList.contains('active') && isPlaying) {
+                lobbyHeroAnimFrame = requestAnimationFrame(renderLobbyHeroCanvas);
+            }
+        }
+
+        window.openModeSelectModal = function() {
+            const m = document.getElementById('mode-select-modal');
+            if (m) m.classList.remove('hidden');
+            playSound('tab');
+        };
+
+        window.closeModeSelectModal = function() {
+            const m = document.getElementById('mode-select-modal');
+            if (m) m.classList.add('hidden');
+        };
+
         function switchTab(tabName) {
             currentTabIdx = tabNames.indexOf(tabName);
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -2573,9 +2683,10 @@ function playSoundOriginal(type) {
             let btnIndex = tabNames.indexOf(tabName);
             if (btnIndex >= 0) {
                 document.querySelectorAll('.tab-btn')[btnIndex].classList.add('active');
-                document.getElementById('tab-' + tabName).classList.add('active');
-                if (tabName === 'arsenal') renderArsenalPreviewCanvas();
-                if (tabName === 'perks') renderPerksMatrixUI();
+                const targetContent = document.getElementById('tab-' + tabName);
+                if (targetContent) targetContent.classList.add('active');
+                if (tabName === 'play') renderLobbyHeroCanvas();
+                if (tabName === 'arsenal') { renderArsenalPreviewCanvas(); renderPerksMatrixUI(); }
                 if (tabName === 'missions') { renderAchievementsUI(); renderContractsUI(); }
                 if (tabName === 'shop') renderShopUI();
             }
@@ -2700,26 +2811,26 @@ function playSoundOriginal(type) {
 
         function saveGameProgress() {
             try {
-                localStorage.setItem('chrono_meta_currency' + SAVE_VERSION, metaCurrency);
-                localStorage.setItem('chrono_player_xp' + SAVE_VERSION, playerXP);
-                localStorage.setItem('chrono_player_level' + SAVE_VERSION, playerLevel);
-                localStorage.setItem('chrono_highest_wave' + SAVE_VERSION, highestWaveRecord);
-                localStorage.setItem('chrono_meta_upgrades' + SAVE_VERSION, JSON.stringify(metaUpgrades));
-                localStorage.setItem('chrono_unlocked_items' + SAVE_VERSION, JSON.stringify(unlockedItems));
-                localStorage.setItem('chrono_weapon_levels' + SAVE_VERSION, JSON.stringify(weaponLevels));
-                localStorage.setItem('chrono_equipped_perks' + SAVE_VERSION, JSON.stringify(equippedPerks));
-                localStorage.setItem('chrono_perk_levels' + SAVE_VERSION, JSON.stringify(perkLevels));
-                localStorage.setItem('chrono_achievements' + SAVE_VERSION, JSON.stringify(achievements));
-                localStorage.setItem('chrono_contracts' + SAVE_VERSION, JSON.stringify(contracts));
-                localStorage.setItem('chrono_selected_class' + SAVE_VERSION, selectedClass);
-                localStorage.setItem('chrono_class_weapons' + SAVE_VERSION, JSON.stringify(classWeapons));
-                localStorage.setItem('chrono_selected_weapon' + SAVE_VERSION, selectedWeapon);
+                safeStorage.setItem('chrono_meta_currency' + SAVE_VERSION, metaCurrency);
+                safeStorage.setItem('chrono_player_xp' + SAVE_VERSION, playerXP);
+                safeStorage.setItem('chrono_player_level' + SAVE_VERSION, playerLevel);
+                safeStorage.setItem('chrono_highest_wave' + SAVE_VERSION, highestWaveRecord);
+                safeStorage.setItem('chrono_meta_upgrades' + SAVE_VERSION, JSON.stringify(metaUpgrades));
+                safeStorage.setItem('chrono_unlocked_items' + SAVE_VERSION, JSON.stringify(unlockedItems));
+                safeStorage.setItem('chrono_weapon_levels' + SAVE_VERSION, JSON.stringify(weaponLevels));
+                safeStorage.setItem('chrono_equipped_perks' + SAVE_VERSION, JSON.stringify(equippedPerks));
+                safeStorage.setItem('chrono_perk_levels' + SAVE_VERSION, JSON.stringify(perkLevels));
+                safeStorage.setItem('chrono_achievements' + SAVE_VERSION, JSON.stringify(achievements));
+                safeStorage.setItem('chrono_contracts' + SAVE_VERSION, JSON.stringify(contracts));
+                safeStorage.setItem('chrono_selected_class' + SAVE_VERSION, selectedClass);
+                safeStorage.setItem('chrono_class_weapons' + SAVE_VERSION, JSON.stringify(classWeapons));
+                safeStorage.setItem('chrono_selected_weapon' + SAVE_VERSION, selectedWeapon);
                 if (typeof equippedCosmetics !== 'undefined') {
-                    localStorage.setItem('chrono_equipped_cosmetics' + SAVE_VERSION, JSON.stringify(equippedCosmetics));
+                    safeStorage.setItem('chrono_equipped_cosmetics' + SAVE_VERSION, JSON.stringify(equippedCosmetics));
                 }
                 if (typeof unlockedCosmeticSkins !== 'undefined') {
-                    localStorage.setItem('chrono_skins' + SAVE_VERSION, JSON.stringify(Array.from(unlockedCosmeticSkins)));
-                    localStorage.setItem('chrono_unlocked_cosmetics' + SAVE_VERSION, JSON.stringify(Array.from(unlockedCosmeticSkins)));
+                    safeStorage.setItem('chrono_skins' + SAVE_VERSION, JSON.stringify(Array.from(unlockedCosmeticSkins)));
+                    safeStorage.setItem('chrono_unlocked_cosmetics' + SAVE_VERSION, JSON.stringify(Array.from(unlockedCosmeticSkins)));
                 }
             } catch(e) {}
         }
@@ -3023,10 +3134,10 @@ function playSoundOriginal(type) {
         }
 
         function getOrInitDeviceToken() {
-            let token = localStorage.getItem('chrono_device_token_v80');
+            let token = safeStorage.getItem('chrono_device_token_v80');
             if (!token) {
                 token = 'dev_' + Math.random().toString(36).substring(2, 15) + '_' + Date.now().toString(36);
-                localStorage.setItem('chrono_device_token_v80', token);
+                safeStorage.setItem('chrono_device_token_v80', token);
             }
             return token;
         }
@@ -3042,7 +3153,7 @@ function playSoundOriginal(type) {
 let linkedGoogleAccount = null;
 
 try {
-    const savedGoogle = localStorage.getItem('chrono_google_account');
+    const savedGoogle = safeStorage.getItem('chrono_google_account');
     if (savedGoogle) {
         linkedGoogleAccount = JSON.parse(savedGoogle);
     }
@@ -3085,7 +3196,7 @@ function processGoogleAuth(googleId, email, name, picture) {
         picture: picture,
         linkedAt: Date.now()
     };
-    localStorage.setItem('chrono_google_account', JSON.stringify(linkedGoogleAccount));
+    safeStorage.setItem('chrono_google_account', JSON.stringify(linkedGoogleAccount));
 
     updateGoogleUI();
 
@@ -3135,7 +3246,7 @@ window.triggerGoogleSignIn = function() {
 window.unlinkGoogleAccount = function() {
     if (confirm('هل أنت متأكد من رغبتك في إلغاء ربط حساب Google من هذا الجهاز؟')) {
         linkedGoogleAccount = null;
-        localStorage.removeItem('chrono_google_account');
+        safeStorage.removeItem('chrono_google_account');
         updateGoogleUI();
         alert('[OK] تم إلغاء ربط حساب Google بنجاح.');
     }
@@ -3160,7 +3271,7 @@ function updateGoogleUI() {
 
 // MULTIPLAYER APEX OVERHAUL: RANKS, BOUNTIES, REVIVE & TACTICAL PINGS
         // ====================================================================
-        let playerTrophies = parseInt(localStorage.getItem('chrono_player_trophies') || '0', 10);
+        let playerTrophies = parseInt(safeStorage.getItem('chrono_player_trophies') || '0', 10);
         let activeBountyKing = null;
         let tacticalFloatingPings = [];
         let pveDownedPlayers = new Map();
@@ -3393,7 +3504,7 @@ function updateGoogleUI() {
             const input = document.getElementById('player-username-input');
             if (input && input.value.trim()) {
                 tacticalUsername = input.value.trim().substring(0, 20);
-                localStorage.setItem('chrono_tactical_username', tacticalUsername);
+                safeStorage.setItem('chrono_tactical_username', tacticalUsername);
                 
                 // Debounce server check
                 clearTimeout(usernameCheckTimer);
@@ -3971,7 +4082,7 @@ socket.on('disconnect', () => {
                     sessionXP += data.bountyXP || 100;
                     metaCurrency += data.bountyCredits || 50;
                     playerTrophies += data.bountyTrophies || 25;
-                    localStorage.setItem('chrono_player_trophies', playerTrophies);
+                    safeStorage.setItem('chrono_player_trophies', playerTrophies);
                     updatePlayerRankCardUI();
 
                     score += 500;
@@ -4011,7 +4122,7 @@ socket.on('disconnect', () => {
                     showGiftNotification(data.skinName || data.skinId);
                     if (data.skinId && !ownedCosmeticSkins.includes(data.skinId)) {
                         ownedCosmeticSkins.push(data.skinId);
-                        localStorage.setItem('chrono_skins' + SAVE_VERSION, JSON.stringify(ownedCosmeticSkins));
+                        safeStorage.setItem('chrono_skins' + SAVE_VERSION, JSON.stringify(ownedCosmeticSkins));
                     }
                 });
 
@@ -4059,14 +4170,14 @@ socket.on('disconnect', () => {
                         tacticalUsername = data.profile.username;
                         const nameInput = document.getElementById('player-username-input');
                         if (nameInput) nameInput.value = tacticalUsername;
-                        localStorage.setItem('chrono_tactical_username' + SAVE_VERSION, tacticalUsername);
+                        safeStorage.setItem('chrono_tactical_username' + SAVE_VERSION, tacticalUsername);
 
                         if (data.profile.credits !== undefined) metaCurrency = Number(data.profile.credits);
                         if (data.profile.xp !== undefined) playerXP = Number(data.profile.xp);
                         if (data.profile.level !== undefined) playerLevel = Number(data.profile.level);
                         if (data.profile.trophies !== undefined) {
                             playerTrophies = Number(data.profile.trophies);
-                            localStorage.setItem('chrono_player_trophies', playerTrophies);
+                            safeStorage.setItem('chrono_player_trophies', playerTrophies);
                         }
                         if (data.profile.highest_wave !== undefined) highestWaveRecord = Number(data.profile.highest_wave);
                         if (Array.isArray(data.profile.unlocked_skins)) {
@@ -4315,7 +4426,7 @@ socket.on('disconnect', () => {
             } else {
                 // حفظ محلي في حالة عدم الاتصال بالسيرفر
                 tacticalUsername = username;
-                localStorage.setItem('chrono_tactical_username' + SAVE_VERSION, username);
+                safeStorage.setItem('chrono_tactical_username' + SAVE_VERSION, username);
                 const nameInput = document.getElementById('player-username-input');
                 if (nameInput) nameInput.value = username;
                 if (msg) { msg.style.color = '#00ff88'; msg.innerText = '[OK] تم حفظ الحساب التكتيكي محلياً بنجاح!'; }
@@ -5105,7 +5216,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 equippedCosmetics.trail = 'trail_default';
                 equippedCosmetics.ability = 'nova_default';
                 activeCosmeticSkin = 'default';
-                localStorage.setItem('chrono_equipped_cosmetics' + SAVE_VERSION, JSON.stringify(equippedCosmetics));
+                safeStorage.setItem('chrono_equipped_cosmetics' + SAVE_VERSION, JSON.stringify(equippedCosmetics));
                 playSound('gold');
                 spawnFloatingText(window.innerWidth / 2, window.innerHeight / 2 - 40, ' تم تجهيز الطقم القياسي!', '#00ff88');
                 renderShopUI();
@@ -5125,7 +5236,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 equippedCosmetics.trail = s.trail;
                 equippedCosmetics.ability = s.ability;
                 activeCosmeticSkin = s.chassis;
-                localStorage.setItem('chrono_equipped_cosmetics' + SAVE_VERSION, JSON.stringify(equippedCosmetics));
+                safeStorage.setItem('chrono_equipped_cosmetics' + SAVE_VERSION, JSON.stringify(equippedCosmetics));
                 playSound('gold');
                 spawnFloatingText(window.innerWidth / 2, window.innerHeight / 2 - 40, ` تم تجهيز ${s.name} بالكامل!`, '#ffd700');
                 renderShopUI();
@@ -5145,7 +5256,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 equippedCosmetics.trail = s.trail;
                 equippedCosmetics.ability = s.ability;
                 activeCosmeticSkin = s.chassis;
-                localStorage.setItem('chrono_equipped_cosmetics' + SAVE_VERSION, JSON.stringify(equippedCosmetics));
+                safeStorage.setItem('chrono_equipped_cosmetics' + SAVE_VERSION, JSON.stringify(equippedCosmetics));
                 saveGameProgress();
                 playSound('ultimate');
                 triggerShockwave(window.innerWidth / 2, window.innerHeight / 2, s.themeColor || '#ffd700', 350);
@@ -5231,7 +5342,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (unlockedCosmeticSkins.has(itemId) || price === 0) {
                 equippedCosmetics[categoryEquippedKey] = itemId;
                 if (category === 'skins') activeCosmeticSkin = itemId;
-                localStorage.setItem('chrono_equipped_cosmetics' + SAVE_VERSION, JSON.stringify(equippedCosmetics));
+                safeStorage.setItem('chrono_equipped_cosmetics' + SAVE_VERSION, JSON.stringify(equippedCosmetics));
                 playSound('gold');
                 spawnFloatingText(window.innerWidth / 2, window.innerHeight / 2 - 40, ' تم تجهيز المظهر بنجاح!', '#00ff88');
                 if (selectedShopPreviewItem) selectShopItemForPreview(selectedShopPreviewItem);
@@ -5245,7 +5356,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 unlockedCosmeticSkins.add(itemId);
                 equippedCosmetics[categoryEquippedKey] = itemId;
                 if (category === 'skins') activeCosmeticSkin = itemId;
-                localStorage.setItem('chrono_equipped_cosmetics' + SAVE_VERSION, JSON.stringify(equippedCosmetics));
+                safeStorage.setItem('chrono_equipped_cosmetics' + SAVE_VERSION, JSON.stringify(equippedCosmetics));
                 saveGameProgress();
                 playSound('ultimate');
                 triggerShockwave(window.innerWidth / 2, window.innerHeight / 2, '#ffd700', 300);
@@ -5258,6 +5369,21 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 alert(`رصيدك غير كافٍ! تحتاج إلى ${price} عملة Chrono Credits (رصيدك الحالي: ${metaCurrency}). يمكنك كسب العملة عبر قتل الأعداء وتجاوز الموجات.`);
             }
         };
+
+        function closeAllActiveModals() {
+            const modeModal = document.getElementById('mode-select-modal');
+            if (modeModal) modeModal.classList.add('hidden');
+            const daily = document.getElementById('daily-rewards-modal');
+            if (daily) daily.classList.add('hidden');
+            const rank = document.getElementById('rank-leaderboard-modal');
+            if (rank) rank.classList.add('hidden');
+            if (typeof closeCloudAccountModal === 'function') closeCloudAccountModal();
+            if (typeof closeAdminLoginModal === 'function') closeAdminLoginModal();
+            if (typeof closeCustomRoomModal === 'function') closeCustomRoomModal();
+            if (typeof toggleTacticalMapModal === 'function') toggleTacticalMapModal(false);
+        }
+
+        window.closeAllActiveModals = closeAllActiveModals;
 
         window.addEventListener('keydown', (e) => {
             // إذا كان اللاعب يكتب داخل أي حقل نصي أو نموذج، لا تقم باعتراض الأحرف (مثل M, P, A, D, Space)
@@ -5286,14 +5412,22 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 return;
             }
             if (e.code === 'Escape') {
+                const activeModal = document.querySelector('.overlay-screen:not([style*="display: none"]):not(.hidden), .modal-backdrop:not([style*="display: none"]):not(.hidden)');
+                if (activeModal && activeModal.id !== 'main-menu' && activeModal.id !== 'game-over-screen' && activeModal.id !== 'pause-menu') {
+                    e.preventDefault();
+                    closeAllActiveModals();
+                    return;
+                }
                 if (isTacticalMapOpen) {
                     toggleTacticalMapModal(false);
                     e.preventDefault();
                     return;
                 }
-                e.preventDefault();
-                togglePause();
-                return;
+                if (!mainMenu || mainMenu.style.display === 'none') {
+                    e.preventDefault();
+                    togglePause();
+                    return;
+                }
             }
             if (e.code === 'KeyP') { e.preventDefault(); togglePause(); return; }
             if (mainMenu && mainMenu.style.display !== 'none') {
@@ -5328,97 +5462,9 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         });
 
         // ====================================================================
-        // AAA MOBILE PERFECTION: DYNAMIC FLOATING JOYSTICKS & AIM ASSIST
+        // AAA MOBILE PERFECTION: DYNAMIC FLOATING JOYSTICKS
         // ====================================================================
         let isJoystickFloating = false;
-
-        function calculateMobileAimAssist(playerX, playerY, baseAngle) {
-            if (!gameSettings || gameSettings.aimAssist === false) return baseAngle;
-            let bestTarget = null;
-            let bestScore = -Infinity;
-            const maxAssistDistance = 850;
-            const maxAngleOffset = 0.65; // ~37 degrees cone
-
-            // 1. Check Standard Enemies
-            if (typeof enemies !== 'undefined' && enemies && enemies.length > 0) {
-                for (let i = 0; i < enemies.length; i++) {
-                    const e = enemies[i];
-                    if (!e || e.hp <= 0) continue;
-                    const dx = e.x - playerX;
-                    const dy = e.y - playerY;
-                    const dist = Math.hypot(dx, dy);
-                    if (dist > maxAssistDistance || dist < 10) continue;
-
-                    const targetAng = Math.atan2(dy, dx);
-                    let angleDiff = targetAng - baseAngle;
-                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-
-                    const absDiff = Math.abs(angleDiff);
-                    if (absDiff < maxAngleOffset) {
-                        const angleScore = 1 - (absDiff / maxAngleOffset);
-                        const distScore = 1 - (dist / maxAssistDistance);
-                        const score = angleScore * 0.65 + distScore * 0.35 + (e.isBoss ? 0.35 : 0);
-                        if (score > bestScore) {
-                            bestScore = score;
-                            bestTarget = { angleDiff: angleDiff, dist: dist };
-                        }
-                    }
-                }
-            }
-
-            // 2. Check Active Boss
-            if (typeof boss !== 'undefined' && boss && boss.hp > 0) {
-                const dx = boss.x - playerX;
-                const dy = boss.y - playerY;
-                const dist = Math.hypot(dx, dy);
-                if (dist <= maxAssistDistance * 1.2) {
-                    const targetAng = Math.atan2(dy, dx);
-                    let angleDiff = targetAng - baseAngle;
-                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                    const absDiff = Math.abs(angleDiff);
-                    if (absDiff < maxAngleOffset * 1.15) {
-                        const angleScore = 1 - (absDiff / maxAngleOffset);
-                        const score = angleScore * 0.7 + 0.5;
-                        if (score > bestScore) {
-                            bestScore = score;
-                            bestTarget = { angleDiff: angleDiff, dist: dist };
-                        }
-                    }
-                }
-            }
-
-            // 3. Check PvP Remote Players
-            if (typeof remotePlayers !== 'undefined' && remotePlayers && remotePlayers.size > 0) {
-                remotePlayers.forEach(rp => {
-                    if (!rp || rp.hp <= 0) return;
-                    const dx = rp.x - playerX;
-                    const dy = rp.y - playerY;
-                    const dist = Math.hypot(dx, dy);
-                    if (dist > maxAssistDistance || dist < 10) return;
-                    const targetAng = Math.atan2(dy, dx);
-                    let angleDiff = targetAng - baseAngle;
-                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                    const absDiff = Math.abs(angleDiff);
-                    if (absDiff < maxAngleOffset) {
-                        const angleScore = 1 - (absDiff / maxAngleOffset);
-                        const score = angleScore * 0.7 + (1 - dist / maxAssistDistance) * 0.3;
-                        if (score > bestScore) {
-                            bestScore = score;
-                            bestTarget = { angleDiff: angleDiff, dist: dist };
-                        }
-                    }
-                });
-            }
-
-            if (bestTarget) {
-                // Soft magnetic blend (40% gentle snap towards target)
-                return baseAngle + bestTarget.angleDiff * 0.40;
-            }
-            return baseAngle;
-        }
 
         // --- Movement Joystick (Left) ---
         if (joystickBase) {
@@ -5520,6 +5566,9 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 joystickAimBase.classList.add('aiming-active');
                 updateJoystickCenter();
                 handleAimJoystickMove(e.clientX, e.clientY);
+                if (player && !isGameOver) {
+                    player.shootTimer = player.shootInterval;
+                }
                 e.stopPropagation();
             });
 
@@ -5553,12 +5602,12 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (distVal > 0) aimJoystickAngle = Math.atan2(dy, dx);
             
             let rawPower = Math.min(1.0, distVal / maxRadius);
-            if (rawPower < 0.12) {
+            if (rawPower < 0.06) {
                 aimJoystickPower = 0;
                 isAimJoystickActive = false;
             } else {
-                let norm = (rawPower - 0.12) / 0.88;
-                aimJoystickPower = Math.pow(norm, 1.2);
+                let norm = (rawPower - 0.06) / 0.94;
+                aimJoystickPower = Math.pow(norm, 1.1);
                 isAimJoystickActive = true;
             }
 
@@ -7152,7 +7201,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 // التحقق من حالة ثبات القناص وتفعيل التخفي
                 let inputMag = Math.hypot(inputDx, inputDy);
                 let isActuallyMoving = inputMag > 0.1 || (Math.hypot(this.vx, this.vy) > 0.25);
-                let isShootingIntent = (isAimJoystickActive && aimJoystickPower > 0.15) || isMouseDown;
+                let isShootingIntent = (isAimJoystickActive && aimJoystickPower > 0.06) || isMouseDown;
 
                 if (this.playerClass === 'sniper') {
                     if (!isActuallyMoving && !isShootingIntent) {
@@ -7234,13 +7283,9 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 let isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
                 let isMouseAimingActive = !isTouch && (isMouseDown || (hasMouseMoved && (now - lastMouseMoveTime < 1000)));
 
-                if (isAimJoystickActive && aimJoystickPower > 0.1) {
-                    // 1. تصويب الجويستك اللمسي في الهاتف مع المساعد التكتيكي الذكي
-                    let finalAngle = aimJoystickAngle;
-                    if (gameSettings.aimAssist !== false && typeof calculateMobileAimAssist === 'function') {
-                        finalAngle = calculateMobileAimAssist(this.x, this.y, aimJoystickAngle);
-                    }
-                    this.targetAngle = finalAngle;
+                if (isAimJoystickActive && aimJoystickPower > 0.05) {
+                    // 1. تصويب الجويستك اللمسي المباشر والخام 100% في الهاتف (بدون أي مساعدة أو إزاحة)
+                    this.targetAngle = aimJoystickAngle;
                 } else if (isMouseAimingActive) {
                     // 2. تصويب الماوس عند تحريكه في الكمبيوتر (خام ومباشر 100% بدون أي تعديل)
                     this.targetAngle = Math.atan2(mouseWorldY - this.y, mouseWorldX - this.x);
@@ -7271,7 +7316,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 let angleDiff = this.targetAngle - this.facingAngle;
                 while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
                 while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                let rotSpeed = (isAimJoystickActive || isMouseDown || isMouseAimingActive) ? 0.38 : 0.30;
+                let rotSpeed = isAimJoystickActive ? 0.85 : ((isMouseDown || isMouseAimingActive) ? 0.45 : 0.35);
                 this.facingAngle += angleDiff * (1 - Math.pow(1 - rotSpeed, frameFactor));
                 this.rollTilt = lerp(this.rollTilt, angleDiff * 1.5, 0.15 * frameFactor);
 

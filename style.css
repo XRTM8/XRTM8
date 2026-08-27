@@ -5161,3 +5161,273 @@ html, body {
         right: max(16px, env(safe-area-inset-right)) !important;
     }
 }
+
+/* ===================================================================
+   AAA LOBBY COMMAND DECK, HERO SHIP CANVAS & TACTICAL MODE MODAL
+   =================================================================== */
+.lobby-command-deck {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+}
+
+.lobby-hero-ship-container {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    background: radial-gradient(circle at center, rgba(0, 243, 255, 0.08) 0%, rgba(5, 10, 20, 0.85) 75%);
+    border: 1px solid rgba(0, 243, 255, 0.25);
+    border-radius: 16px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 0 20px rgba(0, 243, 255, 0.05);
+    backdrop-filter: blur(12px);
+    overflow: hidden;
+}
+
+.hero-ship-header {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 6px 4px 6px;
+    border-bottom: 1px solid rgba(0, 243, 255, 0.12);
+}
+
+.hero-ship-class-badge {
+    font-size: 0.75rem;
+    font-weight: 900;
+    color: #00f3ff;
+    letter-spacing: 1px;
+    font-family: 'Rajdhani', sans-serif;
+    text-transform: uppercase;
+}
+
+.hero-ship-skin-badge {
+    font-size: 0.70rem;
+    font-weight: 700;
+    color: #ffd700;
+    letter-spacing: 0.5px;
+    font-family: 'Rajdhani', sans-serif;
+    text-transform: uppercase;
+}
+
+#lobby-hero-canvas {
+    width: 260px;
+    height: 150px;
+    display: block;
+    margin: 4px auto;
+}
+
+.hero-ship-footer {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    justify-content: center;
+    margin-top: 4px;
+}
+
+.hero-quick-btn {
+    background: rgba(0, 243, 255, 0.08);
+    border: 1px solid rgba(0, 243, 255, 0.3);
+    color: #cceeff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.hero-quick-btn:hover {
+    background: rgba(0, 243, 255, 0.22);
+    border-color: #00f3ff;
+    color: #ffffff;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+/* Giant Pulsating Battle Button */
+.lobby-play-action-wrap {
+    width: 100%;
+    max-width: 440px;
+    margin: 4px 0 2px 0;
+}
+
+.btn-hero-battle {
+    position: relative;
+    width: 100%;
+    padding: 14px 20px;
+    background: linear-gradient(135deg, #00f3ff 0%, #0077ff 50%, #7700ff 100%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 14px;
+    color: #ffffff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: 0 0 25px rgba(0, 243, 255, 0.5), inset 0 0 15px rgba(255, 255, 255, 0.3);
+    transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-family: 'Cairo', 'Rajdhani', sans-serif;
+    overflow: hidden;
+}
+
+.btn-hero-battle:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 35px rgba(0, 243, 255, 0.8), inset 0 0 20px rgba(255, 255, 255, 0.5);
+    filter: brightness(1.1);
+}
+
+.btn-hero-battle:active {
+    transform: scale(0.98);
+}
+
+.btn-battle-text-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: right;
+}
+
+html[lang="en"] .btn-battle-text-group {
+    text-align: left;
+}
+
+.btn-battle-primary {
+    font-size: 1.15rem;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+
+.btn-battle-sub {
+    font-size: 0.72rem;
+    font-weight: 600;
+    opacity: 0.9;
+    letter-spacing: 0.3px;
+}
+
+/* Quick Modes Chips Strip */
+.lobby-quick-modes-strip {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    max-width: 680px;
+    margin-top: 6px;
+}
+
+.quick-mode-chip {
+    background: rgba(10, 18, 30, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #a0aec0;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    backdrop-filter: blur(8px);
+    font-family: inherit;
+}
+
+.quick-mode-chip:hover {
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.quick-mode-chip.solo:hover {
+    border-color: #00f3ff;
+    color: #00f3ff;
+    box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+}
+
+.quick-mode-chip.pvp:hover {
+    border-color: #bd00ff;
+    color: #bd00ff;
+    box-shadow: 0 0 10px rgba(189, 0, 255, 0.3);
+}
+
+.quick-mode-chip.pve:hover {
+    border-color: #00ff88;
+    color: #00ff88;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+}
+
+.quick-mode-chip.raid:hover {
+    border-color: #ff0055;
+    color: #ff0055;
+    box-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
+}
+
+.quick-mode-chip.all-modes {
+    border-color: rgba(0, 243, 255, 0.35);
+    background: rgba(0, 243, 255, 0.12);
+    color: #00f3ff;
+}
+
+.quick-mode-chip.all-modes:hover {
+    background: rgba(0, 243, 255, 0.25);
+    box-shadow: 0 0 12px rgba(0, 243, 255, 0.4);
+}
+
+/* Mode Select Modal Card */
+.mode-select-card {
+    max-width: 780px !important;
+    width: 95vw !important;
+    max-height: 88vh !important;
+}
+
+.mode-select-body {
+    padding: 10px 14px !important;
+    overflow-y: auto !important;
+}
+
+.mode-select-section-title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #00f3ff;
+    margin: 12px 0 8px 0;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed rgba(0, 243, 255, 0.25);
+    text-align: right;
+}
+
+html[lang="en"] .mode-select-section-title {
+    text-align: left;
+}
+
+/* ===================================================================
+   UNIFIED ARSENAL & PERKS LOADOUT MATRIX
+   =================================================================== */
+.arsenal-perks-section {
+    width: 100%;
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px dashed rgba(0, 243, 255, 0.2);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.arsenal-section-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}

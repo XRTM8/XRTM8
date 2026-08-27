@@ -475,101 +475,79 @@
         </div>
 
         <div class="tabs-header">
-            <button class="tab-btn active" onclick="switchTab('play')" data-i18n="tabPlay">الساحة والأنماط</button>
-            <button class="tab-btn" onclick="switchTab('arsenal')" data-i18n="tabArsenal">الترسانة والكلاسات</button>
+            <button class="tab-btn active" onclick="switchTab('play')" data-i18n="tabPlay">الردهة والساحة</button>
+            <button class="tab-btn" onclick="switchTab('arsenal')" data-i18n="tabArsenal">العتاد والترسانة</button>
             <button class="tab-btn" onclick="switchTab('shop')" data-i18n="tabShop">المتجر والتخصيص </button>
-            <button class="tab-btn" onclick="switchTab('perks')" data-i18n="tabPerks">البيركات التلقائية</button>
-            <button class="tab-btn" onclick="switchTab('missions')" data-i18n="tabMissions">المهمات والتحديات</button>
+            <button class="tab-btn" onclick="switchTab('missions')" data-i18n="tabMissions">المهمات والعمليات</button>
             <button class="tab-btn" onclick="switchTab('settings')" data-i18n="tabSettings">الإعدادات والتحكم</button>
         </div>
 
         <div id="tab-play" class="tab-content active">
-            <!-- بطاقة رتبة العميل والكؤوس التنافسية الفخمة -->
-            <div id="player-rank-card" class="player-rank-card" onclick="openRankLeaderboardModal()" title="انقر لفتح ليدربورد الأبطال">
-                <div class="rank-badge-icon" id="player-rank-badge"></div>
-                <div class="rank-details">
-                    <div class="rank-tier-header">
-                        <span class="rank-tier-title" id="player-rank-tier-name">Bronze Agent (عميل برونزي)</span>
-                        <span class="rank-trophies-badge"><strong id="player-trophies-val" style="color: #ffd700;">0</strong> </span>
+            <!-- 1. Lobby Command Deck (Hero Showcase & Battle Center) -->
+            <div class="lobby-command-deck">
+                <!-- بطاقة رتبة العميل والكؤوس التنافسية الفخمة -->
+                <div id="player-rank-card" class="player-rank-card" onclick="openRankLeaderboardModal()" title="انقر لفتح ليدربورد الأبطال">
+                    <div class="rank-badge-icon" id="player-rank-badge"></div>
+                    <div class="rank-details">
+                        <div class="rank-tier-header">
+                            <span class="rank-tier-title" id="player-rank-tier-name">Bronze Agent (عميل برونزي)</span>
+                            <span class="rank-trophies-badge"><strong id="player-trophies-val" style="color: #ffd700;">0</strong> </span>
+                        </div>
+                        <div class="rank-progress-bar-wrap">
+                            <div class="rank-progress-fill" id="player-rank-fill" style="width: 20%;"></div>
+                        </div>
+                        <div class="rank-sub-stats" id="player-rank-next-info">500 كأس للترقية إلى الفضي</div>
                     </div>
-                    <div class="rank-progress-bar-wrap">
-                        <div class="rank-progress-fill" id="player-rank-fill" style="width: 20%;"></div>
-                    </div>
-                    <div class="rank-sub-stats" id="player-rank-next-info">500 كأس للترقية إلى الفضي</div>
+                    <div class="rank-view-tag" data-i18n="btnLeaderboard"> الليدربورد</div>
                 </div>
-                <div class="rank-view-tag" data-i18n="btnLeaderboard"> الليدربورد</div>
+
+                <!-- Live 3D Hologram Hangar Preview of Active Ship -->
+                <div class="lobby-hero-ship-container">
+                    <div class="hero-ship-header">
+                        <span class="hero-ship-class-badge" id="lobby-ship-class-badge">ASSAULT STRIKER</span>
+                        <span class="hero-ship-skin-badge" id="lobby-ship-skin-badge">DEFAULT CHASSIS</span>
+                    </div>
+                    <canvas id="lobby-hero-canvas" width="280" height="170"></canvas>
+                    <div class="hero-ship-footer">
+                        <button class="hero-quick-btn" onclick="switchTab('arsenal')">
+                            <svg class="c-icon"><use href="#icon-shield"></use></svg> <span data-i18n="tabArsenal">تخصيص العتاد</span>
+                        </button>
+                        <button class="hero-quick-btn" onclick="switchTab('shop')">
+                            <svg class="c-icon"><use href="#icon-sparkles"></use></svg> <span data-i18n="tabShop">المتجر والسكينات</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Giant Pulsating BATTLE / PLAY Button -->
+                <div class="lobby-play-action-wrap">
+                    <button id="hero-battle-btn" class="btn-hero-battle" onclick="openModeSelectModal()">
+                        <div class="btn-battle-glow-fx"></div>
+                        <svg class="c-icon c-icon-lg"><use href="#icon-zap"></use></svg>
+                        <div class="btn-battle-text-group">
+                            <span class="btn-battle-primary" data-i18n="btnStartBattle">⚡ بدء المعركة (BATTLE)</span>
+                            <span class="btn-battle-sub" data-i18n="btnStartBattleSub">اختر النمط وانطلق في الساحة</span>
+                        </div>
+                    </button>
+                </div>
             </div>
 
-            <div style="color: #8899a6; font-size: 0.95rem; margin-bottom: 14px; text-align: center;" id="menu-desc-txt" data-i18n="menuDescTxt">اختر نمط المعركة التكتيكي للانطلاق في الساحة السيبرانية:</div>
-            
-            <div class="play-modes-grid">
-                <!-- 1. Offline Solo -->
-                <div class="mode-card offline" onclick="startSelectedMode('offline')">
-                    <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-cyan"><use href="#icon-user"></use></svg></div>
-                    <div class="mode-info">
-                        <div class="mode-title" data-i18n="modeSoloTitle">فردي أوفلاين (Solo Offline)</div>
-                        <div class="mode-desc" data-i18n="modeSoloDesc">خض معركة البقاء الفردية مع نظام تمدد الوقت (Time Dilation).</div>
-                    </div>
-                </div>
-
-                <!-- 2. Boss Rush -->
-                <div class="mode-card bossrush" onclick="startSelectedMode('boss_rush')">
-                    <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-gold"><use href="#icon-zap"></use></svg></div>
-                    <div class="mode-info">
-                        <div class="mode-title" data-i18n="modeBossRushTitle">قتال الزعماء (Boss Rush)</div>
-                        <div class="mode-desc" data-i18n="modeBossRushDesc">مواجهة فورية ومتتالية لأعتى زعماء الذكاء الاصطناعي الخارق.</div>
-                    </div>
-                </div>
-
-                <!-- 3. Online Co-op PvE -->
-                <div class="mode-card pve" onclick="joinMultiplayerMode('online_pve')">
-                    <div class="mode-badge-live">ONLINE CO-OP</div>
-                    <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-green"><use href="#icon-users"></use></svg></div>
-                    <div class="mode-info">
-                        <div class="mode-title" data-i18n="modeCoopTitle">تعاوني أونلاين (Co-Op PVE)</div>
-                        <div class="mode-desc" data-i18n="modeCoopDesc">شكل فرقة مع العملاء الآخرين واقضوا معاً على أسراب الأعداء.</div>
-                    </div>
-                </div>
-
-                <!-- 4. Online PvP Arena -->
-                <div class="mode-card pvp" onclick="joinMultiplayerMode('online_pvp')">
-                    <div class="mode-badge-live pvp">PVP WARZONE</div>
-                    <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-purple"><use href="#icon-swords"></use></svg></div>
-                    <div class="mode-info">
-                        <div class="mode-title" data-i18n="modePvPTitle">ساحة النزاع (Arena PVP)</div>
-                        <div class="mode-desc" data-i18n="modePvPDesc">قتال مباشر ضد اللاعبين الآخرين! البقاء للأسرع والأدق.</div>
-                    </div>
-                </div>
-
-                <!-- 5. Online Boss Raid (NEW) -->
-                <div class="mode-card bossraid" onclick="joinMultiplayerMode('online_boss_raid')">
-                    <div class="mode-badge-live raid">WORLD RAID</div>
-                    <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-red"><use href="#icon-titan"></use></svg></div>
-                    <div class="mode-info">
-                        <div class="mode-title" data-i18n="modeBossRaidTitle">غارات الزعماء الكونية (Boss Raid)</div>
-                        <div class="mode-desc" data-i18n="modeBossRaidDesc">معركة ملحمية جماعية لإسقاط زعماء الفضاء المتوحشين والحصول على جوائز أسطورية.</div>
-                    </div>
-                </div>
-
-                <!-- 6. Free Roam Sandbox (NEW) -->
-                <div class="mode-card freeroam" onclick="joinMultiplayerMode('online_free_roam')">
-                    <div class="mode-badge-live free">SANDBOX</div>
-                    <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-cyan"><use href="#icon-orbit"></use></svg></div>
-                    <div class="mode-info">
-                        <div class="mode-title" data-i18n="modeFreeRoamTitle">الاستكشاف الحر (Free Roam)</div>
-                        <div class="mode-desc" data-i18n="modeFreeRoamDesc">ساحة حرة مفتوحة لتجربة السفن والأسلحة والتناور مع الزملاء بحرية.</div>
-                    </div>
-                </div>
-
-                <!-- 7. Custom Room Lobby (NEW) -->
-                <div class="mode-card customroom" onclick="openCustomRoomModal()">
-                    <div class="mode-badge-live custom">CUSTOM SQUAD</div>
-                    <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-gold"><use href="#icon-key"></use></svg></div>
-                    <div class="mode-info">
-                        <div class="mode-title" data-i18n="modeCustomTitle">غرفة مخصصة (Custom Room)</div>
-                        <div class="mode-desc" data-i18n="modeCustomDesc">أنشئ غرفتك الخاصة بكود سري، وحدد القواعد والخرائط والعب مع أصدقائك!</div>
-                    </div>
-                </div>
+            <!-- 2. Fast Pick Quick Actions / Modes Strip -->
+            <div class="lobby-quick-modes-strip">
+                <button class="quick-mode-chip solo" onclick="startSelectedMode('offline')">
+                    <svg class="c-icon"><use href="#icon-user"></use></svg> <span>فردي سريع</span>
+                </button>
+                <button class="quick-mode-chip pvp" onclick="joinMultiplayerMode('online_pvp')">
+                    <svg class="c-icon"><use href="#icon-swords"></use></svg> <span>نزاع PVP</span>
+                </button>
+                <button class="quick-mode-chip pve" onclick="joinMultiplayerMode('online_pve')">
+                    <svg class="c-icon"><use href="#icon-users"></use></svg> <span>تعاوني PVE</span>
+                </button>
+                <button class="quick-mode-chip raid" onclick="joinMultiplayerMode('online_boss_raid')">
+                    <svg class="c-icon"><use href="#icon-titan"></use></svg> <span>غارة الزعيم</span>
+                </button>
+                <button class="quick-mode-chip all-modes" onclick="openModeSelectModal()">
+                    <svg class="c-icon"><use href="#icon-orbit"></use></svg> <span>جميع الأطوار (7)</span>
+                </button>
             </div>
         </div>
 
@@ -673,6 +651,16 @@
                     <button class="card-equip-action-btn" id="btn-equip-engineer" data-i18n="selectClassBtn">اختيار الكلاس</button>
                 </div>
             </div>
+
+            <!-- قسم مصفوفة البيركات التلقائية المدمجة بالعتاد الشامل -->
+            <div class="arsenal-perks-section">
+                <div class="arsenal-section-divider">
+                    <span class="pulse-dot"></span>
+                    <span style="font-weight: 900; color: #00ff88; font-size: 0.95rem;" data-i18n="perksTitle"> منظومة البيركات التلقائية المجهزة (Active Auto-Perks)</span>
+                </div>
+                <div style="color: #8899a6; font-size: 0.82rem; margin-bottom: 10px; text-align: center;" data-i18n="perksDesc">تتطور البيركات المجهزة <span style="color: #00ff88; font-weight: bold;">تلقائياً</span> داخل المعركة مع كل موجة ينجو منها العميل:</div>
+                <div class="selection-grid" id="main-perks-grid"></div>
+            </div>
         </div>
 
         <!-- نافذة اختيار السلاح المنبثقة الأنيقة (Weapon Picker Modal) -->
@@ -726,12 +714,6 @@
             <div class="shop-items-grid" id="shop-items-container">
                 <!-- جاري توليد عناصر المتجر تلقائياً عبر JavaScript -->
             </div>
-        </div>
-
-        <div id="tab-perks" class="tab-content">
-            <div style="color: var(--player-color); font-weight: 900; font-size: 1.05rem; margin-bottom: 4px; text-align: center;" data-i18n="perksTitle"> منظومة البيركات التلقائية (Auto-Progression Perks)</div>
-            <div style="color: #8899a6; font-size: 0.84rem; margin-bottom: 14px; text-align: center;" data-i18n="perksDesc">تتطور البيركات المجهزة <span style="color: #00ff88; font-weight: bold;">تلقائياً</span> داخل المعركة مع كل موجة ينجو منها العميل وعند تدمير الأعداء:</div>
-            <div class="selection-grid" id="main-perks-grid"></div>
         </div>
 
         <div id="tab-missions" class="tab-content">
@@ -795,10 +777,6 @@
                         <button class="toggle-btn active" id="setting-haptic-btn" onclick="toggleSetting('haptic')" data-i18n="enabled">مفعل</button>
                     </div>
                     <div class="setting-row">
-                        <span data-i18n="aimAssistLabel">مساعد التصويب (Aim Assist):</span>
-                        <button class="toggle-btn active" id="setting-aim-assist-btn" onclick="toggleSetting('aimAssist')" data-i18n="enabled">مفعل</button>
-                    </div>
-                    <div class="setting-row">
                         <span data-i18n="floatingJoyLabel">الجويستيك العائم (Dynamic Joystick):</span>
                         <button class="toggle-btn active" id="setting-floating-joy-btn" onclick="toggleSetting('floatingJoystick')" data-i18n="enabled">مفعل</button>
                     </div>
@@ -851,6 +829,97 @@
         </div>
 
         <div class="version-tag">V90.0</div>
+    </div>
+
+    <!-- نافذة اختيار الأطوار التكتيكية الفخمة (Tactical Mode Selector Modal) -->
+    <div id="mode-select-modal" class="cyber-modal hidden">
+        <div class="cyber-modal-card mode-select-card">
+            <div class="modal-header">
+                <div class="modal-title-wrap">
+                    <svg class="c-icon c-icon-cyan"><use href="#icon-zap"></use></svg>
+                    <h3 data-i18n="modeSelectModalTitle"> مصفوفة أطوار المعركة التكتيكية (Game Modes)</h3>
+                </div>
+                <button class="modal-close-btn" onclick="closeModeSelectModal()"></button>
+            </div>
+            <div class="modal-body mode-select-body">
+                <div class="mode-select-section-title"> الأطوار الفردية السريعة (Solo & Survival)</div>
+                <div class="play-modes-grid">
+                    <!-- 1. Offline Solo -->
+                    <div class="mode-card offline" onclick="closeModeSelectModal(); startSelectedMode('offline')">
+                        <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-cyan"><use href="#icon-user"></use></svg></div>
+                        <div class="mode-info">
+                            <div class="mode-title" data-i18n="modeSoloTitle">فردي أوفلاين (Solo Offline)</div>
+                            <div class="mode-desc" data-i18n="modeSoloDesc">خض معركة البقاء الفردية مع نظام تمدد الوقت (Time Dilation).</div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Boss Rush -->
+                    <div class="mode-card bossrush" onclick="closeModeSelectModal(); startSelectedMode('boss_rush')">
+                        <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-gold"><use href="#icon-zap"></use></svg></div>
+                        <div class="mode-info">
+                            <div class="mode-title" data-i18n="modeBossRushTitle">قتال الزعماء (Boss Rush)</div>
+                            <div class="mode-desc" data-i18n="modeBossRushDesc">مواجهة فورية ومتتالية لأعتى زعماء الذكاء الاصطناعي الخارق.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mode-select-section-title"> أطوار اللعب الجماعي والنزاع الحي (Live Multiplayer)</div>
+                <div class="play-modes-grid">
+                    <!-- 3. Online Co-op PvE -->
+                    <div class="mode-card pve" onclick="closeModeSelectModal(); joinMultiplayerMode('online_pve')">
+                        <div class="mode-badge-live">ONLINE CO-OP</div>
+                        <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-green"><use href="#icon-users"></use></svg></div>
+                        <div class="mode-info">
+                            <div class="mode-title" data-i18n="modeCoopTitle">تعاوني أونلاين (Co-Op PVE)</div>
+                            <div class="mode-desc" data-i18n="modeCoopDesc">شكل فرقة مع العملاء الآخرين واقضوا معاً على أسراب الأعداء.</div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Online PvP Arena -->
+                    <div class="mode-card pvp" onclick="closeModeSelectModal(); joinMultiplayerMode('online_pvp')">
+                        <div class="mode-badge-live pvp">PVP WARZONE</div>
+                        <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-purple"><use href="#icon-swords"></use></svg></div>
+                        <div class="mode-info">
+                            <div class="mode-title" data-i18n="modePvPTitle">ساحة النزاع (Arena PVP)</div>
+                            <div class="mode-desc" data-i18n="modePvPDesc">قتال مباشر ضد اللاعبين الآخرين! البقاء للأسرع والأدق.</div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Online Boss Raid -->
+                    <div class="mode-card bossraid" onclick="closeModeSelectModal(); joinMultiplayerMode('online_boss_raid')">
+                        <div class="mode-badge-live raid">WORLD RAID</div>
+                        <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-red"><use href="#icon-titan"></use></svg></div>
+                        <div class="mode-info">
+                            <div class="mode-title" data-i18n="modeBossRaidTitle">غارات الزعماء الكونية (Boss Raid)</div>
+                            <div class="mode-desc" data-i18n="modeBossRaidDesc">معركة ملحمية جماعية لإسقاط زعماء الفضاء المتوحشين والحصول على جوائز أسطورية.</div>
+                        </div>
+                    </div>
+
+                    <!-- 6. Free Roam Sandbox -->
+                    <div class="mode-card freeroam" onclick="closeModeSelectModal(); joinMultiplayerMode('online_free_roam')">
+                        <div class="mode-badge-live free">SANDBOX</div>
+                        <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-cyan"><use href="#icon-orbit"></use></svg></div>
+                        <div class="mode-info">
+                            <div class="mode-title" data-i18n="modeFreeRoamTitle">الاستكشاف الحر (Free Roam)</div>
+                            <div class="mode-desc" data-i18n="modeFreeRoamDesc">ساحة حرة مفتوحة لتجربة السفن والأسلحة والتناور مع الزملاء بحرية.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mode-select-section-title"> الغرف المخصصة والفرق (Custom Squads)</div>
+                <div class="play-modes-grid">
+                    <!-- 7. Custom Room Lobby -->
+                    <div class="mode-card customroom" onclick="closeModeSelectModal(); openCustomRoomModal()">
+                        <div class="mode-badge-live custom">CUSTOM SQUAD</div>
+                        <div class="mode-icon"><svg class="c-icon c-icon-lg c-icon-gold"><use href="#icon-key"></use></svg></div>
+                        <div class="mode-info">
+                            <div class="mode-title" data-i18n="modeCustomTitle">غرفة مخصصة (Custom Room)</div>
+                            <div class="mode-desc" data-i18n="modeCustomDesc">أنشئ غرفتك الخاصة بكود سري، وحدد القواعد والخرائط والعب مع أصدقائك!</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- نافذة إنشاء والانضمام للغرف المخصصة (Custom Room Modal) -->
@@ -1058,10 +1127,6 @@
             <!-- قسم التحكم -->
             <div class="pause-settings-section">
                 <div class="pause-section-label"> التحكم وحساسية اللمس</div>
-                <div class="pause-setting-item">
-                    <span class="pause-setting-name" data-i18n="pauseAimAssist">مساعد التصويب للموبايل</span>
-                    <button class="toggle-btn active" id="p-setting-aim-assist-btn" onclick="toggleSetting('aimAssist')" data-i18n="enabled">مفعل</button>
-                </div>
                 <div class="pause-setting-item">
                     <span class="pause-setting-name" data-i18n="pauseFloatingJoy">الجويستيك العائم للموبايل</span>
                     <button class="toggle-btn active" id="p-setting-floating-joy-btn" onclick="toggleSetting('floatingJoystick')" data-i18n="enabled">مفعل</button>
