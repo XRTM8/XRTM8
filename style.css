@@ -235,62 +235,62 @@
             box-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
         }
 
-        /* Ergonomic Ability Cluster (Bottom-Right) */
+        /* Ergonomic Ability Cluster (Arched around Right Aim Joystick) */
         #hud-abilities-cluster {
             position: absolute;
-            bottom: 20px;
-            right: 20px;
-            z-index: 25;
+            bottom: max(14px, env(safe-area-inset-bottom, 14px));
+            right: max(14px, env(safe-area-inset-right, 14px));
+            z-index: 26;
             pointer-events: none;
         }
 
         #dash-btn-hud {
-            bottom: 20px;
-            right: 20px;
-            width: 66px;
-            height: 66px;
+            bottom: 16px;
+            right: 150px;
+            width: 62px;
+            height: 62px;
             --btn-color: var(--dash-color);
         }
         #class-skill-btn-hud {
-            bottom: 96px;
-            right: 20px;
-            width: 56px;
-            height: 56px;
+            bottom: 86px;
+            right: 150px;
+            width: 54px;
+            height: 54px;
             --btn-color: #00ff88;
         }
         #class-skill2-btn-hud {
-            bottom: 162px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
+            bottom: 148px;
+            right: 150px;
+            width: 48px;
+            height: 48px;
             --btn-color: #ffd700;
         }
         #swap-weapon-btn-hud {
-            bottom: 20px;
-            right: 96px;
-            width: 56px;
-            height: 56px;
+            bottom: 16px;
+            right: 220px;
+            width: 52px;
+            height: 52px;
             --btn-color: #bd00ff;
         }
         #reload-btn-hud {
-            bottom: 86px;
-            right: 86px;
-            width: 50px;
-            height: 50px;
+            bottom: 146px;
+            right: 18px;
+            width: 48px;
+            height: 48px;
             --btn-color: #00f3ff;
         }
         #super-emp-btn-hud, #overcharge-btn-hud {
-            bottom: 146px;
-            right: 80px;
-            width: 50px;
-            height: 50px;
+            bottom: 80px;
+            right: 212px;
+            width: 48px;
+            height: 48px;
             --btn-color: var(--overcharge-color);
         }
         #ult-btn-hud {
-            bottom: 206px;
-            right: 36px;
-            width: 54px;
-            height: 54px;
+            bottom: 146px;
+            right: 76px;
+            width: 52px;
+            height: 52px;
             --btn-color: var(--ult-color);
         }
 
@@ -320,32 +320,32 @@
         /* Movement Joystick (Left) */
         #joystick-base {
             position: absolute;
-            bottom: 25px;
-            left: 25px;
-            width: 125px;
-            height: 125px;
-            background: radial-gradient(circle, rgba(0, 243, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 70%);
-            border: 2px solid rgba(0, 243, 255, 0.35);
+            bottom: max(20px, env(safe-area-inset-bottom, 20px));
+            left: max(20px, env(safe-area-inset-left, 20px));
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(0, 243, 255, 0.14) 0%, rgba(255, 255, 255, 0.02) 70%);
+            border: 2px solid rgba(0, 243, 255, 0.5);
             border-radius: 50%;
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: center;
             z-index: 25;
             pointer-events: auto;
             backdrop-filter: blur(10px);
             touch-action: none;
-            box-shadow: 0 0 24px rgba(0, 243, 255, 0.16);
+            box-shadow: 0 0 24px rgba(0, 243, 255, 0.25);
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         #joystick-thumb {
             position: absolute;
             width: 48px;
             height: 48px;
-            background: radial-gradient(circle, rgba(0, 243, 255, 0.75) 0%, rgba(0, 243, 255, 0.25) 80%);
+            background: radial-gradient(circle, rgba(0, 243, 255, 0.85) 0%, rgba(0, 243, 255, 0.35) 80%);
             border: 2px solid var(--player-color);
             border-radius: 50%;
             pointer-events: none;
-            box-shadow: 0 0 16px rgba(0, 243, 255, 0.75);
+            box-shadow: 0 0 18px rgba(0, 243, 255, 0.85);
             transform: translate3d(0px, 0px, 0);
             transition: transform 0.05s cubic-bezier(0.1, 0.9, 0.2, 1);
             will-change: transform;
@@ -354,21 +354,21 @@
         /* Aim & Fire Joystick (Right) */
         #joystick-aim-base {
             position: absolute;
-            bottom: 25px;
-            right: 25px;
-            width: 125px;
-            height: 125px;
-            background: radial-gradient(circle, rgba(255, 42, 95, 0.14) 0%, rgba(255, 145, 0, 0.03) 70%);
-            border: 2px solid rgba(255, 42, 95, 0.45);
+            bottom: max(20px, env(safe-area-inset-bottom, 20px));
+            right: max(20px, env(safe-area-inset-right, 20px));
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(255, 42, 95, 0.16) 0%, rgba(255, 145, 0, 0.03) 70%);
+            border: 2px solid rgba(255, 42, 95, 0.55);
             border-radius: 50%;
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: center;
             z-index: 25;
             pointer-events: auto;
             backdrop-filter: blur(10px);
             touch-action: none;
-            box-shadow: 0 0 24px rgba(255, 42, 95, 0.20);
+            box-shadow: 0 0 24px rgba(255, 42, 95, 0.25);
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         #joystick-aim-base::before {
@@ -377,7 +377,7 @@
             width: 42%;
             height: 42%;
             border-radius: 50%;
-            border: 1.5px dashed rgba(255, 42, 95, 0.35);
+            border: 1.5px dashed rgba(255, 42, 95, 0.45);
             pointer-events: none;
         }
         #joystick-aim-thumb {
@@ -407,7 +407,7 @@
             text-shadow: 0 0 6px #ff0055, 0 0 12px #ffd700;
         }
 
-        @media (min-width: 900px) and (min-height: 600px) {
+        @media (min-width: 900px) and (min-height: 600px) and (pointer: fine) {
             /* Desktop HUD layout - Hide touch joysticks, overlay, and mobile touch button cluster on PC */
             .touch-controls-overlay,
             #touch-controls-container,
@@ -3887,7 +3887,6 @@ html[lang="en"] .title-sub {
     pointer-events: none;
     z-index: 25;
     touch-action: none;
-    display: none;
 }
 
 .touch-controls-overlay > * {

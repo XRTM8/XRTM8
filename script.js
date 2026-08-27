@@ -12,22 +12,27 @@ function isMobileTouchActive() {
 
 function updateMobileControlsVisibility() {
     const touchContainer = document.getElementById('touch-controls-container');
+    const jBase = document.getElementById('joystick-base');
+    const jAimBase = document.getElementById('joystick-aim-base');
     const isTouch = isMobileTouchActive();
-    if (isTouch && !isGameOver && player) {
+    const isPlaying = !isGameOver && !isGamePaused && (!mainMenu || mainMenu.style.display === 'none');
+    
+    if (isTouch && isPlaying) {
         if (touchContainer) {
             touchContainer.style.display = 'block';
             touchContainer.classList.remove('hidden');
         }
-        if (joystickBase) joystickBase.style.display = 'flex';
-        if (joystickAimBase) joystickAimBase.style.display = 'flex';
+        if (jBase) jBase.style.display = 'flex';
+        if (jAimBase) jAimBase.style.display = 'flex';
         if (hudInstructions) hudInstructions.style.display = 'none';
+        updateJoystickCenter();
     } else {
         if (touchContainer) {
             touchContainer.style.display = 'none';
         }
-        if (joystickBase) joystickBase.style.display = 'none';
-        if (joystickAimBase) joystickAimBase.style.display = 'none';
-        if (hudInstructions && !isGameOver && player) {
+        if (jBase) jBase.style.display = 'none';
+        if (jAimBase) jAimBase.style.display = 'none';
+        if (hudInstructions && isPlaying) {
             hudInstructions.style.display = 'block';
         }
     }
@@ -5443,9 +5448,12 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (e.clientX < window.innerWidth * 0.42 && e.clientY > 60) {
                 if (e.target && (e.target.closest('.hud-action-btn') || e.target.closest('#pause-btn-hud') || e.target.closest('.overlay-screen') || e.target.closest('.modal-backdrop') || e.target.closest('button') || e.target.closest('input'))) return;
                 if (joystickPointerId === null && joystickBase && gameSettings.floatingJoystick !== false) {
+                    const touchContainer = document.getElementById('touch-controls-container');
+                    if (touchContainer) touchContainer.style.display = 'block';
+                    joystickBase.style.display = 'flex';
                     isJoystickFloating = true;
                     joystickBase.classList.add('floating-active');
-                    const halfW = 54;
+                    const halfW = 60;
                     joystickBase.style.left = Math.max(10, Math.min(window.innerWidth * 0.42 - halfW * 2, e.clientX - halfW)) + 'px';
                     joystickBase.style.top = Math.max(70, Math.min(window.innerHeight - halfW * 2 - 10, e.clientY - halfW)) + 'px';
                     joystickBase.style.bottom = 'auto';
@@ -9568,39 +9576,20 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             bossHudContainer.style.display = 'none'; dashBtnHud.style.display = 'none'; if (reloadBtnHud) reloadBtnHud.style.display = 'none'; if (superEmpBtnHud) superEmpBtnHud.style.display = 'none'; ultBtnHud.style.display = 'none';
             if (joystickBase) joystickBase.style.display = 'none';
             if (joystickAimBase) joystickAimBase.style.display = 'none';
+            const touchContainer = document.getElementById('touch-controls-container');
+            if (touchContainer) touchContainer.style.display = 'none';
             bossWarningBanner.style.display = 'none'; hazardWarningBanner.style.display = 'none';
             resetJoystick();
             resetAimJoystick();
             isMouseDown = false;
             mainMenu.style.display = 'flex';
+            updateMobileControlsVisibility();
         }
 
         function startGame() {
             startProceduralBgm();
             initAudio();
             if (mainMenu) mainMenu.style.display = 'none';
-            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-            if (isTouchDevice) {
-                if (dashBtnHud) dashBtnHud.style.display = 'flex';
-                if (reloadBtnHud) reloadBtnHud.style.display = 'flex';
-                if (superEmpBtnHud) superEmpBtnHud.style.display = 'flex';
-                
-                if (ultBtnHud) ultBtnHud.style.display = 'flex';
-                if (joystickBase) joystickBase.style.display = 'flex';
-                if (joystickAimBase) joystickAimBase.style.display = 'flex';
-                if (hudInstructions) hudInstructions.style.display = 'none';
-                updateJoystickCenter();
-            } else {
-                if (dashBtnHud) dashBtnHud.style.display = 'flex';
-                if (reloadBtnHud) reloadBtnHud.style.display = 'flex';
-                if (superEmpBtnHud) superEmpBtnHud.style.display = 'flex';
-                
-                if (ultBtnHud) ultBtnHud.style.display = 'flex';
-                if (joystickBase) joystickBase.style.display = 'none';
-                if (joystickAimBase) joystickAimBase.style.display = 'none';
-                if (hudInstructions) hudInstructions.style.display = 'block';
-                updateJoystickCenter();
-            }
 
             const isOnline = isMultiplayerMode();
             if (isOnline) {
@@ -9610,6 +9599,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             }
 
             initGame();
+            updateMobileControlsVisibility();
         }
 
         function initGame() {
@@ -9636,7 +9626,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             isMouseDown = false;
             
             currentWave = 1; isWaveIntermission = false; acquiredPerks = {}; acquiredRelics = []; activeSynergies.clear();
-            renderPerksHUD(); updateSettingsUI(); updateComboHUD(); updateVitalsAndAmmoHUD(); startNextWave();
+            renderPerksHUD(); updateSettingsUI(); updateComboHUD(); updateVitalsAndAmmoHUD(); updateMobileControlsVisibility(); startNextWave();
             
             if (gameLoopId) cancelAnimationFrame(gameLoopId);
             lastTime = performance.now(); frameCount = 0; fpsTimer = performance.now();
@@ -10144,7 +10134,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (isOnlineMode) {
                 timeScale = 1.0; // Permanently FORCE timeScale = 1.0 in online multiplayer!
             } else {
-                const isPlayerActive = (isMoving || isAimJoystickActive || isMouseDown || keys.w || keys.a || keys.s || keys.d || (player && Math.hypot(player.vx, player.vy) > 0.8)) && !isGameOver;
+                const isPlayerActive = (isMoving || isAimJoystickActive || joystickPower > 0.05 || aimJoystickPower > 0.05 || isMouseDown || keys.w || keys.a || keys.s || keys.d || (player && Math.hypot(player.vx, player.vy) > 0.8)) && !isGameOver;
                 const targetTimeScale = isPlayerActive ? 1.0 : 0.22;
                 timeScale = lerp(timeScale, targetTimeScale, 1 - Math.pow(0.82, frameFactor)); 
             }
