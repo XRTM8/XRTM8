@@ -26,10 +26,13 @@
     </script>
 </head>
 <body>
+    <!-- لوحة الرسم الأساسية للعبة -->
+    <canvas id="gameCanvas"></canvas>
 
     <!-- تنبيه تدوير الهاتف للوضع الأفقي وشاشة كاملة احترافية -->
-    <div id="portrait-orientation-warning" class="portrait-orientation-warning">
+    <div id="portrait-orientation-warning" class="portrait-orientation-warning hidden" style="display: none;">
         <div class="rotate-phone-card">
+            <button onclick="document.getElementById('portrait-orientation-warning').classList.add('hidden'); document.getElementById('portrait-orientation-warning').style.display='none';" style="position:absolute; top:8px; right:8px; background:none; border:none; color:#fff; font-size:1.2rem; cursor:pointer;">✕</button>
             <div class="rotate-phone-anim-icon">
                 <svg class="c-icon phone-rotate-svg"><use href="#icon-rotate-phone"></use></svg>
             </div>
@@ -347,6 +350,11 @@
         <div id="ult-btn-hud" class="hud-action-btn" title="Orbital Ult (F)">
             <span class="btn-text">ULT</span>
             <span class="btn-sub" id="ult-btn-sub">0%</span>
+        </div>
+
+        <div id="sandbox-btn-hud" class="hud-action-btn" title="Sandbox Control (B)" onclick="toggleSandboxControlModal()" style="display:none; --btn-color:#00ff88;">
+            <span class="btn-text" style="color:#00ff88;">SANDBOX</span>
+            <span class="btn-sub">B</span>
         </div>
 
         <div id="mobile-pause-btn-hud" class="hud-action-btn mobile-only-btn" title="Pause" onclick="togglePause()" style="display:none;">
@@ -708,6 +716,29 @@
                         <span class="perk-tag-mini"> تسريع</span>
                     </div>
                     <button class="card-equip-action-btn" id="btn-equip-engineer" data-i18n="selectClassBtn">اختيار الكلاس</button>
+                </div>
+
+                <!-- 5. Breacher (Shotgun Specialist) -->
+                <div class="arsenal-class-card" id="card-c-breacher" onclick="selectClassAndRefresh('breacher')">
+                    <div class="card-top-icon-pill" style="--c-col:#ff5500;"><svg class="c-icon c-icon-red"><use href="#icon-flame"></use></svg></div>
+                    <div class="card-class-title" data-i18n="classBreacher">الكاسر (Breacher)</div>
+                    <div class="card-3d-canvas-wrap">
+                        <canvas id="arsenal-canvas-breacher" width="160" height="150"></canvas>
+                    </div>
+                    <div class="card-wep-badge primary" onclick="openWeaponSelectorModal(event, 'breacher')" title="السلاح الأساسي الحصري">
+                        <span class="w-label" data-i18n="wepPrimaryLabel"> الأساسي:</span>
+                        <span class="w-val" id="wtag-pri-breacher">شوتجان الاقتحام (Shotgun)</span>
+                        <span class="w-edit-icon"></span>
+                    </div>
+                    <div class="card-wep-badge secondary" title="السلاح الثانوي التكتيكي">
+                        <span class="w-label" data-i18n="wepSecondaryLabel"> الثانوي:</span>
+                        <span class="w-val" id="wtag-sec-breacher">مسدس البلازما [2]</span>
+                    </div>
+                    <div class="card-perks-badge-row" id="perks-badge-breacher">
+                        <span class="perk-tag-mini"> درع</span>
+                        <span class="perk-tag-mini"> تسريع</span>
+                    </div>
+                    <button class="card-equip-action-btn" id="btn-equip-breacher" data-i18n="selectClassBtn">اختيار الكلاس</button>
                 </div>
             </div>
 
@@ -1637,6 +1668,11 @@
             </div>
             
             <div class="modal-body" style="padding: 12px 16px;">
+                <div class="leaderboard-tabs-bar" style="display:flex; gap:8px; margin-bottom:12px; justify-content:center;">
+                    <button class="rank-tab-btn active" id="tab-lb-trophies" onclick="switchLeaderboardCategory('trophies')">🏆 الكؤوس والتصنيف</button>
+                    <button class="rank-tab-btn" id="tab-lb-kills" onclick="switchLeaderboardCategory('kills')">⚔️ القتلات والتدمير</button>
+                    <button class="rank-tab-btn" id="tab-lb-wave" onclick="switchLeaderboardCategory('wave')">🌊 أعلى الموجات</button>
+                </div>
                 <div class="rank-tiers-legend">
                     <span class="tier-tag t-bronze" data-i18n="tierBronzeTag"> برونزي (0+)</span>
                     <span class="tier-tag t-silver" data-i18n="tierSilverTag"> فضي (500+)</span>
@@ -1709,13 +1745,165 @@
                 كافأت جولة اليوم: <strong style="color: #ffd700;">+25 كأس </strong> • <strong style="color: #00ff88;">+150 كريديت </strong>
             </div>
 
-            <div class="modal-footer-btn-row">
-                <button class="btn-main" onclick="closeMatchPodiumModal()" data-i18n="continueBtn">متابعة</button>
+    <!-- نافذة لوحة تحكم طور الساند بوكس الحقيقي (True Sandbox Control Center) -->
+    <div id="sandbox-control-modal" class="cyber-modal hidden" onclick="if(event.target===this) closeSandboxControlModal()">
+        <div class="cyber-modal-card sandbox-modal-card">
+            <div class="modal-header" style="border-bottom: 1.5px solid #00ff88;">
+                <div class="modal-title-wrap">
+                    <svg class="c-icon c-icon-green"><use href="#icon-orbit"></use></svg>
+                    <h3 style="color:#00ff88;">🛠️ مركز تحكم الساند بوكس الحقيقي (Sandbox Master Panel)</h3>
+                </div>
+                <button class="modal-close-btn" onclick="closeSandboxControlModal()"></button>
+            </div>
+            
+            <div class="modal-body sandbox-modal-body">
+                <!-- 1. Cheats & God Mode Toggles -->
+                <div class="sandbox-section">
+                    <div class="sandbox-sec-title">🛡️ وضع الخلود والقدرات الفائقة (God Mode & Cheats)</div>
+                    <div class="sandbox-btn-grid">
+                        <button class="sandbox-toggle-btn" id="sb-god-mode-btn" onclick="toggleSandboxGodMode()">
+                            <span class="sb-btn-icon">⚡</span>
+                            <span class="sb-btn-txt">وضع الخلود (God Mode)</span>
+                            <span class="sb-status" id="sb-god-status">معطل</span>
+                        </button>
+                        <button class="sandbox-toggle-btn" id="sb-inf-ammo-btn" onclick="toggleSandboxInfAmmo()">
+                            <span class="sb-btn-icon">♾️</span>
+                            <span class="sb-btn-txt">ذخيرة لا نهائية (Infinite Ammo)</span>
+                            <span class="sb-status" id="sb-ammo-status">معطل</span>
+                        </button>
+                        <button class="sandbox-toggle-btn" id="sb-no-cd-btn" onclick="toggleSandboxNoCooldown()">
+                            <span class="sb-btn-icon">⏱️</span>
+                            <span class="sb-btn-txt">بدون مؤقت انتظار (No Cooldown)</span>
+                            <span class="sb-status" id="sb-cd-status">معطل</span>
+                        </button>
+                        <button class="sandbox-action-btn" onclick="sandboxClearEnemies()">
+                            <span class="sb-btn-icon">💥</span>
+                            <span class="sb-btn-txt">مسح جميع الأعداء (Clear All)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Time Control Matrix -->
+                <div class="sandbox-section">
+                    <div class="sandbox-sec-title">⏳ التحكم في سرعة الزمن (Time Dilation Matrix)</div>
+                    <div class="sandbox-time-btn-row">
+                        <button class="sandbox-time-btn" onclick="setSandboxTimeScale(0.0)">⏸️ تجميد (0x)</button>
+                        <button class="sandbox-time-btn" onclick="setSandboxTimeScale(0.2)">🐢 ماتريكس (0.2x)</button>
+                        <button class="sandbox-time-btn" onclick="setSandboxTimeScale(0.5)">⏱️ بطيء (0.5x)</button>
+                        <button class="sandbox-time-btn active" id="sb-time-1x" onclick="setSandboxTimeScale(1.0)">▶️ عادي (1x)</button>
+                        <button class="sandbox-time-btn" onclick="setSandboxTimeScale(2.0)">⚡ سريع (2x)</button>
+                        <button class="sandbox-time-btn" onclick="setSandboxTimeScale(3.0)">🚀 فائق (3x)</button>
+                    </div>
+                </div>
+
+                <!-- 3. Real-time Enemy & Boss Spawner -->
+                <div class="sandbox-section">
+                    <div class="sandbox-sec-title">👾 رسبنة الأعداء والزعماء فوراً (Instant Enemy & Boss Spawner)</div>
+                    <div class="sandbox-spawner-controls">
+                        <select id="sandbox-enemy-select" class="sandbox-select">
+                            <optgroup label="👑 الزعماء الكونيين (Cosmic Bosses)">
+                                <option value="boss_1">المكعب العملاق (Giant Cube - Boss Tier 1)</option>
+                                <option value="boss_2">الكرة المدمرة (Destroyer Sphere - Boss Tier 2)</option>
+                                <option value="boss_3">القلب السيبراني (Cyber Heart - Boss Tier 3)</option>
+                                <option value="boss_4">حاصد الزمن (Time Reaper - Boss Tier 4)</option>
+                                <option value="boss_5">سيد الأبعاد (Apex Overlord - Boss Tier 5)</option>
+                                <option value="boss_6">تنين البلازما الكوني (Cosmic Plasma Drake - Boss Tier 6)</option>
+                                <option value="boss_7">إمبراطور الفراغ (Chronos Void Emperor - Boss Tier 7)</option>
+                                <option value="boss_8">الكيان اللانهائي الفائق (Omega Prime - Boss Tier 8)</option>
+                            </optgroup>
+                            <optgroup label="🛡️ الأعداء الجدد (New 20 Archetypes)">
+                                <option value="cyber_vanguard">فانغارد سيبراني (Cyber Vanguard - Riot Shield)</option>
+                                <option value="plasma_mortar">هاون البلازما (Plasma Mortar)</option>
+                                <option value="tesla_coil">ملف تيسلا الكهربائي (Tesla Coil)</option>
+                                <option value="cryo_drifter">حائم الجليد المبطئ (Cryo Drifter)</option>
+                                <option value="void_stalker">متسلل الفراغ المتخفي (Void Stalker)</option>
+                                <option value="cluster_bomber">قاذف القنابل العنقودية (Cluster Bomber)</option>
+                                <option value="hyper_sniper">قناص الليزر الفائق (Hyper Sniper)</option>
+                                <option value="magneto_drone">درون الجاذبية المغناطيسية (Magneto Drone)</option>
+                                <option value="echo_mimic">المحاكي الصدى (Echo Mimic)</option>
+                                <option value="solar_rammer">الكاسح الشمسي المدرع (Solar Rammer)</option>
+                                <option value="glitch_specter">طيف الخلل البرمجي (Glitch Specter)</option>
+                                <option value="ion_interceptor">معترض الأيونات (Ion Interceptor)</option>
+                                <option value="vortex_carrier">حاملة الدرونات (Vortex Carrier)</option>
+                                <option value="blaze_hound">كلب اللهب المتعرج (Blaze Hound)</option>
+                                <option value="quantum_wraith">شبح الكم (Quantum Wraith)</option>
+                                <option value="apex_dreadnought">مدرعة القمة المصغرة (Apex Dreadnought)</option>
+                                <option value="bio_hazard">الناشر السام (Bio Hazard)</option>
+                                <option value="stasis_weaver">ناسج التجميد الزمني (Stasis Weaver)</option>
+                                <option value="plasma_hydra">هايدرا البلازما المنشطرة (Plasma Hydra)</option>
+                                <option value="orbital_sentinel">الحارس المداري (Orbital Sentinel)</option>
+                            </optgroup>
+                            <optgroup label="⚔️ الأعداء القياسيين (Standard Enemies)">
+                                <option value="neon_shooter">المسدس النيوني (Neon Shooter)</option>
+                                <option value="dasher">المندفع السريع (Dasher)</option>
+                                <option value="sniper">القناص (Sniper)</option>
+                                <option value="splitter">المنشطر المدرع (Splitter)</option>
+                                <option value="phantom">الشبح (Phantom)</option>
+                                <option value="orbiter">المداري (Orbiter)</option>
+                                <option value="juggernaut">العملاق البلازمي (Juggernaut)</option>
+                                <option value="artillery">مدفعية الهاون (Artillery)</option>
+                                <option value="hacker">المخترق (Hacker)</option>
+                                <option value="swarm_queen">حاضنة السرب (Swarm Queen)</option>
+                                <option value="mirror">العاكس (Mirror)</option>
+                            </optgroup>
+                        </select>
+                        <div class="sandbox-spawn-btn-row">
+                            <button class="btn-primary" onclick="sandboxSpawnEnemy(1)">➕ رسبنة عدو واحد (1x)</button>
+                            <button class="btn-primary" onclick="sandboxSpawnEnemy(5)">⚡ رسبنة سرب (5x)</button>
+                            <button class="btn-primary" onclick="sandboxSpawnEnemy(10)">💥 رسبنة جيش (10x)</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Class & Weapon Instant Switcher -->
+                <div class="sandbox-section">
+                    <div class="sandbox-sec-title">🚀 التبديل الفوري للكلاس والسلاح (Instant Class & Weapon Loadout)</div>
+                    <div class="sandbox-class-btn-row">
+                        <button class="sb-class-btn" onclick="sandboxSwitchClass('assault')">⚡ Assault</button>
+                        <button class="sb-class-btn" onclick="sandboxSwitchClass('breacher')">💥 Breacher</button>
+                        <button class="sb-class-btn" onclick="sandboxSwitchClass('sniper')">🎯 Sniper</button>
+                        <button class="sb-class-btn" onclick="sandboxSwitchClass('support')">🛡️ Support</button>
+                        <button class="sb-class-btn" onclick="sandboxSwitchClass('engineer')">⚙️ Engineer</button>
+                    </div>
+                    <div class="sandbox-wep-btn-row">
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('blaster')">Blaster</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('burst_ar')">Burst AR</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('plasma_carbine')">Plasma Carbine</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('shotgun')">Shotgun</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('double_barrel')">Double Barrel</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('flak_cannon')">Flak Cannon</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('railgun')">Railgun</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('anti_mat')">Anti-Materiel</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('thermal_sniper')">Thermal Beam</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('lmg')">LMG</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('minigun')">Minigun</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('cryo_cannon')">Cryo Cannon</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('rapid')">SMG</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('arc_emitter')">Arc Emitter</button>
+                        <button class="sb-wep-btn" onclick="sandboxSwitchWeapon('tesla_smg')">Tesla SMG</button>
+                    </div>
+                </div>
+
+                <!-- 5. Rewards, Cubes & Wave Jumper -->
+                <div class="sandbox-section">
+                    <div class="sandbox-sec-title">💎 الموارد والموجات (Drops & Wave Warp)</div>
+                    <div class="sandbox-drops-btn-row">
+                        <button class="sandbox-drop-btn" onclick="sandboxDropCubes(20)">💎 20 مكعب طاقة</button>
+                        <button class="sandbox-drop-btn" onclick="sandboxDropGoldenCubes(5)">👑 5 مكعبات ذهبية</button>
+                        <button class="sandbox-drop-btn" onclick="sandboxMaxUpgradeMeta()">💰 +10,000 كريديت</button>
+                        <button class="sandbox-drop-btn" onclick="sandboxSpawnOasis()">🌴 توليد واحة إمداد</button>
+                        <button class="sandbox-drop-btn" onclick="sandboxSetWave(10)">🌊 قفز للموجة 10</button>
+                        <button class="sandbox-drop-btn" onclick="sandboxSetWave(25)">🌊 قفز للموجة 25</button>
+                        <button class="sandbox-drop-btn" onclick="sandboxSetWave(50)">🌊 قفز للموجة 50</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 10px 16px; display: flex; justify-content: center;">
+                <button class="btn-primary" onclick="closeSandboxControlModal()" style="padding: 8px 28px;">✔️ متابعة اللعب بالساند بوكس</button>
             </div>
         </div>
     </div>
-
-    <canvas id="gameCanvas"></canvas>
 
     <!-- تضمين مكتبة Socket.IO للعب الجماعي المباشر محلياً وأوفلاين (Tauri/Capacitor App Support) -->
     <script src="socket.io.min.js"></script>

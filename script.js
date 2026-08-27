@@ -86,7 +86,7 @@ const CYBER_SVG_ICONS = {
     'icon-crosshair': '<circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/><line x1="12" y1="2" x2="12" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="2" y1="12" x2="6" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="18" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="2" fill="currentColor"/>'
 };
 
-window.getSvgIcon = function(iconName, extraClass = '', extraAttrs = '') {
+function getSvgIcon(iconName, extraClass = '', extraAttrs = '') {
     const key = iconName.startsWith('icon-') ? iconName : ('icon-' + iconName);
     const content = CYBER_SVG_ICONS[key] || '';
     return `<svg class="c-icon ${extraClass}" viewBox="0 0 24 24" ${extraAttrs}>${content}</svg>`;
@@ -148,24 +148,58 @@ function updateMobileControlsVisibility() {
     const hudCluster = document.getElementById('hud-abilities-cluster');
     const mobilePauseBtn = document.getElementById('mobile-pause-btn-hud');
     const mobileMapBtn = document.getElementById('mobile-map-btn-hud');
+    const sbBtn = document.getElementById('sandbox-btn-hud');
     const isTouch = isMobileTouchActive();
     const isPlaying = !isGameOver && !isGamePaused && (!mainMenu || mainMenu.style.display === 'none');
     
-    if (isTouch && isPlaying) {
-        if (touchContainer) {
-            touchContainer.style.display = 'block';
-            touchContainer.classList.remove('hidden');
+    if (sbBtn) {
+        if (isPlaying && (activeGameMode === 'sandbox' || activeGameMode === 'training')) {
+            sbBtn.style.display = 'flex';
+        } else {
+            sbBtn.style.display = 'none';
         }
-        if (jBase) jBase.style.display = 'flex';
-        if (jAimBase) jAimBase.style.display = 'flex';
+    }
+
+    if (isPlaying) {
         if (hudCluster) {
-            hudCluster.style.display = 'block';
+            hudCluster.style.display = 'flex';
             hudCluster.classList.remove('hidden');
         }
-        if (mobilePauseBtn) mobilePauseBtn.style.display = 'flex';
-        if (mobileMapBtn) mobileMapBtn.style.display = 'flex';
-        if (hudInstructions) hudInstructions.style.display = 'none';
-        updateJoystickCenter();
+        const dashBtn = document.getElementById('dash-btn-hud');
+        const ultBtn = document.getElementById('ult-btn-hud');
+        const superEmp = document.getElementById('super-emp-btn-hud');
+        const reloadBtn = document.getElementById('reload-btn-hud');
+        const swapWepBtn = document.getElementById('swap-weapon-btn-hud');
+        const radialBtn = document.getElementById('radial-trigger-btn-hud');
+        if (dashBtn) dashBtn.style.display = 'flex';
+        if (ultBtn) ultBtn.style.display = 'flex';
+        if (superEmp) superEmp.style.display = 'flex';
+        if (reloadBtn) reloadBtn.style.display = 'flex';
+        if (swapWepBtn) swapWepBtn.style.display = 'flex';
+        if (radialBtn) radialBtn.style.display = 'flex';
+
+        if (isTouch) {
+            if (touchContainer) {
+                touchContainer.style.display = 'block';
+                touchContainer.classList.remove('hidden');
+            }
+            if (jBase) jBase.style.display = 'flex';
+            if (jAimBase) jAimBase.style.display = 'flex';
+            if (mobilePauseBtn) mobilePauseBtn.style.display = 'flex';
+            if (mobileMapBtn) mobileMapBtn.style.display = 'flex';
+            if (hudInstructions) hudInstructions.style.display = 'none';
+            updateJoystickCenter();
+        } else {
+            if (touchContainer) {
+                touchContainer.style.display = 'none';
+                touchContainer.classList.add('hidden');
+            }
+            if (jBase) jBase.style.display = 'none';
+            if (jAimBase) jAimBase.style.display = 'none';
+            if (mobilePauseBtn) mobilePauseBtn.style.display = 'none';
+            if (mobileMapBtn) mobileMapBtn.style.display = 'none';
+            if (hudInstructions) hudInstructions.style.display = 'block';
+        }
     } else {
         if (touchContainer) {
             touchContainer.style.display = 'none';
@@ -173,15 +207,13 @@ function updateMobileControlsVisibility() {
         }
         if (jBase) jBase.style.display = 'none';
         if (jAimBase) jAimBase.style.display = 'none';
-        if (hudCluster && !isPlaying) {
+        if (hudCluster) {
             hudCluster.style.display = 'none';
             hudCluster.classList.add('hidden');
         }
         if (mobilePauseBtn) mobilePauseBtn.style.display = 'none';
         if (mobileMapBtn) mobileMapBtn.style.display = 'none';
-        if (hudInstructions && isPlaying) {
-            hudInstructions.style.display = 'block';
-        }
+        if (sbBtn) sbBtn.style.display = 'none';
     }
 }
 
@@ -233,7 +265,7 @@ function toggleFullScreen() {
 }
 
 // Professional screen rotation and fullscreen engine for mobile
-window.forceRotateAndFullscreen = function() {
+function forceRotateAndFullscreen() {
     try {
         if (typeof playSound === 'function') playSound('tab');
         const doc = window.document;
@@ -341,7 +373,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
     if (installBtn) installBtn.style.display = 'flex';
 });
 
-window.triggerPwaInstall = function() {
+function triggerPwaInstall() {
     if (!deferredPwaPrompt) return;
     deferredPwaPrompt.prompt();
     deferredPwaPrompt.userChoice.then((choiceResult) => {
@@ -590,7 +622,7 @@ function getTodayString() {
     return new Date().toISOString().split('T')[0];
 }
 
-window.openDailyRewardsModal = function() {
+function openDailyRewardsModal() {
     const modal = document.getElementById('daily-rewards-modal');
     const grid = document.getElementById('daily-rewards-grid');
     const streakCountTag = document.getElementById('daily-streak-count');
@@ -634,7 +666,7 @@ window.openDailyRewardsModal = function() {
     modal.style.display = 'flex';
 };
 
-window.closeDailyRewardsModal = function() {
+function closeDailyRewardsModal() {
     const modal = document.getElementById('daily-rewards-modal');
     if (modal) {
         modal.classList.add('hidden');
@@ -642,7 +674,7 @@ window.closeDailyRewardsModal = function() {
     }
 };
 
-window.claimDailyReward = function() {
+function claimDailyReward() {
     const today = getTodayString();
     if (dailyLoginData.lastClaimDate === today) {
         alert('[OK] لقد استلمت مكافأة اليوم بالفعل! عد غداً للمكافأة التالية.');
@@ -1143,7 +1175,7 @@ function setAppLanguage(lang) {
 }
 
 window.setAppLanguage = setAppLanguage;
-window.toggleLanguage = function() {
+function toggleLanguage() {
     setAppLanguage(currentLanguage === 'ar' ? 'en' : 'ar');
 };
 
@@ -1156,7 +1188,7 @@ let isTabScoreboardOpen = false;
 let spectatorTargetIndex = 0;
 let isSpectating = false;
 
-window.openCustomRoomModal = function() {
+function openCustomRoomModal() {
     const modal = document.getElementById('custom-room-modal');
     if (modal) {
         modal.classList.remove('hidden');
@@ -1164,7 +1196,7 @@ window.openCustomRoomModal = function() {
     }
 };
 
-window.closeCustomRoomModal = function() {
+function closeCustomRoomModal() {
     const modal = document.getElementById('custom-room-modal');
     if (modal) {
         modal.classList.add('hidden');
@@ -1172,7 +1204,7 @@ window.closeCustomRoomModal = function() {
     }
 };
 
-window.switchCustomRoomTab = function(tab) {
+function switchCustomRoomTab(tab) {
     const createBtn = document.getElementById('cr-tab-create-btn');
     const joinBtn = document.getElementById('cr-tab-join-btn');
     const createView = document.getElementById('cr-view-create');
@@ -1191,7 +1223,7 @@ window.switchCustomRoomTab = function(tab) {
     }
 };
 
-window.executeCreateCustomRoom = function() {
+function executeCreateCustomRoom() {
     const modeSelect = document.getElementById('cr-mode-select');
     const maxPlayersSelect = document.getElementById('cr-max-players');
     const anomalySelect = document.getElementById('cr-anomaly-density');
@@ -1214,7 +1246,7 @@ window.executeCreateCustomRoom = function() {
     }
 };
 
-window.executeJoinCustomRoomByCode = function() {
+function executeJoinCustomRoomByCode() {
     const codeInput = document.getElementById('cr-join-code-input');
     const pinInput = document.getElementById('cr-join-pin-input');
     const errorTag = document.getElementById('cr-join-error-msg');
@@ -1237,7 +1269,7 @@ window.executeJoinCustomRoomByCode = function() {
     }
 };
 
-window.copyLobbyRoomCode = function() {
+function copyLobbyRoomCode() {
     if (!activeCustomRoom || !activeCustomRoom.roomCode) return;
     navigator.clipboard.writeText(activeCustomRoom.roomCode).then(() => {
         alert(`[OK] تم نسخ كود الغرفة (${activeCustomRoom.roomCode}) بنجاح! شاركه مع أصدقائك.`);
@@ -1246,19 +1278,19 @@ window.copyLobbyRoomCode = function() {
     });
 };
 
-window.toggleLobbyReadyStatus = function() {
+function toggleLobbyReadyStatus() {
     if (socket && isSocketConnected) {
         socket.emit('toggle_lobby_ready');
     }
 };
 
-window.hostLaunchCustomMatch = function() {
+function hostLaunchCustomMatch() {
     if (socket && isSocketConnected && activeCustomRoom && activeCustomRoom.isHost) {
         socket.emit('host_start_custom_match');
     }
 };
 
-window.leaveCustomLobbyRoom = function() {
+function leaveCustomLobbyRoom() {
     const lobbyModal = document.getElementById('custom-lobby-modal');
     if (lobbyModal) {
         lobbyModal.classList.add('hidden');
@@ -1271,7 +1303,7 @@ window.leaveCustomLobbyRoom = function() {
     }
 };
 
-window.sendLobbyChatMessage = function() {
+function sendLobbyChatMessage() {
     const input = document.getElementById('lobby-chat-input');
     if (!input || !input.value.trim()) return;
     const msg = input.value.trim();
@@ -1378,14 +1410,14 @@ setInterval(() => {
 }, 2500);
 
 // Spectator Mode helpers
-window.spectatorCycleNext = function() {
+function spectatorCycleNext() {
     const list = Array.from(remotePlayers.values()).filter(p => (p.hp || 100) > 0);
     if (list.length === 0) return;
     spectatorTargetIndex = (spectatorTargetIndex + 1) % list.length;
     updateSpectatorHUD(list[spectatorTargetIndex]);
 };
 
-window.spectatorCyclePrev = function() {
+function spectatorCyclePrev() {
     const list = Array.from(remotePlayers.values()).filter(p => (p.hp || 100) > 0);
     if (list.length === 0) return;
     spectatorTargetIndex = (spectatorTargetIndex - 1 + list.length) % list.length;
@@ -1465,6 +1497,25 @@ const tacticalMapModal = document.getElementById('tactical-map-modal');
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
+// Polyfill CanvasRenderingContext2D.prototype.roundRect for maximum compatibility
+if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r = 0) {
+        let radius = typeof r === 'number' ? r : (Array.isArray(r) ? r[0] : 0);
+        this.beginPath();
+        this.moveTo(x + radius, y);
+        this.lineTo(x + w - radius, y);
+        this.quadraticCurveTo(x + w, y, x + w, y + radius);
+        this.lineTo(x + w, y + h - radius);
+        this.quadraticCurveTo(x + w, y + h, x + w - radius, y + h);
+        this.lineTo(x + radius, y + h);
+        this.quadraticCurveTo(x, y + h, x, y + h - radius);
+        this.lineTo(x, y + radius);
+        this.quadraticCurveTo(x, y, x + radius, y);
+        this.closePath();
+        return this;
+    };
+}
+
         let player = null;
         let enemies = [], bullets = [], bulletPool = [], playerBullets = [], playerBulletPool = [];
         let enemyTimeBubbles = []; 
@@ -1483,6 +1534,9 @@ const tacticalMapModal = document.getElementById('tactical-map-modal');
         let teslaRenderArcs = [], arenaLaserWalls = [], temporalRifts = [], shockwaves = [], shockwavePool = [];
 
         const SAVE_VERSION = '_v75_overhaul';
+        
+
+
         let metaCurrency = parseInt(safeStorage.getItem('chrono_meta_currency' + SAVE_VERSION)) || 0;
         let playerXP = parseInt(safeStorage.getItem('chrono_player_xp' + SAVE_VERSION)) || 0;
         let playerLevel = parseInt(safeStorage.getItem('chrono_player_level' + SAVE_VERSION)) || 1;
@@ -1499,6 +1553,17 @@ const tacticalMapModal = document.getElementById('tactical-map-modal');
             blaster: 1, shotgun: 1, rapid: 1, railgun: 1
         };
 
+        function sanitizeUserDataIntegrity() {
+            if (!Number.isFinite(metaCurrency) || metaCurrency < 0 || metaCurrency > 99999999) metaCurrency = 0;
+            if (!Number.isFinite(playerXP) || playerXP < 0) playerXP = 0;
+            if (!Number.isFinite(playerLevel) || playerLevel < 1 || playerLevel > 500) playerLevel = 1;
+            if (!Number.isFinite(highestWaveRecord) || highestWaveRecord < 1) highestWaveRecord = 1;
+            for (let k in metaUpgrades) {
+                if (!Number.isFinite(metaUpgrades[k]) || metaUpgrades[k] < 0 || metaUpgrades[k] > 10) metaUpgrades[k] = 0;
+            }
+        }
+        sanitizeUserDataIntegrity();
+
         // مصفوفة البيركات التكتيكية النشطة (3 مجهزة فقط) وتطويراتها الثلاثية
         let equippedPerks = JSON.parse(safeStorage.getItem('chrono_equipped_perks' + SAVE_VERSION)) || ['shield_core', 'hyper_fire', 'chrono_drift'];
         let perkLevels = JSON.parse(safeStorage.getItem('chrono_perk_levels' + SAVE_VERSION)) || {
@@ -1507,24 +1572,26 @@ const tacticalMapModal = document.getElementById('tactical-map-modal');
         };
 
         const CLASS_EXCLUSIVE_WEAPONS = {
-            assault: { id: 'blaster', name: 'البندقية الهجومية (AR)', role: 'بندقية هجومية متوازنة وعالية الدقة' },
-            sniper: { id: 'railgun', name: 'قناصة البلازما (Sniper)', role: 'قناصة طاقة خارقة وثاقبة للمدى البعيد' },
-            support: { id: 'lmg', name: 'الرشاش الثقيل (LMG)', role: 'رشاش ثقيل بسعة مخزن ضخمة وقمع نيراني مستمر' },
-            engineer: { id: 'rapid', name: 'الرشاش الخفيف (SMG)', role: 'رشاش خفيف سريع جداً للمناورات والمدى القريب' }
+            assault: { id: 'blaster', name: 'البندقية النبضية (AR)', weapons: ['blaster', 'burst_ar', 'plasma_carbine'] },
+            breacher: { id: 'shotgun', name: 'شوتجان الاقتحام (Shotgun)', weapons: ['shotgun', 'double_barrel', 'flak_cannon'] },
+            sniper: { id: 'railgun', name: 'قناصة البلازما (Sniper)', weapons: ['railgun', 'anti_mat', 'thermal_sniper'] },
+            support: { id: 'lmg', name: 'الرشاش الثقيل (LMG)', weapons: ['lmg', 'minigun', 'cryo_cannon'] },
+            engineer: { id: 'rapid', name: 'الرشاش الخفيف (SMG)', weapons: ['rapid', 'arc_emitter', 'tesla_smg'] }
         };
 
         let selectedClass = safeStorage.getItem('chrono_selected_class' + SAVE_VERSION) || 'assault';
         let selectedChassis = selectedClass;
         let classWeapons = JSON.parse(safeStorage.getItem('chrono_class_weapons' + SAVE_VERSION)) || {
             assault: 'blaster',
+            breacher: 'shotgun',
             sniper: 'railgun',
             support: 'lmg',
             engineer: 'rapid'
         };
-        let selectedWeapon = classWeapons[selectedClass] || CLASS_EXCLUSIVE_WEAPONS[selectedClass].id;
+        let selectedWeapon = classWeapons[selectedClass] || (CLASS_EXCLUSIVE_WEAPONS[selectedClass] ? CLASS_EXCLUSIVE_WEAPONS[selectedClass].id : 'blaster');
         let selectedAttachment = 'none';
         let selectedLoadout = 'shield';
-        let activeGameMode = 'offline'; // 'offline' | 'boss_rush' | 'online_pve' | 'online_pvp'
+        let activeGameMode = 'offline'; // 'offline' | 'boss_rush' | 'online_pve' | 'online_pvp' | 'online_free_roam'
 
 function isMultiplayerMode() {
     return activeGameMode && (activeGameMode.startsWith('online_') || activeGameMode.startsWith('custom_'));
@@ -1534,6 +1601,9 @@ function isPvPMode() {
     return activeGameMode === 'online_pvp';
 }
 
+function isSandboxMode() {
+    return activeGameMode === 'sandbox' || activeGameMode === 'online_free_roam';
+}
 
         // متغيرات وحالة اللعب الجماعي وشبكة Socket.IO
         let socket = null;
@@ -1557,12 +1627,21 @@ function isPvPMode() {
             floatingJoystick: rawSettings.floatingJoystick !== undefined ? rawSettings.floatingJoystick : true
         };
 
+        // متغيرات طور الساند بوكس الحقيقي (Sandbox Master State)
+        let sandboxGodMode = false;
+        let sandboxInfAmmo = false;
+        let sandboxNoCooldown = false;
+        let sandboxCustomTimeScale = null;
+
         let achievements = JSON.parse(safeStorage.getItem('chrono_achievements' + SAVE_VERSION)) || {
             survivor: { title: "ناجي الزمن", desc: "اصمد لمدة 60 ثانية في جولة واحدة", unlocked: false, reward: 20 },
-            brawler: { title: "صائد الأعداء", desc: "دمر 15 عدواً في جولة واحدة", unlocked: false, reward: 15 },
-            collector: { title: "جامع الكريستال", desc: "اجمع 50 مكعب كريستال إجمالاً", unlocked: false, reward: 25 },
-            waveMaster: { title: "قاهر الموجات", desc: "تغلب على الزعيم واصل للموجة 6", unlocked: false, reward: 30 },
-            apexOverlord: { title: "سيد الأبعاد المطلق", desc: "تغلب على زعيم الموجة 20 بنجاح", unlocked: false, reward: 50 }
+            apex_predator: { title: "المفترس الأكبر", desc: "اقضِ على 50 عدواً في جولة واحدة", unlocked: false, reward: 25 },
+            boss_slayer: { title: "قاهر العمالقة", desc: "اهزم زعيماً كونياً واحداً على الأقل", unlocked: false, reward: 40 },
+            millionaire: { title: "خازن الكريستال", desc: "اجمع 100 مكعب طاقة", unlocked: false, reward: 30 },
+            warlord: { title: "سيد النزاع", desc: "حقق 10 قتلات في ساحة الـ PVP", unlocked: false, reward: 50 },
+            c_survival: { title: "عقد البقاء", desc: "اصمد 120 ثانية دون أن ينهار درعك", unlocked: false, reward: 15 },
+            c_parry: { title: "عقد الصد المثالي", desc: "قم بـ 8 صدود مثالية في جولة واحدة", unlocked: false, reward: 20 },
+            c_energy: { title: "عقد طاقة النبض", desc: "اجمع 5 مكعبات طاقة في جولة واحدة", unlocked: false, reward: 10 }
         };
 
         let contracts = JSON.parse(safeStorage.getItem('chrono_contracts' + SAVE_VERSION)) || {
@@ -1572,7 +1651,7 @@ function isPvPMode() {
         };
 
         // ====================================================================
-        // مصفوفة الكلاسات الأربعة الموزونة بدقة (The 4 Balanced Classes)
+        // مصفوفة الكلاسات الخمسة الموزونة بدقة (The 5 Balanced Classes)
         // ====================================================================
         const CLASSES_CONFIG = {
             assault: {
@@ -1581,8 +1660,8 @@ function isPvPMode() {
                 title: 'المهاجم الخفيف والسريع',
                 desc: 'خفيف وسريع، صحة/درع أقل، +10% ضرر. زر مهارة: ركض بسرعة مضاعفة (Adrenaline Sprint).',
                 baseSpeed: 7.6,
-                hp: 85,
-                shieldCharges: 1,
+                hp: 90,
+                shieldCharges: 2,
                 dmgMultiplier: 1.10,
                 magMultiplier: 1.0,
                 cooldownMultiplier: 1.0,
@@ -1592,6 +1671,25 @@ function isPvPMode() {
                 skillName: 'SPRINT',
                 skillKey: 'E',
                 skillDesc: 'ركض بسرعة مضاعفة 2x',
+                skillCooldown: 9000
+            },
+            breacher: {
+                id: 'breacher',
+                name: 'الكاسر (Breacher)',
+                title: 'مقاتل الشوتكن والاقتحام القريب',
+                desc: 'مصفح بشدة، +25% صحة، تدمير ساحق في المدى القريب. زر مهارة: صدمة حركية كاسحة (Kinetic Shockwave Ram) تدفع الأعداء وتدمر الرصاص.',
+                baseSpeed: 6.2,
+                hp: 140,
+                shieldCharges: 3,
+                dmgMultiplier: 1.15,
+                magMultiplier: 1.0,
+                cooldownMultiplier: 1.0,
+                visionMultiplier: 1.0,
+                icon: '',
+                color: '#ff5500',
+                skillName: 'RAM',
+                skillKey: 'E',
+                skillDesc: 'اندفاع صدمي كاسح يمزق الأعداء ويصد المقذوفات',
                 skillCooldown: 10000
             },
             support: {
@@ -1599,11 +1697,11 @@ function isPvPMode() {
                 name: 'الدعم (Support)',
                 title: 'الحصن الثقيل والممدد',
                 desc: 'ثقيل وبطيء، صحة/درع أعلى، +10% سعة رصاص. زر مهارة: رمي سموك 5ث يخفي ويعالج، وزر إمداد ذخيرة.',
-                baseSpeed: 5.2,
-                hp: 130,
+                baseSpeed: 5.4,
+                hp: 135,
                 shieldCharges: 3,
                 dmgMultiplier: 1.0,
-                magMultiplier: 1.10,
+                magMultiplier: 1.15,
                 cooldownMultiplier: 1.0,
                 visionMultiplier: 1.0,
                 icon: '',
@@ -1611,23 +1709,23 @@ function isPvPMode() {
                 skillName: 'SMOKE',
                 skillKey: 'E',
                 skillDesc: 'رمي سموك 5ث (تخفي وعلاج)',
-                skillCooldown: 14000,
+                skillCooldown: 13000,
                 skill2Name: 'AMMO+',
                 skill2Key: 'C',
                 skill2Desc: 'إمداد فوري للذخيرة والدرع',
-                skill2Cooldown: 12000
+                skill2Cooldown: 11000
             },
             engineer: {
                 id: 'engineer',
                 name: 'المهندس (Engineer)',
                 title: 'المهندس التكتيكي المتوازن',
                 desc: 'متوازن، +10% سرعة شحن معدات وقدرات. زر مهارة: نشر مدفع آلي (Turret) يطلق النار تلقائياً.',
-                baseSpeed: 6.2,
-                hp: 100,
+                baseSpeed: 6.4,
+                hp: 105,
                 shieldCharges: 2,
                 dmgMultiplier: 1.0,
                 magMultiplier: 1.0,
-                cooldownMultiplier: 0.90, // +10% faster cooldowns
+                cooldownMultiplier: 0.88,
                 visionMultiplier: 1.0,
                 icon: '',
                 color: '#ffd700',
@@ -1659,13 +1757,15 @@ function isPvPMode() {
             }
         };
 
-        // مصفوفة الأسلحة المعتمدة الأساسية والمسدس الثانوي (Weapons Overhaul)
+        // مصفوفة الأسلحة الموسعة المعتمدة لكل الكلاسات الـ 5 (Weapons Overhaul)
         const WEAPON_CONFIGS = {
+            // Assault Weapons
             blaster: {
                 id: 'blaster',
-                name: 'البندقية النبضية (Blaster)',
+                name: 'البندقية النبضية (Pulse AR)',
                 category: 'بندقية هجومية (Rifle)',
                 type: 'balanced',
+                classExclusive: 'assault',
                 baseDmg: 24,
                 speed: 25,
                 interval: 130,
@@ -1674,73 +1774,241 @@ function isPvPMode() {
                 piercing: false,
                 recoil: 1.2,
                 pellets: 1,
-                icon: '',
                 color: '#00f3ff'
             },
-            rapid: {
-                id: 'rapid',
-                name: 'الرشاش الخفيف (SMG)',
-                category: 'رشاش خفيف (SMG)',
-                type: 'rapid',
-                baseDmg: 11,
-                speed: 23,
-                interval: 75,
-                baseMag: 45,
-                reloadTime: 1000,
+            burst_ar: {
+                id: 'burst_ar',
+                name: 'البندقية المتتابعة (Heavy Burst AR)',
+                category: 'بندقية هجومية (Rifle)',
+                type: 'burst',
+                classExclusive: 'assault',
+                baseDmg: 28,
+                speed: 27,
+                interval: 240,
+                baseMag: 36,
+                reloadTime: 1300,
                 piercing: false,
-                recoil: 0.7,
-                pellets: 1,
-                icon: '',
-                color: '#00ff88'
+                recoil: 1.5,
+                pellets: 3,
+                color: '#00e5ff'
             },
-            lmg: {
-                id: 'lmg',
-                name: 'الرشاش الثقيل (LMG)',
-                category: 'رشاش ثقيل (LMG)',
-                type: 'heavy',
-                baseDmg: 18,
-                speed: 22,
-                interval: 110,
-                baseMag: 80,
-                reloadTime: 2200,
+            plasma_carbine: {
+                id: 'plasma_carbine',
+                name: 'كاربين البلازما (Plasma Carbine)',
+                category: 'بندقية هجومية (Rifle)',
+                type: 'balanced',
+                classExclusive: 'assault',
+                baseDmg: 20,
+                speed: 28,
+                interval: 100,
+                baseMag: 40,
+                reloadTime: 1100,
                 piercing: false,
-                recoil: 1.8,
+                recoil: 0.9,
                 pellets: 1,
-                icon: '',
-                color: '#ffaa00'
+                color: '#38bdf8'
             },
+
+            // Breacher Shotguns
             shotgun: {
                 id: 'shotgun',
-                name: 'شوتجان البلازما (Shotgun)',
+                name: 'شوتجان الاقتحام (Combat Shotgun)',
                 category: 'شوتجان (Shotgun)',
                 type: 'heavy',
-                baseDmg: 16,
-                pellets: 6,
-                speed: 19,
-                interval: 480,
+                classExclusive: 'breacher',
+                baseDmg: 18,
+                pellets: 7,
+                speed: 20,
+                interval: 440,
                 baseMag: 8,
-                reloadTime: 1600,
+                reloadTime: 1500,
                 piercing: false,
                 recoil: 3.2,
-                icon: '',
                 color: '#ff5500'
             },
+            double_barrel: {
+                id: 'double_barrel',
+                name: 'المدمر المزدوج (Double-Barrel)',
+                category: 'شوتجان (Shotgun)',
+                type: 'heavy',
+                classExclusive: 'breacher',
+                baseDmg: 24,
+                pellets: 14,
+                speed: 22,
+                interval: 650,
+                baseMag: 4,
+                reloadTime: 1700,
+                piercing: false,
+                recoil: 5.5,
+                color: '#ff3300'
+            },
+            flak_cannon: {
+                id: 'flak_cannon',
+                name: 'مدفع الشظايا (Flak Cannon)',
+                category: 'شوتجان (Shotgun)',
+                type: 'heavy',
+                classExclusive: 'breacher',
+                baseDmg: 32,
+                pellets: 5,
+                speed: 18,
+                interval: 520,
+                baseMag: 6,
+                reloadTime: 1600,
+                piercing: true,
+                recoil: 4.0,
+                color: '#ffaa00'
+            },
+
+            // Sniper Weapons
             railgun: {
                 id: 'railgun',
-                name: 'قناصة البلازما (Railgun)',
+                name: 'قناصة البلازما (Quantum Railgun)',
                 category: 'قناصة (Sniper Rifle)',
                 type: 'heavy',
-                baseDmg: 120,
+                classExclusive: 'sniper',
+                baseDmg: 130,
                 speed: 38,
-                interval: 700,
+                interval: 680,
                 baseMag: 5,
                 reloadTime: 1800,
                 piercing: true,
                 recoil: 4.2,
                 pellets: 1,
-                icon: '',
                 color: '#bd00ff'
             },
+            anti_mat: {
+                id: 'anti_mat',
+                name: 'مدفع مضاد المادة (Anti-Materiel)',
+                category: 'قناصة (Sniper Rifle)',
+                type: 'heavy',
+                classExclusive: 'sniper',
+                baseDmg: 220,
+                speed: 42,
+                interval: 950,
+                baseMag: 3,
+                reloadTime: 2200,
+                piercing: true,
+                recoil: 6.0,
+                pellets: 1,
+                color: '#e879f9'
+            },
+            thermal_sniper: {
+                id: 'thermal_sniper',
+                name: 'قناصة الشعاع الحراري (Thermal Beam)',
+                category: 'قناصة (Sniper Rifle)',
+                type: 'heavy',
+                classExclusive: 'sniper',
+                baseDmg: 95,
+                speed: 35,
+                interval: 500,
+                baseMag: 8,
+                reloadTime: 1600,
+                piercing: true,
+                recoil: 3.0,
+                pellets: 1,
+                color: '#c084fc'
+            },
+
+            // Support Heavy Weapons
+            lmg: {
+                id: 'lmg',
+                name: 'الرشاش الثقيل (Titan LMG)',
+                category: 'رشاش ثقيل (LMG)',
+                type: 'heavy',
+                classExclusive: 'support',
+                baseDmg: 19,
+                speed: 23,
+                interval: 105,
+                baseMag: 90,
+                reloadTime: 2200,
+                piercing: false,
+                recoil: 1.7,
+                pellets: 1,
+                color: '#ffaa00'
+            },
+            minigun: {
+                id: 'minigun',
+                name: 'المدفع الدوار (Vulcan Minigun)',
+                category: 'رشاش ثقيل (LMG)',
+                type: 'heavy',
+                classExclusive: 'support',
+                baseDmg: 14,
+                speed: 25,
+                interval: 65,
+                baseMag: 150,
+                reloadTime: 2600,
+                piercing: false,
+                recoil: 2.2,
+                pellets: 1,
+                color: '#f59e0b'
+            },
+            cryo_cannon: {
+                id: 'cryo_cannon',
+                name: 'قاذف الجليد التجميدي (Cryo Cannon)',
+                category: 'رشاش ثقيل (LMG)',
+                type: 'heavy',
+                classExclusive: 'support',
+                baseDmg: 16,
+                speed: 21,
+                interval: 90,
+                baseMag: 80,
+                reloadTime: 2000,
+                piercing: false,
+                recoil: 1.2,
+                pellets: 1,
+                color: '#06b6d4'
+            },
+
+            // Engineer Rapid & Arc Weapons
+            rapid: {
+                id: 'rapid',
+                name: 'الرشاش الخفيف (Rapid SMG)',
+                category: 'رشاش خفيف (SMG)',
+                type: 'rapid',
+                classExclusive: 'engineer',
+                baseDmg: 12,
+                speed: 24,
+                interval: 70,
+                baseMag: 50,
+                reloadTime: 950,
+                piercing: false,
+                recoil: 0.7,
+                pellets: 1,
+                color: '#00ff88'
+            },
+            arc_emitter: {
+                id: 'arc_emitter',
+                name: 'باعث القوس الكهربائي (Arc Emitter)',
+                category: 'رشاش خفيف (SMG)',
+                type: 'rapid',
+                classExclusive: 'engineer',
+                baseDmg: 16,
+                speed: 26,
+                interval: 95,
+                baseMag: 40,
+                reloadTime: 1000,
+                piercing: true,
+                recoil: 0.8,
+                pellets: 1,
+                color: '#10b981'
+            },
+            tesla_smg: {
+                id: 'tesla_smg',
+                name: 'رشاش تيسلا الخارق (Tesla SMG)',
+                category: 'رشاش خفيف (SMG)',
+                type: 'rapid',
+                classExclusive: 'engineer',
+                baseDmg: 14,
+                speed: 25,
+                interval: 80,
+                baseMag: 45,
+                reloadTime: 900,
+                piercing: true,
+                recoil: 0.7,
+                pellets: 1,
+                color: '#34d399'
+            },
+
             secondary_pistol: {
                 id: 'secondary_pistol',
                 name: 'المسدس التكتيكي (Sidearm)',
@@ -1754,7 +2022,6 @@ function isPvPMode() {
                 piercing: false,
                 recoil: 1.0,
                 pellets: 1,
-                icon: '',
                 color: '#00f3ff'
             }
         };
@@ -2173,7 +2440,7 @@ function isPvPMode() {
                 ctx.save();
                 ctx.rotate(t * 1.5);
                 ctx.beginPath();
-                ctx.ellipse(0, 0, radius * 1.65, radius * 0.65, t * 0.8, 0, Math.PI * 2);
+                if (typeof ctx.ellipse === 'function') { ctx.ellipse(0, 0, radius * 1.65, radius * 0.65, t * 0.8, 0, Math.PI * 2); } else { ctx.save(); ctx.translate(0, 0); ctx.rotate(t * 0.8); ctx.scale(radius * 1.65, radius * 0.65); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.restore(); }
                 ctx.strokeStyle = 'rgba(189, 0, 255, 0.75)'; ctx.lineWidth = 2.0; ctx.stroke();
                 
                 // عقدة جاذبية على مدار الحلقة
@@ -2282,7 +2549,7 @@ function isPvPMode() {
 
             // قمرة القيادة الخاصة بالكلاس
             ctx.beginPath();
-            ctx.ellipse(0, -radius * 0.2, 3.5, 7, 0, 0, Math.PI * 2);
+            if (typeof ctx.ellipse === 'function') { ctx.ellipse(0, -radius * 0.2, 3.5, 7, 0, 0, Math.PI * 2); } else { ctx.save(); ctx.translate(0, -radius * 0.2); ctx.rotate(0); ctx.scale(3.5, 7); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.restore(); }
             ctx.fillStyle = isFiringUlt ? '#ff0055' : (overchargeActive ? '#ffd700' : '#ffffff');
             ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 6;
             ctx.fill();
@@ -2311,7 +2578,7 @@ function isPvPMode() {
 
         let width = window.innerWidth, height = window.innerHeight;
         let screenShakeTime = 0, hitStopDuration = 0;
-        let camX = 0, camY = 0;
+        let camX = 0, camY = 0, cameraZoom = 1.0;
         let currentWave = 1, enemiesInWaveTotal = 0, enemiesLeftToSpawn = 0;
         let isWaveIntermission = false, isBossWave = false;
         let acquiredPerks = {}, acquiredRelics = [], activeSynergies = new Set();
@@ -2409,504 +2676,355 @@ function isPvPMode() {
             document.getElementById('pause-main-actions').style.display = 'flex';
         }
 
-        // ==================== محرك التوليف الصوتي المحسن (Audio Synthesizer Engine) ====================
-        let audioCtx = null, masterLimiter = null, noiseBuffer = null, masterGainNode = null;
+        // ==================== محرك التوليف الصوتي السينمائي الواقعي (Realistic Procedural Audio Engine) ====================
+        let audioCtx = null;
+        let masterLimiter = null;
+        let masterGainNode = null;
+        let whiteNoiseBuffer = null;
+        let pinkNoiseBuffer = null;
+        let subRumbleBuffer = null;
+        let audioInitialized = false;
 
         function initAudio() {
+            if (audioInitialized && audioCtx && audioCtx.state === 'running') return;
             try {
                 if (!audioCtx) {
                     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
                     audioCtx = new AudioContextClass();
                     
                     masterGainNode = audioCtx.createGain();
-                    masterGainNode.gain.value = masterVolume;
+                    masterGainNode.gain.value = (typeof masterVolume !== 'undefined') ? masterVolume : 0.8;
                     masterGainNode.connect(audioCtx.destination);
 
+                    // Master Dynamics Compressor / Limiter (Anti-Clipping & Anti-Distortion)
                     masterLimiter = audioCtx.createDynamicsCompressor();
-                    masterLimiter.threshold.setValueAtTime(-4, audioCtx.currentTime);
-                    masterLimiter.knee.setValueAtTime(8, audioCtx.currentTime);
-                    masterLimiter.ratio.setValueAtTime(12, audioCtx.currentTime);
-                    masterLimiter.attack.setValueAtTime(0.002, audioCtx.currentTime);
-                    masterLimiter.release.setValueAtTime(0.1, audioCtx.currentTime);
+                    masterLimiter.threshold.setValueAtTime(-2.5, audioCtx.currentTime);
+                    masterLimiter.knee.setValueAtTime(6.0, audioCtx.currentTime);
+                    masterLimiter.ratio.setValueAtTime(16.0, audioCtx.currentTime);
+                    masterLimiter.attack.setValueAtTime(0.001, audioCtx.currentTime);
+                    masterLimiter.release.setValueAtTime(0.08, audioCtx.currentTime);
                     masterLimiter.connect(masterGainNode);
 
-                    const bufferSize = audioCtx.sampleRate * 1.5;
-                    noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-                    const output = noiseBuffer.getChannelData(0);
-                    for (let i = 0; i < bufferSize; i++) {
-                        output[i] = Math.random() * 2 - 1;
+                    // Pre-generate static noise buffers for zero-allocation performance during combat
+                    const sRate = audioCtx.sampleRate || 44100;
+                    const bSize = Math.floor(sRate * 1.5);
+                    
+                    // 1. White Noise (Crisp transient cracks and mechanical sparks)
+                    whiteNoiseBuffer = audioCtx.createBuffer(1, bSize, sRate);
+                    const wOut = whiteNoiseBuffer.getChannelData(0);
+                    for (let i = 0; i < bSize; i++) wOut[i] = Math.random() * 2 - 1;
+
+                    // 2. Pink Noise (Natural body acoustic turbulence & plasma roars)
+                    pinkNoiseBuffer = audioCtx.createBuffer(1, bSize, sRate);
+                    const pOut = pinkNoiseBuffer.getChannelData(0);
+                    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+                    for (let i = 0; i < bSize; i++) {
+                        let white = Math.random() * 2 - 1;
+                        b0 = 0.99886 * b0 + white * 0.0555179;
+                        b1 = 0.99332 * b1 + white * 0.0750759;
+                        b2 = 0.96900 * b2 + white * 0.1538520;
+                        b3 = 0.86650 * b3 + white * 0.3104856;
+                        b4 = 0.55000 * b4 + white * 0.5329522;
+                        b5 = -0.7616 * b5 - white * 0.0168980;
+                        pOut[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
+                        b6 = white * 0.115926;
+                    }
+
+                    // 3. Sub-Rumble Noise (Deep seismic blast weight)
+                    subRumbleBuffer = audioCtx.createBuffer(1, bSize, sRate);
+                    const rOut = subRumbleBuffer.getChannelData(0);
+                    let lastR = 0;
+                    for (let i = 0; i < bSize; i++) {
+                        let white = Math.random() * 2 - 1;
+                        lastR = (lastR + (0.02 * white)) / 1.02;
+                        rOut[i] = lastR * 3.5;
                     }
                 }
                 if (audioCtx.state === 'suspended') {
                     audioCtx.resume().catch(() => {});
                 }
-            } catch(e) {}
+                audioInitialized = true;
+            } catch(e) {
+                console.warn('Web Audio initialization bypassed:', e);
+            }
         }
         window.addEventListener('pointerdown', initAudio, { once: true });
         window.addEventListener('touchstart', initAudio, { once: true });
         window.addEventListener('keydown', initAudio, { once: true });
+        window.addEventListener('click', initAudio, { once: true });
 
+        // Realistic Multi-Layer Procedural SFX Player
         
-// ===================================================================
-// AAA AUDIO SYNTHESIZER 2.0 & CINEMATIC VFX SYSTEM
-// ===================================================================
-
-// 1. Shockwaves & Distortion Rings Manager
-let cinematicShockwaves = [];
-
-function spawnShockwave(x, y, maxRadius = 180, color = '#00f3ff', duration = 0.45) {
-    if (cinematicShockwaves.length > 20) cinematicShockwaves.shift();
-    cinematicShockwaves.push({
-        x: x,
-        y: y,
-        currentRadius: 10,
-        maxRadius: maxRadius,
-        color: color,
-        duration: duration,
-        elapsed: 0,
-        lineWidth: 6
-    });
-}
-
-function updateAndDrawShockwaves(effectiveDelta, frameFactor) {
-    if (cinematicShockwaves.length === 0) return;
-
-    for (let i = cinematicShockwaves.length - 1; i >= 0; i--) {
-        let sw = cinematicShockwaves[i];
-        sw.elapsed += effectiveDelta / 1000;
-        let progress = sw.elapsed / sw.duration;
-
-        if (progress >= 1) {
-            cinematicShockwaves.splice(i, 1);
-            continue;
+        // Audio Concurrency Control & Sliding-Window Rate Limiter
+        const _recentSoundTimes = new Map();
+        function canPlaySound(type, limitMs = 35) {
+            const now = performance.now();
+            const lastTime = _recentSoundTimes.get(type) || 0;
+            if (now - lastTime < limitMs) return false;
+            _recentSoundTimes.set(type, now);
+            return true;
         }
 
-        // Ease out quad
-        sw.currentRadius = 10 + (sw.maxRadius - 10) * Math.sin(progress * Math.PI / 2);
-        let alpha = 1 - progress;
-
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(sw.x, sw.y, sw.currentRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = sw.color;
-        ctx.globalAlpha = alpha * 0.85;
-        ctx.lineWidth = Math.max(1, sw.lineWidth * (1 - progress * 0.7));
-        ctx.stroke();
-        ctx.restore();
-    }
-}
-
-// 2. Muzzle Flash Starbursts
-let muzzleFlashes = [];
-
-function spawnMuzzleFlash(x, y, angle, color = '#00f3ff', size = 18) {
-    if (muzzleFlashes.length > 30) muzzleFlashes.shift();
-    muzzleFlashes.push({
-        x: x,
-        y: y,
-        angle: angle,
-        color: color,
-        size: size,
-        life: 0.06,
-        maxLife: 0.06
-    });
-}
-
-function updateAndDrawMuzzleFlashes(effectiveDelta) {
-    if (muzzleFlashes.length === 0) return;
-
-    for (let i = muzzleFlashes.length - 1; i >= 0; i--) {
-        let mf = muzzleFlashes[i];
-        mf.life -= effectiveDelta / 1000;
-
-        if (mf.life <= 0) {
-            muzzleFlashes.splice(i, 1);
-            continue;
+        // Web Audio Tab Visibility Lifecycle Management (Auto-Pause / Auto-Resume)
+        if (typeof document !== 'undefined') {
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    if (audioCtx && audioCtx.state === 'running') {
+                        audioCtx.suspend().catch(() => {});
+                    }
+                } else {
+                    if (audioCtx && audioCtx.state === 'suspended') {
+                        audioCtx.resume().catch(() => {});
+                    }
+                }
+            });
         }
 
-        ctx.save();
-        ctx.translate(mf.x, mf.y);
-        ctx.rotate(mf.angle);
+        function playSoundV2(type, param) {
+            if (!canPlaySound(type, (type === "hit" || type === "shoot") ? 30 : 50)) return;
+            if (!gameSettings || !gameSettings.sound || !audioCtx || audioCtx.state !== 'running') return;
 
-        let alpha = mf.life / mf.maxLife;
-        ctx.globalAlpha = alpha;
-
-        // Radiant starburst cone
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(mf.size, -mf.size * 0.35);
-        ctx.lineTo(mf.size * 1.4, 0);
-        ctx.lineTo(mf.size, mf.size * 0.35);
-        ctx.closePath();
-        ctx.fillStyle = mf.color;
-        ctx.fill();
-
-        ctx.restore();
-    }
-}
-
-// 3. Audio Synthesizer 3.0 (Cinematic Procedural Multi-Layered Web Audio Engine)
-function playSoundV2(type, param) {
-    if (!gameSettings || !gameSettings.sound || !audioCtx || audioCtx.state !== 'running') return;
-
-    try {
-        const now = audioCtx.currentTime;
-        const masterOut = masterLimiter || audioCtx.destination;
-
-        if (type === 'ui_hover') {
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1400, now + 0.03);
-            gain.gain.setValueAtTime(0.04, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
-            osc.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.035);
-        } else if (type === 'ui_click' || type === 'tab') {
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(450, now); osc.frequency.exponentialRampToValueAtTime(950, now + 0.06);
-            gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-            osc.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.065);
-        } else if (type === 'graze') {
-            // High crystal adrenaline shimmer ping
-            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc1.type = 'sine'; osc1.frequency.setValueAtTime(2400, now); osc1.frequency.exponentialRampToValueAtTime(3600, now + 0.08);
-            osc2.type = 'triangle'; osc2.frequency.setValueAtTime(4800, now); osc2.frequency.exponentialRampToValueAtTime(6000, now + 0.08);
-            gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-            osc1.connect(gain); osc2.connect(gain); gain.connect(masterOut);
-            osc1.start(now); osc2.start(now); osc1.stop(now + 0.09); osc2.stop(now + 0.09);
-        } else if (type === 'boss_roar') {
-            // Seismic sub-bass rumble + distorted low-end sweep
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            let filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.setValueAtTime(350, now); filter.frequency.exponentialRampToValueAtTime(60, now + 0.9);
-            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(90, now); osc.frequency.exponentialRampToValueAtTime(25, now + 0.9);
-            gain.gain.setValueAtTime(0.55, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-            osc.connect(filter); filter.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.9);
-        } else if (type === 'combo_kill') {
-            // Dynamic pitch-scaling kill sound based on combo streak
-            let cCount = (typeof combo !== 'undefined' && combo) ? combo : 1;
-            let basePitch = Math.min(1800, 520 * Math.pow(1.05, Math.min(25, cCount)));
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'sine'; osc.frequency.setValueAtTime(basePitch, now); osc.frequency.exponentialRampToValueAtTime(basePitch * 1.5, now + 0.12);
-            gain.gain.setValueAtTime(0.20, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-            osc.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.13);
-        } else if (type === 'shield_break') {
-            // Urgent fractured shield alarm
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(980, now); osc.frequency.exponentialRampToValueAtTime(220, now + 0.28);
-            gain.gain.setValueAtTime(0.35, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-            osc.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.29);
-        } else if (type === 'shield_recharge') {
-            // Harmonic crystal swell
-            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc1.type = 'sine'; osc1.frequency.setValueAtTime(329.63, now); osc1.frequency.exponentialRampToValueAtTime(659.25, now + 0.35);
-            osc2.type = 'triangle'; osc2.frequency.setValueAtTime(440.00, now); osc2.frequency.exponentialRampToValueAtTime(880.00, now + 0.35);
-            gain.gain.setValueAtTime(0.22, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-            osc1.connect(gain); osc2.connect(gain); gain.connect(masterOut);
-            osc1.start(now); osc2.start(now); osc1.stop(now + 0.36); osc2.stop(now + 0.36);
-        } else if (type === 'shoot_blaster' || type === 'shoot') {
-            // Punchy dual-layer plasma blaster: mid snap + bass thump
-            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator();
-            let gain = audioCtx.createGain(), filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass'; filter.frequency.setValueAtTime(4000, now); filter.frequency.exponentialRampToValueAtTime(400, now + 0.1);
-            osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(900, now); osc1.frequency.exponentialRampToValueAtTime(120, now + 0.1);
-            osc2.type = 'square'; osc2.frequency.setValueAtTime(180, now); osc2.frequency.exponentialRampToValueAtTime(50, now + 0.12);
-            gain.gain.setValueAtTime(0.28, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.13);
-            osc1.connect(filter); osc2.connect(filter); filter.connect(gain); gain.connect(masterOut);
-            osc1.start(now); osc2.start(now); osc1.stop(now + 0.13); osc2.stop(now + 0.14);
-            // Noise crack layer
-            let nBuf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate * 0.06), audioCtx.sampleRate);
-            let nData = nBuf.getChannelData(0); for (let i = 0; i < nData.length; i++) nData[i] = (Math.random() * 2 - 1) * (1 - i / nData.length);
-            let nSrc = audioCtx.createBufferSource(); nSrc.buffer = nBuf;
-            let nGain = audioCtx.createGain(); nGain.gain.setValueAtTime(0.12, now); nGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-            let nFilter = audioCtx.createBiquadFilter(); nFilter.type = 'bandpass'; nFilter.frequency.setValueAtTime(3000, now); nFilter.Q.setValueAtTime(1.5, now);
-            nSrc.connect(nFilter); nFilter.connect(nGain); nGain.connect(masterOut);
-            nSrc.start(now); nSrc.stop(now + 0.06);
-        } else if (type === 'shoot_rapid') {
-            // Fast rattling burst: high snap + metallic click
-            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc1.type = 'triangle'; osc1.frequency.setValueAtTime(1400, now); osc1.frequency.exponentialRampToValueAtTime(300, now + 0.05);
-            osc2.type = 'square'; osc2.frequency.setValueAtTime(220, now); osc2.frequency.exponentialRampToValueAtTime(80, now + 0.06);
-            gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
-            osc1.connect(gain); osc2.connect(gain); gain.connect(masterOut);
-            osc1.start(now); osc2.start(now); osc1.stop(now + 0.06); osc2.stop(now + 0.065);
-        } else if (type === 'shoot_lmg') {
-            // Heavy machine gun: deep bass thud + rattling overtone
-            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator();
-            let gain = audioCtx.createGain(), filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass'; filter.frequency.setValueAtTime(2000, now); filter.frequency.exponentialRampToValueAtTime(200, now + 0.14);
-            osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(520, now); osc1.frequency.exponentialRampToValueAtTime(55, now + 0.14);
-            osc2.type = 'square'; osc2.frequency.setValueAtTime(140, now); osc2.frequency.exponentialRampToValueAtTime(35, now + 0.15);
-            gain.gain.setValueAtTime(0.32, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-            osc1.connect(filter); osc2.connect(filter); filter.connect(gain); gain.connect(masterOut);
-            osc1.start(now); osc2.start(now); osc1.stop(now + 0.15); osc2.stop(now + 0.16);
-        } else if (type === 'shoot_pistol') {
-            // Quick sharp pistol snap: bright pop + dry snap
-            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator();
-            let gain = audioCtx.createGain();
-            osc1.type = 'triangle'; osc1.frequency.setValueAtTime(1100, now); osc1.frequency.exponentialRampToValueAtTime(200, now + 0.07);
-            osc2.type = 'sine'; osc2.frequency.setValueAtTime(280, now); osc2.frequency.exponentialRampToValueAtTime(80, now + 0.08);
-            gain.gain.setValueAtTime(0.22, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-            osc1.connect(gain); osc2.connect(gain); gain.connect(masterOut);
-            osc1.start(now); osc2.start(now); osc1.stop(now + 0.08); osc2.stop(now + 0.085);
-        } else if (type === 'shoot_railgun') {
-            // Heavy electromagnetic charge + bass discharge
-            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(), osc3 = audioCtx.createOscillator();
-            let gain = audioCtx.createGain(), filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass'; filter.frequency.setValueAtTime(6000, now); filter.frequency.exponentialRampToValueAtTime(80, now + 0.4);
-            osc1.type = 'sawtooth'; osc1.frequency.setValueAtTime(1800, now); osc1.frequency.exponentialRampToValueAtTime(60, now + 0.4);
-            osc2.type = 'sine'; osc2.frequency.setValueAtTime(260, now); osc2.frequency.exponentialRampToValueAtTime(25, now + 0.4);
-            osc3.type = 'square'; osc3.frequency.setValueAtTime(80, now); osc3.frequency.exponentialRampToValueAtTime(20, now + 0.35);
-            gain.gain.setValueAtTime(0.40, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.42);
-            osc1.connect(filter); osc2.connect(filter); osc3.connect(gain); filter.connect(gain); gain.connect(masterOut);
-            osc1.start(now); osc2.start(now); osc3.start(now); osc1.stop(now + 0.42); osc2.stop(now + 0.42); osc3.stop(now + 0.38);
-        } else if (type === 'shoot_shotgun') {
-            // Massive explosive blast: white noise burst + sub-bass boom
-            let bufferSize = Math.floor(audioCtx.sampleRate * 0.18);
-            let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            let data = buffer.getChannelData(0);
-            for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 0.5);
-            let noise = audioCtx.createBufferSource(); noise.buffer = buffer;
-            let filter = audioCtx.createBiquadFilter(); filter.type = 'lowpass'; filter.frequency.setValueAtTime(3500, now); filter.frequency.exponentialRampToValueAtTime(150, now + 0.18);
-            let gain = audioCtx.createGain(); gain.gain.setValueAtTime(0.45, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.20);
-            noise.connect(filter); filter.connect(gain); gain.connect(masterOut);
-            noise.start(now); noise.stop(now + 0.20);
-            // Sub-bass boom layer
-            let oscBoom = audioCtx.createOscillator(), gBoom = audioCtx.createGain();
-            oscBoom.type = 'sine'; oscBoom.frequency.setValueAtTime(110, now); oscBoom.frequency.exponentialRampToValueAtTime(30, now + 0.15);
-            gBoom.gain.setValueAtTime(0.30, now); gBoom.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
-            oscBoom.connect(gBoom); gBoom.connect(masterOut);
-            oscBoom.start(now); oscBoom.stop(now + 0.16);
-        } else if (type === 'reload_blaster') {
-            [320, 680].forEach((freq, idx) => {
-                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                let startT = now + idx * 0.12;
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, startT);
-                gain.gain.setValueAtTime(0.15, startT); gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.1);
-                osc.connect(gain); gain.connect(masterOut);
-                osc.start(startT); osc.stop(startT + 0.11);
-            });
-        } else if (type === 'reload_rapid') {
-            [480, 920].forEach((freq, idx) => {
-                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                let startT = now + idx * 0.08;
-                osc.type = 'sine'; osc.frequency.setValueAtTime(freq, startT);
-                gain.gain.setValueAtTime(0.14, startT); gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.07);
-                osc.connect(gain); gain.connect(masterOut);
-                osc.start(startT); osc.stop(startT + 0.075);
-            });
-        } else if (type === 'reload_lmg') {
-            [220, 310, 540].forEach((freq, idx) => {
-                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                let startT = now + idx * 0.14;
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(freq, startT);
-                gain.gain.setValueAtTime(0.16, startT); gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.12);
-                osc.connect(gain); gain.connect(masterOut);
-                osc.start(startT); osc.stop(startT + 0.13);
-            });
-        } else if (type === 'reload_shotgun') {
-            [180, 240].forEach((freq, idx) => {
-                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                let startT = now + idx * 0.13;
-                osc.type = 'square'; osc.frequency.setValueAtTime(freq, startT);
-                gain.gain.setValueAtTime(0.20, startT); gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.09);
-                osc.connect(gain); gain.connect(masterOut);
-                osc.start(startT); osc.stop(startT + 0.095);
-            });
-        } else if (type === 'reload_railgun') {
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'sine'; osc.frequency.setValueAtTime(350, now); osc.frequency.exponentialRampToValueAtTime(1400, now + 0.35);
-            gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-            osc.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.36);
-        } else if (type === 'reload_pistol') {
-            [540, 720].forEach((freq, idx) => {
-                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                let startT = now + idx * 0.09;
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, startT);
-                gain.gain.setValueAtTime(0.12, startT); gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.08);
-                osc.connect(gain); gain.connect(masterOut);
-                osc.start(startT); osc.stop(startT + 0.085);
-            });
-        } else if (type === 'reload_ready') {
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'triangle'; osc.frequency.setValueAtTime(620, now); osc.frequency.exponentialRampToValueAtTime(1240, now + 0.12);
-            gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-            osc.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.13);
-        } else if (type === 'hit_crit') {
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'sine'; osc.frequency.setValueAtTime(1760, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.18);
-            gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-            osc.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.19);
-        } else if (type === 'parry') {
-            let osc1 = audioCtx.createOscillator(), osc2 = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc1.type = 'triangle'; osc1.frequency.setValueAtTime(587.33, now); // D5
-            osc2.type = 'sine'; osc2.frequency.setValueAtTime(880.00, now); // A5
-            gain.gain.setValueAtTime(0.32, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-            osc1.connect(gain); osc2.connect(gain); gain.connect(masterOut);
-            osc1.start(now); osc2.start(now); osc1.stop(now + 0.4); osc2.stop(now + 0.4);
-        } else if (type === 'nova_emp' || type === 'ultimate') {
-            let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(240, now); osc.frequency.exponentialRampToValueAtTime(25, now + 0.8);
-            gain.gain.setValueAtTime(0.45, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
-            osc.connect(gain); gain.connect(masterOut);
-            osc.start(now); osc.stop(now + 0.85);
-        } else if (type === 'level_up') {
-            [293.66, 369.99, 440.00, 587.33].forEach((freq, idx) => {
-                let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                let startT = now + idx * 0.09;
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, startT);
-                gain.gain.setValueAtTime(0.28, startT); gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.35);
-                osc.connect(gain); gain.connect(masterOut);
-                osc.start(startT); osc.stop(startT + 0.36);
-            });
-        } else {
-            if (typeof playSoundOriginal === 'function') {
-                playSoundOriginal(type);
-            }
-        }
-    } catch (e) {}
-}
-
-function playSound(type, param) { playSoundV2(type, param); }
-
-function playWeaponReloadSound(weapon, isSecondary) {
-    if (isSecondary) {
-        playSound('reload_pistol');
-        return;
-    }
-    if (weapon === 'shotgun') playSound('reload_shotgun');
-    else if (weapon === 'rapid') playSound('reload_rapid');
-    else if (weapon === 'lmg') playSound('reload_lmg');
-    else if (weapon === 'railgun') playSound('reload_railgun');
-    else playSound('reload_blaster');
-}
-
-function playSoundOriginal(type) {
-            if (!gameSettings.sound || !audioCtx || audioCtx.state !== 'running') return;
             try {
                 const now = audioCtx.currentTime;
+                const masterOut = masterLimiter || audioCtx.destination;
 
-                if (type === 'shoot_lmg') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(380, now); osc.frequency.exponentialRampToValueAtTime(60, now + 0.11);
-                    gain.gain.setValueAtTime(0.14, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.11);
-                } else if (type === 'shoot_pistol') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(820, now); osc.frequency.exponentialRampToValueAtTime(220, now + 0.07);
-                    gain.gain.setValueAtTime(0.10, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.07);
-                } else if (type === 'shoot_blaster') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'triangle';
-                    osc.frequency.setValueAtTime(750, now);
-                    osc.frequency.exponentialRampToValueAtTime(160, now + 0.08);
-                    gain.gain.setValueAtTime(0.09, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.08);
-                } else if (type === 'shoot_shotgun') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    let filter = audioCtx.createBiquadFilter();
-                    filter.type = 'lowpass'; filter.frequency.setValueAtTime(600, now);
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(240, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.16);
-                    gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
-                    osc.connect(filter); filter.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.16);
-                } else if (type === 'shoot_rapid') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(950, now); osc.frequency.exponentialRampToValueAtTime(320, now + 0.04);
-                    gain.gain.setValueAtTime(0.06, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.04);
-                } else if (type === 'shoot_railgun') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(1400, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.35);
-                    gain.gain.setValueAtTime(0.22, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.35);
-                } else if (type === 'explosion') {
-                    if (noiseBuffer) {
-                        let noiseSource = audioCtx.createBufferSource();
-                        noiseSource.buffer = noiseBuffer;
-                        let filter = audioCtx.createBiquadFilter();
-                        filter.type = 'lowpass';
-                        filter.frequency.setValueAtTime(800, now);
-                        filter.frequency.exponentialRampToValueAtTime(40, now + 0.3);
-                        let gain = audioCtx.createGain();
-                        gain.gain.setValueAtTime(0.22, now);
-                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
-                        noiseSource.connect(filter); filter.connect(gain); gain.connect(masterLimiter);
-                        noiseSource.start(now); noiseSource.stop(now + 0.3);
-                    }
-                    let subOsc = audioCtx.createOscillator(), subGain = audioCtx.createGain();
-                    subOsc.type = 'sine'; subOsc.frequency.setValueAtTime(120, now); subOsc.frequency.exponentialRampToValueAtTime(30, now + 0.25);
-                    subGain.gain.setValueAtTime(0.2, now); subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-                    subOsc.connect(subGain); subGain.connect(masterLimiter);
-                    subOsc.start(now); subOsc.stop(now + 0.25);
-                } else if (type === 'shield') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(350, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.22);
-                    gain.gain.setValueAtTime(0.14, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.22);
-                } else if (type === 'parry') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(1100, now); osc.frequency.exponentialRampToValueAtTime(2200, now + 0.18);
-                    gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.18);
-                } else if (type === 'dash') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(240, now); osc.frequency.exponentialRampToValueAtTime(60, now + 0.12);
-                    gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.12);
-                } else if (type === 'gold' || type === 'portal') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(580, now); osc.frequency.exponentialRampToValueAtTime(1400, now + 0.2);
-                    gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.2);
-                } else if (type === 'overcharge') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(180, now); osc.frequency.exponentialRampToValueAtTime(950, now + 0.45);
-                    gain.gain.setValueAtTime(0.16, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.45);
-                } else if (type === 'relic' || type === 'synergy') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'triangle'; osc.frequency.setValueAtTime(440, now); osc.frequency.exponentialRampToValueAtTime(1760, now + 0.5);
-                    gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.5);
-                } else if (type === 'tesla') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(1200, now); osc.frequency.exponentialRampToValueAtTime(250, now + 0.09);
-                    gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.09);
-                } else if (type === 'mine_arm') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'sine'; osc.frequency.setValueAtTime(520, now); osc.frequency.linearRampToValueAtTime(840, now + 0.08);
-                    gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.08);
-                } else if (type === 'ultimate') {
-                    let osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
-                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(90, now); osc.frequency.exponentialRampToValueAtTime(1800, now + 0.85);
-                    gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
-                    osc.connect(gain); gain.connect(masterLimiter);
-                    osc.start(now); osc.stop(now + 0.85);
+                // Helper: Play filtered noise burst from pre-allocated buffer
+                const playNoiseBurst = (buffer, filterType, freqStart, freqEnd, gainVal, duration, q = 1) => {
+                    if (!buffer) return;
+                    try {
+                        const src = audioCtx.createBufferSource();
+                        src.buffer = buffer;
+                        const filter = audioCtx.createBiquadFilter();
+                        filter.type = filterType;
+                        filter.frequency.setValueAtTime(freqStart, now);
+                        if (freqEnd !== freqStart) filter.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), now + duration);
+                        filter.Q.setValueAtTime(q, now);
+                        const gain = audioCtx.createGain();
+                        gain.gain.setValueAtTime(gainVal, now);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+                        src.connect(filter); filter.connect(gain); gain.connect(masterOut);
+                        src.start(now); src.stop(now + duration + 0.01);
+                    } catch(e) {}
+                };
+
+                // Helper: Play tonal transient with pitch envelope
+                const playTonal = (waveType, freqStart, freqEnd, gainVal, duration, filterFreq = null) => {
+                    try {
+                        const osc = audioCtx.createOscillator();
+                        osc.type = waveType;
+                        osc.frequency.setValueAtTime(freqStart, now);
+                        if (freqEnd !== freqStart) osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), now + duration);
+                        const gain = audioCtx.createGain();
+                        gain.gain.setValueAtTime(gainVal, now);
+                        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+                        
+                        if (filterFreq) {
+                            const flt = audioCtx.createBiquadFilter();
+                            flt.type = 'lowpass';
+                            flt.frequency.setValueAtTime(filterFreq, now);
+                            osc.connect(flt); flt.connect(gain);
+                        } else {
+                            osc.connect(gain);
+                        }
+                        gain.connect(masterOut);
+                        osc.start(now); osc.stop(now + duration + 0.01);
+                    } catch(e) {}
+                };
+
+                // ==================== 1. REALISTIC WEAPON FIRING ====================
+                if (type === 'shoot_pistol') {
+                    // Crisp 9mm tactical snap + metallic chamber pop + micro sub punch
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 3800, 1200, 0.28, 0.045, 2.5);
+                    playTonal('triangle', 920, 140, 0.24, 0.06);
+                    playTonal('sine', 160, 45, 0.22, 0.08);
+                } else if (type === 'shoot_blaster' || type === 'shoot') {
+                    // Modern sci-fi plasma pulse: ionized spark + dual resonant sweep + bass weight
+                    playNoiseBurst(whiteNoiseBuffer, 'highpass', 4500, 2000, 0.22, 0.05, 1.8);
+                    playTonal('sawtooth', 1200, 160, 0.26, 0.09, 3200);
+                    playTonal('sine', 240, 50, 0.30, 0.11);
+                } else if (type === 'shoot_rapid' || type === 'shoot_burst_ar') {
+                    // Heavy assault rifle crack: supersonic muzzle snap + gas piston cycle
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 4200, 800, 0.32, 0.05, 2.0);
+                    playTonal('triangle', 780, 110, 0.25, 0.065);
+                    playTonal('sine', 180, 40, 0.22, 0.075);
+                } else if (type === 'shoot_lmg' || type === 'shoot_minigun') {
+                    // Heavy caliber thud: deep mechanical chamber rattle + heavyweight low-end slam
+                    playNoiseBurst(pinkNoiseBuffer, 'lowpass', 2400, 300, 0.40, 0.11, 1.5);
+                    playTonal('sawtooth', 480, 55, 0.35, 0.13, 1800);
+                    playTonal('sine', 130, 32, 0.45, 0.15);
+                } else if (type === 'shoot_shotgun' || type === 'shoot_double_barrel' || type === 'shoot_flak_cannon') {
+                    // Massive shotgun blast: multi-pellet air displacement + heavy combustion + seismic thump
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 5000, 600, 0.48, 0.14, 1.2);
+                    playNoiseBurst(subRumbleBuffer, 'lowpass', 400, 50, 0.55, 0.22, 1.0);
+                    playTonal('triangle', 380, 40, 0.40, 0.16);
+                    playTonal('sine', 95, 25, 0.60, 0.24);
+                } else if (type === 'shoot_railgun' || type === 'shoot_anti_mat') {
+                    // Electromagnetic Hyper-Velocity Railgun: high-voltage capacitor crack + sonic boom sweep + sub rumble
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 8000, 400, 0.50, 0.30, 3.0);
+                    playTonal('sawtooth', 2400, 40, 0.45, 0.38, 4500);
+                    playTonal('sine', 320, 22, 0.65, 0.42);
+                    playNoiseBurst(subRumbleBuffer, 'lowpass', 250, 30, 0.50, 0.40);
+                } else if (type === 'shoot_plasma_carbine' || type === 'shoot_thermal_sniper') {
+                    // Thermal laser sniper / plasma carbine: piercing ionization chirp + thermal hiss
+                    playNoiseBurst(whiteNoiseBuffer, 'highpass', 6000, 1800, 0.35, 0.08, 2.2);
+                    playTonal('sawtooth', 1800, 220, 0.32, 0.14, 4000);
+                    playTonal('sine', 200, 45, 0.30, 0.16);
+                } else if (type === 'shoot_cryo_cannon') {
+                    // Sub-zero cryo blast: freezing ice crack + cold gas release
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 6500, 1200, 0.38, 0.15, 2.0);
+                    playTonal('sine', 1400, 300, 0.22, 0.18);
+                    playTonal('triangle', 260, 60, 0.25, 0.20);
+                } else if (type === 'shoot_arc_emitter' || type === 'shoot_tesla_smg' || type === 'tesla') {
+                    // Electric Tesla arc: sharp lightning snap + high-frequency plasma sizzle
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 7000, 1500, 0.35, 0.08, 4.0);
+                    playTonal('sawtooth', 1600, 120, 0.26, 0.09, 3500);
+                    playTonal('square', 350, 80, 0.18, 0.08);
                 }
-            } catch(e) {}
+
+                // ==================== 2. REALISTIC MECHANICAL RELOADS ====================
+                else if (type === 'reload_pistol' || type === 'reload_blaster') {
+                    // Mag release latch + fresh battery lock click
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 5200, 2200, 0.20, 0.03, 3.0);
+                    playTonal('triangle', 1200, 600, 0.15, 0.04);
+                    setTimeout(() => {
+                        if (!audioCtx || audioCtx.state !== 'running') return;
+                        playNoiseBurst(whiteNoiseBuffer, 'bandpass', 4400, 1800, 0.25, 0.035, 2.5);
+                        playTonal('triangle', 750, 1100, 0.18, 0.045);
+                    }, 140);
+                } else if (type === 'reload_shotgun') {
+                    // Heavy slide pump back + metallic forward locking clack
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 3200, 900, 0.30, 0.06, 2.0);
+                    playTonal('sawtooth', 420, 160, 0.20, 0.07, 1800);
+                    setTimeout(() => {
+                        if (!audioCtx || audioCtx.state !== 'running') return;
+                        playNoiseBurst(whiteNoiseBuffer, 'bandpass', 4800, 1200, 0.35, 0.05, 2.5);
+                        playTonal('triangle', 300, 850, 0.24, 0.06);
+                    }, 160);
+                } else if (type === 'reload_rapid' || type === 'reload_lmg') {
+                    // Heavy tactical magazine drop + bolt slide release snap
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 3600, 1100, 0.26, 0.05, 2.0);
+                    playTonal('triangle', 650, 220, 0.18, 0.06);
+                    setTimeout(() => {
+                        if (!audioCtx || audioCtx.state !== 'running') return;
+                        playNoiseBurst(whiteNoiseBuffer, 'bandpass', 5500, 1600, 0.32, 0.04, 3.0);
+                        playTonal('sawtooth', 800, 1400, 0.22, 0.05, 2500);
+                    }, 180);
+                } else if (type === 'reload_railgun') {
+                    // Heavy capacitor charging whine + magnetic containment seal
+                    playTonal('sawtooth', 180, 1650, 0.28, 0.35, 2800);
+                    playNoiseBurst(pinkNoiseBuffer, 'lowpass', 1500, 400, 0.20, 0.35);
+                    setTimeout(() => {
+                        if (!audioCtx || audioCtx.state !== 'running') return;
+                        playNoiseBurst(whiteNoiseBuffer, 'highpass', 4000, 2000, 0.30, 0.04, 2.0);
+                        playTonal('triangle', 1100, 1800, 0.22, 0.05);
+                    }, 340);
+                } else if (type === 'reload_ready') {
+                    // Tactical optics lock confirmation chime + ready bolt snap
+                    playTonal('sine', 1046.5, 1318.5, 0.22, 0.12);
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 6000, 3000, 0.18, 0.03, 3.0);
+                }
+
+                // ==================== 3. EXPLOSIONS, IMPACTS & COMBAT ====================
+                else if (type === 'explosion') {
+                    // Cinema-grade explosion: supersonic shockwave + fire combustion rumble + deep 35Hz sub slam
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 3500, 200, 0.45, 0.28, 1.4);
+                    playNoiseBurst(pinkNoiseBuffer, 'lowpass', 900, 60, 0.50, 0.45, 1.0);
+                    playNoiseBurst(subRumbleBuffer, 'lowpass', 300, 30, 0.65, 0.55, 0.8);
+                    playTonal('triangle', 220, 30, 0.45, 0.35);
+                    playTonal('sine', 85, 20, 0.60, 0.50);
+                } else if (type === 'hit' || type === 'hit_crit') {
+                    // Impact crunch + armor puncture
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 4000, 800, type === 'hit_crit' ? 0.38 : 0.24, 0.05, 2.0);
+                    playTonal('triangle', type === 'hit_crit' ? 850 : 520, 110, 0.25, 0.06);
+                    if (type === 'hit_crit') playTonal('sine', 1600, 2400, 0.20, 0.08);
+                } else if (type === 'parry') {
+                    // Metallic sword/plasma deflection 'CLANG' (inharmonic metallic resonance)
+                    playTonal('sawtooth', 1850, 440, 0.35, 0.22, 3500);
+                    playTonal('triangle', 3200, 1100, 0.28, 0.24);
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 7500, 2500, 0.30, 0.08, 4.0);
+                } else if (type === 'dash') {
+                    // Supersonic air displacement whoosh
+                    playNoiseBurst(pinkNoiseBuffer, 'bandpass', 2200, 300, 0.32, 0.16, 1.5);
+                    playTonal('sine', 280, 50, 0.25, 0.14);
+                } else if (type === 'graze') {
+                    // High crystal adrenaline shimmer
+                    playTonal('sine', 2600, 3800, 0.20, 0.07);
+                    playTonal('triangle', 5200, 6800, 0.14, 0.07);
+                } else if (type === 'kill' || type === 'combo_kill') {
+                    // Satisfying kill confirmation & streak pitch scaling
+                    let cCount = (typeof combo !== 'undefined' && combo) ? combo : 1;
+                    let baseFreq = Math.min(2200, 580 * Math.pow(1.04, Math.min(30, cCount)));
+                    playTonal('triangle', baseFreq, baseFreq * 1.4, 0.25, 0.11);
+                    playTonal('sine', baseFreq * 0.5, baseFreq * 0.7, 0.20, 0.12);
+                    playNoiseBurst(whiteNoiseBuffer, 'highpass', 5000, 2000, 0.15, 0.04, 2.0);
+                }
+
+                // ==================== 4. SHIELDS & ABILITIES ====================
+                else if (type === 'shield') {
+                    // Energy shield barrier activation swell
+                    playTonal('sine', 280, 750, 0.24, 0.22);
+                    playTonal('triangle', 560, 1100, 0.18, 0.20);
+                } else if (type === 'shield_break') {
+                    // Crystalline shield shattering alarm
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 6500, 900, 0.40, 0.25, 2.5);
+                    playTonal('sawtooth', 1200, 180, 0.35, 0.28, 2500);
+                    playTonal('sine', 220, 45, 0.30, 0.30);
+                } else if (type === 'shield_recharge') {
+                    // Harmonic energy recharge shimmer
+                    playTonal('sine', 349.23, 698.46, 0.22, 0.30);
+                    playTonal('triangle', 523.25, 1046.5, 0.18, 0.30);
+                } else if (type === 'ultimate' || type === 'overcharge' || type === 'nova_emp') {
+                    // Massive cinematic ultimate discharge: spool-up turbine + shockwave pulse
+                    playTonal('sawtooth', 85, 1600, 0.40, 0.65, 3000);
+                    playNoiseBurst(pinkNoiseBuffer, 'lowpass', 2800, 200, 0.50, 0.75, 1.2);
+                    playNoiseBurst(subRumbleBuffer, 'lowpass', 350, 25, 0.65, 0.90);
+                    playTonal('sine', 110, 20, 0.55, 0.85);
+                } else if (type === 'boss_roar') {
+                    // Sub-bass dread roar + menacing low sweep
+                    playTonal('sawtooth', 110, 25, 0.55, 0.95, 850);
+                    playNoiseBurst(subRumbleBuffer, 'lowpass', 450, 40, 0.60, 1.1);
+                    playTonal('sine', 65, 18, 0.65, 1.1);
+                } else if (type === 'mine_arm') {
+                    playTonal('sine', 620, 980, 0.16, 0.08);
+                }
+
+                // ==================== 5. REWARDS, POWERUPS & UI ====================
+                else if (type === 'gold' || type === 'crystal' || type === 'portal') {
+                    // Crystalline chime arpeggio
+                    playTonal('sine', 659.25, 1318.5, 0.18, 0.18);
+                    setTimeout(() => { if (audioCtx && audioCtx.state === 'running') playTonal('sine', 987.77, 1975.5, 0.16, 0.20); }, 50);
+                } else if (type === 'relic' || type === 'synergy' || type === 'powerup' || type === 'heal') {
+                    // Harmonious cosmic chord
+                    playTonal('triangle', 440, 880, 0.22, 0.35);
+                    playTonal('sine', 554.37, 1108.7, 0.20, 0.35);
+                    playTonal('sine', 659.25, 1318.5, 0.18, 0.35);
+                } else if (type === 'ui_hover') {
+                    // Modern tactile glass hover
+                    playTonal('sine', 1400, 1800, 0.035, 0.025);
+                } else if (type === 'ui_click' || type === 'tab' || type === 'click') {
+                    // Crisp tactile ceramic click
+                    playNoiseBurst(whiteNoiseBuffer, 'bandpass', 3500, 1800, 0.12, 0.025, 3.0);
+                    playTonal('triangle', 580, 1100, 0.12, 0.035);
+                }
+            } catch (e) {
+                console.warn('Audio synthesis safe catch:', e);
+            }
+        }
+
+        function playSound(type, param) {
+            playSoundV2(type, param);
+        }
+
+        function playWeaponReloadSound(weapon, isSecondary) {
+            if (isSecondary) {
+                playSound('reload_pistol');
+                return;
+            }
+            if (weapon === 'shotgun' || weapon === 'double_barrel' || weapon === 'flak_cannon') playSound('reload_shotgun');
+            else if (weapon === 'rapid' || weapon === 'burst_ar' || weapon === 'plasma_carbine') playSound('reload_rapid');
+            else if (weapon === 'lmg' || weapon === 'minigun') playSound('reload_lmg');
+            else if (weapon === 'railgun' || weapon === 'anti_mat' || weapon === 'thermal_sniper') playSound('reload_railgun');
+            else playSound('reload_blaster');
         }
 
         const tabNames = ['play', 'arsenal', 'shop', 'missions', 'settings'];
@@ -3137,7 +3255,7 @@ function playSoundOriginal(type) {
             }
         }
 
-        window.openModeSelectModal = function() {
+        function openModeSelectModal() {
             const m = document.getElementById('mode-select-modal');
             if (m) {
                 m.classList.remove('hidden');
@@ -3147,7 +3265,7 @@ function playSoundOriginal(type) {
             playSound('tab');
         };
 
-        window.closeModeSelectModal = function() {
+        function closeModeSelectModal() {
             const m = document.getElementById('mode-select-modal');
             if (m) {
                 m.classList.add('hidden');
@@ -3163,7 +3281,8 @@ function playSoundOriginal(type) {
             
             let btnIndex = tabNames.indexOf(tabName);
             if (btnIndex >= 0) {
-                document.querySelectorAll('.tab-btn')[btnIndex].classList.add('active');
+                const tabBtns = document.querySelectorAll('.tab-btn');
+                if (tabBtns && tabBtns[btnIndex]) tabBtns[btnIndex].classList.add('active');
                 const targetContent = document.getElementById('tab-' + tabName);
                 if (targetContent) targetContent.classList.add('active');
                 if (tabName === 'play') renderLobbyHeroCanvas();
@@ -3266,7 +3385,7 @@ function playSoundOriginal(type) {
             }
         }
 
-        window.openPerkDetailModal = function(perkId) {
+        function openPerkDetailModal(perkId) {
             activeSelectedPerkId = perkId;
             const perk = MASTER_PERKS[perkId];
             if (!perk) return;
@@ -3330,12 +3449,12 @@ function playSoundOriginal(type) {
             playSound('tab');
         };
 
-        window.closePerkDetailModal = function() {
+        function closePerkDetailModal() {
             const modal = document.getElementById('perk-detail-modal');
             if (modal) modal.classList.add('hidden');
         };
 
-        window.togglePerkFromModal = function() {
+        function togglePerkFromModal() {
             if (!activeSelectedPerkId) return;
             toggleEquipPerk(activeSelectedPerkId);
             openPerkDetailModal(activeSelectedPerkId);
@@ -3395,7 +3514,7 @@ function playSoundOriginal(type) {
         let arsenalAnimFrame = null;
         function renderArsenalPreviewCanvas() {
             cancelAnimationFrame(arsenalAnimFrame);
-            const classes = ['assault', 'sniper', 'support', 'engineer'];
+            const classes = ['assault', 'sniper', 'support', 'engineer', 'breacher'];
             const now = performance.now();
 
             let activeSkinId = (typeof equippedCosmetics !== 'undefined' && equippedCosmetics.chassis) ? equippedCosmetics.chassis : 'default';
@@ -3428,7 +3547,7 @@ function playSoundOriginal(type) {
                     ctx.save();
                     ctx.translate(w / 2, h / 2 + 1);
 
-                    // Zoom out so the 4 class preview ships are clean, proportioned miniature models
+                    // Zoom out so the 5 class preview ships are clean, proportioned miniature models
                     let arsenalZoom = Math.min(w / 75, h / 55) * 0.60;
                     ctx.scale(arsenalZoom, arsenalZoom);
 
@@ -3488,6 +3607,22 @@ function playSoundOriginal(type) {
                         ctx.closePath();
                         ctx.fillStyle = grad;
                         ctx.fill();
+                    } else if (cId === 'breacher') {
+                        // نفاث هجومي مزدوج ضخم للكاسر
+                        [-10, 10].forEach(offsetX => {
+                            let grad = ctx.createLinearGradient(offsetX, 20, offsetX, 20 + flameLen * 1.1);
+                            grad.addColorStop(0, '#ffffff');
+                            grad.addColorStop(0.3, '#ff5500');
+                            grad.addColorStop(1, 'transparent');
+
+                            ctx.beginPath();
+                            ctx.moveTo(offsetX - 5, 20);
+                            ctx.lineTo(offsetX, 20 + flameLen * 1.1);
+                            ctx.lineTo(offsetX + 5, 20);
+                            ctx.closePath();
+                            ctx.fillStyle = grad;
+                            ctx.fill();
+                        });
                     } else {
                         // نفاث حربي للهجومي
                         let grad = ctx.createLinearGradient(0, 22, 0, 22 + flameLen);
@@ -3563,7 +3698,7 @@ function playSoundOriginal(type) {
             }
         }
 
-        window.selectClassAndRefresh = function(cId) {
+        function selectClassAndRefresh(cId) {
             selectClass(cId, `card-c-${cId}`);
             playSound('gold');
         };
@@ -3583,7 +3718,7 @@ function playSoundOriginal(type) {
             selectClass(type, cardId);
         }
 
-        window.openWeaponSelectorModal = function(e, cId) {
+        function openWeaponSelectorModal(e, cId) {
             if (e) e.stopPropagation();
             let targetClass = cId || selectedClass || 'assault';
             selectClass(targetClass, `card-c-${targetClass}`);
@@ -3594,55 +3729,76 @@ function playSoundOriginal(type) {
 
             grid.innerHTML = '';
             let exclusiveCfg = CLASS_EXCLUSIVE_WEAPONS[targetClass];
-            let wKey = exclusiveCfg ? exclusiveCfg.id : 'blaster';
-            let wCfg = WEAPON_CONFIGS[wKey];
-            if (!wCfg) return;
+            let wepList = (exclusiveCfg && exclusiveCfg.weapons) ? exclusiveCfg.weapons : [(exclusiveCfg ? exclusiveCfg.id : 'blaster')];
+            let activeWep = (classWeapons && classWeapons[targetClass]) ? classWeapons[targetClass] : wepList[0];
 
-            let icons = { blaster: '', rapid: '', lmg: '', shotgun: '', railgun: '' };
-            let icon = icons[wKey] || '';
-            let dmgVal = wKey === 'shotgun' ? '16×6' : wCfg.baseDmg;
-            let rpmVal = Math.round(60000 / wCfg.interval);
-
-            let card = document.createElement('div');
-            card.className = 'select-card selected';
-            card.style.gridColumn = '1 / -1';
-            card.style.maxWidth = '420px';
-            card.style.margin = '0 auto';
+            let icons = {
+                blaster: '⚡', burst_ar: '💥', plasma_carbine: '🔮',
+                shotgun: '🔥', double_barrel: '💣', flak_cannon: '💥',
+                railgun: '⚡', anti_mat: '☄️', thermal_sniper: '🔴',
+                lmg: '🛡️', minigun: '🌪️', cryo_cannon: '❄️',
+                rapid: '⚡', arc_emitter: '⚡', tesla_smg: '🔌'
+            };
 
             let classNameAr = (CLASSES_CONFIG[targetClass] && CLASSES_CONFIG[targetClass].name) ? CLASSES_CONFIG[targetClass].name : targetClass;
 
-            card.innerHTML = `
-                <div style="font-size:0.75rem; color:#ffd700; font-weight:bold; margin-bottom:6px;"> السلاح التكتيكي الحصري لكلاس ${classNameAr}</div>
-                <div class="weapon-card-icon">${icon}</div>
-                <div class="card-title">${wCfg.name}</div>
-                <div class="card-desc">${exclusiveCfg.role || wCfg.category}</div>
-                <div class="weapon-2d-stats">
-                    <div class="wstat-row"><span>الضرر:</span><div class="wstat-bar"><div style="width: ${Math.min(100, (wCfg.baseDmg / 120)*100)}%;"></div></div><span class="wstat-val">${dmgVal}</span></div>
-                    <div class="wstat-row"><span>الرمي:</span><div class="wstat-bar"><div style="width: ${Math.min(100, (rpmVal / 800)*100)}%;"></div></div><span class="wstat-val">${rpmVal} RPM</span></div>
-                    <div class="wstat-row"><span>السرعة:</span><div class="wstat-bar"><div style="width: ${Math.min(100, (wCfg.speed / 38)*100)}%;"></div></div><span class="wstat-val">${wCfg.speed}</span></div>
-                    <div class="wstat-row"><span>المخزن:</span><div class="wstat-bar"><div style="width: ${Math.min(100, (wCfg.baseMag / 80)*100)}%;"></div></div><span class="wstat-val">${wCfg.baseMag}</span></div>
-                </div>
-                <div style="margin-top:12px; font-size:0.75rem; color:#00ff88; font-weight:bold; background:rgba(0,255,136,0.1); border:1px solid #00ff88; border-radius:6px; padding:4px 8px;">
-                    [OK] مخصص ومجهز حصرياً لهذا الكلاس بدون التأثير على الكلاسات الأخرى
-                </div>
-            `;
-            grid.appendChild(card);
+            wepList.forEach(wKey => {
+                let wCfg = WEAPON_CONFIGS[wKey];
+                if (!wCfg) return;
+                let isEquipped = (wKey === activeWep);
+                let icon = icons[wKey] || '🔫';
+                let dmgVal = wCfg.pellets ? `${wCfg.baseDmg}×${wCfg.pellets}` : wCfg.baseDmg;
+                let rpmVal = Math.round(60000 / wCfg.interval);
+
+                let card = document.createElement('div');
+                card.className = `select-card ${isEquipped ? 'selected' : ''}`;
+                card.style.cursor = 'pointer';
+                card.style.border = isEquipped ? '2px solid #00f3ff' : '1px solid rgba(255,255,255,0.15)';
+                card.style.background = isEquipped ? 'rgba(0, 243, 255, 0.12)' : 'rgba(15, 23, 42, 0.7)';
+
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                        <span style="font-size:0.75rem; color:#ffd700; font-weight:bold;">${wCfg.category}</span>
+                        ${isEquipped ? '<span style="color:#00ff88; font-size:0.75rem; font-weight:bold;">● مجهّز</span>' : ''}
+                    </div>
+                    <div class="weapon-card-icon" style="font-size:2rem; margin:6px 0;">${icon}</div>
+                    <div class="card-title" style="color:#fff; font-weight:bold;">${wCfg.name}</div>
+                    <div class="card-desc" style="font-size:0.8rem; color:#94a3b8; margin-bottom:10px;">${wCfg.desc || 'سلاح متطور'}</div>
+                    <div class="weapon-2d-stats">
+                        <div class="wstat-row"><span>الضرر:</span><div class="wstat-bar"><div style="width: ${Math.min(100, (wCfg.baseDmg / 120)*100)}%;"></div></div><span class="wstat-val">${dmgVal}</span></div>
+                        <div class="wstat-row"><span>الرمي:</span><div class="wstat-bar"><div style="width: ${Math.min(100, (rpmVal / 800)*100)}%;"></div></div><span class="wstat-val">${rpmVal} RPM</span></div>
+                        <div class="wstat-row"><span>السرعة:</span><div class="wstat-bar"><div style="width: ${Math.min(100, (wCfg.speed / 38)*100)}%;"></div></div><span class="wstat-val">${wCfg.speed}</span></div>
+                        <div class="wstat-row"><span>المخزن:</span><div class="wstat-bar"><div style="width: ${Math.min(100, (wCfg.baseMag / 80)*100)}%;"></div></div><span class="wstat-val">${wCfg.baseMag}</span></div>
+                    </div>
+                    <button class="btn btn-primary" style="width:100%; margin-top:12px; font-size:0.85rem; padding:8px 0; background:${isEquipped ? '#00ff88' : '#00f3ff'}; color:#000; font-weight:bold;">
+                        ${isEquipped ? 'السلاح المعتمد الحالي' : 'تجهيز هذا السلاح'}
+                    </button>
+                `;
+
+                card.onclick = () => {
+                    selectWeapon(wKey, targetClass);
+                    playSound('gold');
+                    openWeaponSelectorModal(null, targetClass);
+                };
+
+                grid.appendChild(card);
+            });
 
             modal.classList.remove('hidden');
             isModalActive = true;
         };
 
-        window.closeWeaponSelectorModal = function() {
+        function closeWeaponSelectorModal() {
             const modal = document.getElementById('weapon-picker-modal');
             if (modal) modal.classList.add('hidden');
             isModalActive = false;
         };
 
-        function selectWeapon(weapon, cardId) {
+        function selectWeapon(weapon, classId) {
+            let cId = classId || selectedClass || 'assault';
             selectedWeapon = weapon;
-            if (classWeapons && selectedClass) {
-                classWeapons[selectedClass] = weapon;
-            }
+            if (!classWeapons) classWeapons = {};
+            classWeapons[cId] = weapon;
             saveGameProgress();
             renderArsenalPreviewCanvas();
         }
@@ -3727,12 +3883,13 @@ function playSoundOriginal(type) {
         }
 
         function checkAchievements(currentSec, sessionKillsCount, totalCrystalsCollected, waveNum) {
+            if (!achievements) return;
             let newlyUnlocked = false;
-            if (!achievements.survivor.unlocked && currentSec >= 60.0) { achievements.survivor.unlocked = true; metaCurrency += achievements.survivor.reward; newlyUnlocked = true; }
-            if (!achievements.brawler.unlocked && sessionKillsCount >= 15) { achievements.brawler.unlocked = true; metaCurrency += achievements.brawler.reward; newlyUnlocked = true; }
-            if (!achievements.collector.unlocked && metaCurrency >= 50) { achievements.collector.unlocked = true; metaCurrency += achievements.collector.reward; newlyUnlocked = true; }
-            if (achievements.waveMaster && !achievements.waveMaster.unlocked && waveNum >= 6) { achievements.waveMaster.unlocked = true; metaCurrency += achievements.waveMaster.reward; newlyUnlocked = true; }
-            if (achievements.apexOverlord && !achievements.apexOverlord.unlocked && waveNum >= 21) { achievements.apexOverlord.unlocked = true; metaCurrency += achievements.apexOverlord.reward; newlyUnlocked = true; }
+            if (achievements.survivor && !achievements.survivor.unlocked && currentSec >= 60.0) { achievements.survivor.unlocked = true; metaCurrency += (achievements.survivor.reward || 20); newlyUnlocked = true; }
+            if (achievements.apex_predator && !achievements.apex_predator.unlocked && (sessionKillsCount || 0) >= 50) { achievements.apex_predator.unlocked = true; metaCurrency += (achievements.apex_predator.reward || 25); newlyUnlocked = true; }
+            if (achievements.millionaire && !achievements.millionaire.unlocked && metaCurrency >= 50) { achievements.millionaire.unlocked = true; metaCurrency += (achievements.millionaire.reward || 30); newlyUnlocked = true; }
+            if (achievements.waveMaster && !achievements.waveMaster.unlocked && (waveNum || 1) >= 6) { achievements.waveMaster.unlocked = true; metaCurrency += (achievements.waveMaster.reward || 30); newlyUnlocked = true; }
+            if (achievements.apexOverlord && !achievements.apexOverlord.unlocked && (waveNum || 1) >= 21) { achievements.apexOverlord.unlocked = true; metaCurrency += (achievements.apexOverlord.reward || 50); newlyUnlocked = true; }
             if (newlyUnlocked) { saveGameProgress(); playSound('gold'); }
         }
 
@@ -3786,7 +3943,7 @@ function parseJwt(token) {
     }
 }
 
-window.handleGoogleCredentialResponse = function(response) {
+function handleGoogleCredentialResponse(response) {
     if (!response || !response.credential) return;
     const payload = parseJwt(response.credential);
     if (!payload) {
@@ -3830,7 +3987,7 @@ function processGoogleAuth(googleId, email, name, picture) {
     }
 }
 
-window.triggerGoogleSignIn = function() {
+function triggerGoogleSignIn() {
     // If Google Identity Services library is loaded, prompt One-Tap / Popup
     if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
         try {
@@ -3857,7 +4014,7 @@ window.triggerGoogleSignIn = function() {
     }
 };
 
-window.unlinkGoogleAccount = function() {
+function unlinkGoogleAccount() {
     if (confirm('هل أنت متأكد من رغبتك في إلغاء ربط حساب Google من هذا الجهاز؟')) {
         linkedGoogleAccount = null;
         safeStorage.removeItem('chrono_google_account');
@@ -3942,7 +4099,7 @@ function updateGoogleUI() {
             }
         }
 
-        window.openRankLeaderboardModal = function() {
+        function openRankLeaderboardModal() {
             if (typeof playSound === 'function') playSound('tab');
             const modal = document.getElementById('rank-leaderboard-modal');
             if (modal) {
@@ -3955,7 +4112,7 @@ function updateGoogleUI() {
             }
         };
 
-        window.closeRankLeaderboardModal = function() {
+        function closeRankLeaderboardModal() {
             const modal = document.getElementById('rank-leaderboard-modal');
             if (modal) {
                 modal.classList.add('hidden');
@@ -4000,7 +4157,253 @@ function updateGoogleUI() {
             body.innerHTML = tableHtml;
         }
 
-        window.showMatchVictoryPodium = function(p1, p2, p3, rewardsText) {
+        let currentLeaderboardCategory = 'trophies';
+        function switchLeaderboardCategory(cat) {
+            currentLeaderboardCategory = cat;
+            ['trophies', 'kills', 'wave'].forEach(c => {
+                const btn = document.getElementById(`tab-lb-${c}`);
+                if (btn) {
+                    if (c === cat) btn.classList.add('active');
+                    else btn.classList.remove('active');
+                }
+            });
+            if (socket && isSocketConnected) {
+                socket.emit('get_rank_leaderboard', { category: cat });
+            } else {
+                fetch(`/api/leaderboard?sort=${cat}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data && data.leaderboard) renderDynamicLeaderboard(data.leaderboard);
+                    })
+                    .catch(() => renderLocalRankLeaderboard());
+            }
+        };
+
+        function renderDynamicLeaderboard(leaderboardData) {
+            const body = document.getElementById('rank-leaderboard-body');
+            if (!body) return;
+            if (!leaderboardData || leaderboardData.length === 0) {
+                renderLocalRankLeaderboard();
+                return;
+            }
+            body.innerHTML = leaderboardData.map(row => {
+                let rankClass = row.rank === 1 ? 'color:#ffd700; font-weight:bold;' : (row.rank === 2 ? 'color:#e0e0e0; font-weight:bold;' : (row.rank === 3 ? 'color:#cd7f32; font-weight:bold;' : ''));
+                let badge = row.tier ? (row.tier.badge || '🏅') : '🏅';
+                let tierName = row.tier ? (row.tier.name ? row.tier.name.split('(')[0] : 'Agent') : 'Agent';
+                let tierColor = row.tier ? (row.tier.color || '#00f3ff') : '#00f3ff';
+                return `
+                    <tr>
+                        <td style="${rankClass}">#${row.rank}</td>
+                        <td><strong>${row.username}</strong></td>
+                        <td><span style="color:${tierColor}; font-weight:bold;">${badge} ${tierName}</span></td>
+                        <td><strong style="color:#ffd700;">${row.trophies || 0} PTS</strong></td>
+                        <td>${row.kills || 0}</td>
+                        <td>${row.highest_wave || row.revives || 0}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ====================================================================
+        // دوال مركز تحكم طور الساند بوكس الحقيقي (True Sandbox Master Engine)
+        // ====================================================================
+        function toggleSandboxControlModal() {
+            const modal = document.getElementById('sandbox-control-modal');
+            if (!modal) return;
+            if (modal.classList.contains('hidden') || modal.style.display === 'none') {
+                modal.classList.remove('hidden');
+                modal.style.display = 'flex';
+                playSound('tab');
+            } else {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
+        };
+
+        function closeSandboxControlModal() {
+            const modal = document.getElementById('sandbox-control-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
+        };
+
+        function toggleSandboxGodMode() {
+            sandboxGodMode = !sandboxGodMode;
+            const btn = document.getElementById('sb-god-mode-btn');
+            const st = document.getElementById('sb-god-status');
+            if (btn) btn.classList.toggle('active', sandboxGodMode);
+            if (st) st.innerText = sandboxGodMode ? 'مفعل 🔥' : 'معطل';
+            if (player && sandboxGodMode) {
+                player.hp = player.maxHp || 100;
+                player.health = player.maxHealth || 100;
+                player.shieldCharges = player.shieldMaxCharges || 3;
+            }
+            playSound('shield');
+            spawnFloatingText(player ? player.x : width/2, player ? player.y - 45 : height/2, sandboxGodMode ? '⚡ وضع الخلود مفعّل (GOD MODE)' : 'وضع الخلود معطل', '#00ff88');
+        };
+
+        function toggleSandboxInfAmmo() {
+            sandboxInfAmmo = !sandboxInfAmmo;
+            const btn = document.getElementById('sb-inf-ammo-btn');
+            const st = document.getElementById('sb-ammo-status');
+            if (btn) btn.classList.toggle('active', sandboxInfAmmo);
+            if (st) st.innerText = sandboxInfAmmo ? 'مفعل ♾️' : 'معطل';
+            if (player && sandboxInfAmmo) {
+                player.ammo = player.maxAmmo;
+                player.primaryAmmo = player.maxAmmo;
+            }
+            playSound('gold');
+            spawnFloatingText(player ? player.x : width/2, player ? player.y - 45 : height/2, sandboxInfAmmo ? '♾️ ذخيرة لا نهائية (INF AMMO)' : 'الذخيرة اللانهائية معطلة', '#00f3ff');
+        };
+
+        function toggleSandboxNoCooldown() {
+            sandboxNoCooldown = !sandboxNoCooldown;
+            const btn = document.getElementById('sb-no-cd-btn');
+            const st = document.getElementById('sb-cd-status');
+            if (btn) btn.classList.toggle('active', sandboxNoCooldown);
+            if (st) st.innerText = sandboxNoCooldown ? 'مفعل ⚡' : 'معطل';
+            playSound('overcharge');
+            spawnFloatingText(player ? player.x : width/2, player ? player.y - 45 : height/2, sandboxNoCooldown ? '⏱️ إلغاء مؤقت الانتظار (NO CD)' : 'مؤقت الانتظار معطل', '#bd00ff');
+        };
+
+        function setSandboxTimeScale(val) {
+            sandboxCustomTimeScale = val;
+            timeScale = val;
+            document.querySelectorAll('.sandbox-time-btn').forEach(b => b.classList.remove('active'));
+            if (event && event.target) event.target.classList.add('active');
+            playSound('portal');
+            spawnFloatingText(player ? player.x : width/2, player ? player.y - 45 : height/2, `⏳ سرعة الزمن: ${val}x`, '#ffd700');
+        };
+
+        function sandboxSpawnEnemy(count = 1) {
+            const select = document.getElementById('sandbox-enemy-select');
+            if (!select || !player) return;
+            const val = select.value;
+            for (let i = 0; i < count; i++) {
+                let offX = (Math.random() - 0.5) * 260, offY = (Math.random() - 0.5) * 260;
+                let spawnX = Math.max(120, Math.min(WORLD_W - 120, player.x + offX));
+                let spawnY = Math.max(120, Math.min(WORLD_H - 120, player.y + offY));
+                if (val.startsWith('boss_')) {
+                    let tier = parseInt(val.replace('boss_', '')) || 1;
+                    enemies.push(new Enemy('boss', tier, false, spawnX, spawnY));
+                } else {
+                    enemies.push(new Enemy(val, 1, false, spawnX, spawnY));
+                }
+            }
+            playSound('shield');
+            createExplosion(player.x, player.y, '#00ff88', 20, 8);
+            spawnFloatingText(player.x, player.y - 45, `➕ تم رسبنة ${count}x من [${val}]`, '#00ff88');
+        };
+
+        function sandboxSwitchClass(cName) {
+            if (!player || !CLASSES_CONFIG[cName]) return;
+            player.playerClass = cName;
+            const cCfg = CLASSES_CONFIG[cName];
+            player.maxHealth = cCfg.hp;
+            player.health = cCfg.hp;
+            player.hp = cCfg.hp;
+            player.shieldCharges = cCfg.shieldCharges;
+            player.shieldMaxCharges = cCfg.shieldCharges;
+            player.baseSpeed = cCfg.baseSpeed;
+            player.dmgMultiplier = cCfg.dmgMultiplier;
+            player.cooldownMultiplier = cCfg.cooldownMultiplier;
+            let defWep = CLASS_EXCLUSIVE_WEAPONS[cName] ? CLASS_EXCLUSIVE_WEAPONS[cName].weapons[0] : 'blaster';
+            player.primaryWeapon = defWep;
+            player.weapon = defWep;
+            let wCfg = WEAPON_CONFIGS[defWep] || WEAPON_CONFIGS['blaster'];
+            player.bulletSpeed = wCfg.speed;
+            player.shootInterval = wCfg.interval;
+            player.recoilBase = wCfg.recoil;
+            player.damageMultiplier = (wCfg.baseDmg * player.dmgMultiplier) / 14;
+            player.maxAmmo = Math.round(wCfg.baseMag * cCfg.magMultiplier);
+            player.ammo = player.maxAmmo;
+            player.primaryAmmo = player.ammo;
+            playSound('overcharge');
+            triggerShockwave(player.x, player.y, cCfg.color, 180);
+            spawnFloatingText(player.x, player.y - 45, ` تم التبديل إلى ${cCfg.name}`, cCfg.color);
+            updateVitalsAndAmmoHUD();
+        };
+
+        function sandboxSwitchWeapon(wName) {
+            if (!player || !WEAPON_CONFIGS[wName]) return;
+            const wCfg = WEAPON_CONFIGS[wName];
+            player.primaryWeapon = wName;
+            player.weapon = wName;
+            player.bulletSpeed = wCfg.speed;
+            player.shootInterval = wCfg.interval;
+            player.recoilBase = wCfg.recoil;
+            player.isPiercing = wCfg.piercing || false;
+            player.damageMultiplier = (wCfg.baseDmg * player.dmgMultiplier) / 14;
+            player.maxAmmo = wCfg.baseMag;
+            player.ammo = wCfg.baseMag;
+            player.primaryAmmo = wCfg.baseMag;
+            player.isReloading = false;
+            playSound('reload_ready');
+            triggerShockwave(player.x, player.y, wCfg.color || '#00f3ff', 120);
+            spawnFloatingText(player.x, player.y - 40, ` تسليح: ${wCfg.name}`, wCfg.color || '#00f3ff');
+            updateVitalsAndAmmoHUD();
+        };
+
+        function sandboxClearEnemies() {
+            enemies.forEach(e => {
+                if (e && !e.isDead) {
+                    e.health = 0;
+                    e.isDead = true;
+                    createExplosion(e.x, e.y, e.color || '#ff0055', 25, 10);
+                }
+            });
+            enemies = [];
+            bullets = [];
+            playSound('explosion');
+            if (player) triggerShockwave(player.x, player.y, '#00ff88', 350);
+            spawnFloatingText(player ? player.x : width/2, player ? player.y - 45 : height/2, '💥 تم مسح جميع الأعداء!', '#00ff88');
+        };
+
+        function sandboxDropCubes(count = 20) {
+            if (!player) return;
+            for (let i = 0; i < count; i++) {
+                let offX = (Math.random() - 0.5) * 350, offY = (Math.random() - 0.5) * 350;
+                energyCubes.push(new EnergyCube(player.x + offX, player.y + offY));
+            }
+            playSound('gold');
+            spawnFloatingText(player.x, player.y - 45, `💎 +${count} مكعبات طاقة`, '#00f3ff');
+        };
+
+        function sandboxDropGoldenCubes(count = 5) {
+            if (!player) return;
+            for (let i = 0; i < count; i++) {
+                let offX = (Math.random() - 0.5) * 300, offY = (Math.random() - 0.5) * 300;
+                goldenCubes.push(new GoldenCube(player.x + offX, player.y + offY));
+            }
+            playSound('relic');
+            spawnFloatingText(player.x, player.y - 45, `👑 +${count} مكعبات ذهبية`, '#ffd700');
+        };
+
+        function sandboxMaxUpgradeMeta() {
+            metaCurrency += 10000;
+            saveGameProgress();
+            playSound('gold');
+            spawnFloatingText(player ? player.x : width / 2, player ? player.y - 45 : height / 2, '+10,000 CR CREDITS!', '#ffd700', 2000);
+        };
+
+        function sandboxSpawnOasis() {
+            if (!player) return;
+            tacticalZones.push(new TacticalOasis(player.x, player.y));
+            playSound('portal');
+            spawnFloatingText(player.x, player.y - 45, '🌴 تم توليد واحة تكتيكية!', '#00ff88');
+        };
+
+        function sandboxSetWave(waveNum) {
+            currentWave = waveNum;
+            enemiesLeftToSpawn = 14 + (currentWave * 6);
+            enemiesInWaveTotal = enemiesLeftToSpawn;
+            playSound('shield');
+            if (cleanWaveDisplay) cleanWaveDisplay.innerText = currentWave;
+            spawnFloatingText(player ? player.x : width / 2, player ? player.y - 45 : height / 2, `WAVE WARP: ${currentWave}`, '#00f3ff', 2000);
+        };
+
+        function showMatchVictoryPodium(p1, p2, p3, rewardsText) {
             const modal = document.getElementById('match-podium-modal');
             if (!modal) return;
             const p1Name = document.getElementById('podium-p1-name');
@@ -4027,7 +4430,7 @@ function updateGoogleUI() {
             playSound('gold');
         };
 
-        window.closeMatchPodiumModal = function() {
+        function closeMatchPodiumModal() {
             const modal = document.getElementById('match-podium-modal');
             if (modal) {
                 modal.classList.add('hidden');
@@ -4035,7 +4438,7 @@ function updateGoogleUI() {
             }
         };
 
-        window.toggleTacticalPingWheel = function(force) {
+        function toggleTacticalPingWheel(force) {
             const wheel = document.getElementById('tactical-ping-wheel');
             if (!wheel) return;
             if (force !== undefined) {
@@ -4052,7 +4455,7 @@ function updateGoogleUI() {
             }
         };
 
-        window.toggleRadialWeaponMenu = function(force) {
+        function toggleRadialWeaponMenu(force) {
             const radial = document.getElementById('radial-weapon-menu');
             if (!radial) return;
             if (force !== undefined) {
@@ -4069,7 +4472,7 @@ function updateGoogleUI() {
             }
         };
 
-        window.selectWeaponFromRadial = function(weaponType) {
+        function selectWeaponFromRadial(weaponType) {
             window.toggleRadialWeaponMenu(false);
             if (player && typeof player.setPrimaryWeapon === 'function') {
                 player.setPrimaryWeapon(weaponType);
@@ -4079,7 +4482,7 @@ function updateGoogleUI() {
             if (typeof playSound === 'function') playSound('click');
         };
 
-        window.triggerTacticalPing = function(type, emote, text) {
+        function triggerTacticalPing(type, emote, text) {
             toggleTacticalPingWheel(false);
             if (!socket || !isSocketConnected || !player) {
                 // Local demo ping
@@ -4603,15 +5006,31 @@ socket.on('disconnect', () => {
                 });
 
                 socket.on('remote_shoot', (data) => {
-                    spawnPlayerBullet(data.x, data.y, data.angle, data.speed, data.damage, data.isParried, data.isPiercing, true, true);
-                    playSound('shoot');
+                    if (!data) return;
+                    const angle = typeof data.angle === 'number' ? data.angle : 0;
+                    const speed = data.speed || 22;
+                    const damage = data.damage || 14;
+                    spawnPlayerBullet(data.x || 0, data.y || 0, angle, speed, damage, !!data.isParried, !!data.isPiercing, true, true);
+                    
+                    if (data.weaponType === 'shotgun' || data.weaponType === 'double_barrel' || data.weaponType === 'flak_cannon') {
+                        playSound('shoot_shotgun');
+                    } else if (data.weaponType === 'railgun' || data.weaponType === 'anti_mat' || data.weaponType === 'thermal_sniper') {
+                        playSound('shoot_railgun');
+                    } else if (data.weaponType === 'lmg' || data.weaponType === 'minigun' || data.weaponType === 'cryo_cannon') {
+                        playSound('shoot_lmg');
+                    } else if (data.weaponType === 'rapid' || data.weaponType === 'tesla_smg' || data.weaponType === 'arc_emitter') {
+                        playSound('shoot_rapid');
+                    } else {
+                        playSound('shoot_blaster');
+                    }
                 });
 
                 socket.on('remote_action', (data) => {
-                    if (data.type === 'dash') {
+                    if (!data) return;
+                    if (data.type === 'dash' || data.action === 'dash') {
                         createExplosion(data.x, data.y, colors.dash, 25, 14);
                         triggerShockwave(data.x, data.y, colors.dash, 150);
-                    } else if (data.type === 'emp') {
+                    } else if (data.type === 'emp' || data.action === 'emp') {
                         createExplosion(data.x, data.y, colors.energy, 80, 22);
                         triggerShockwave(data.x, data.y, colors.energy, 320);
                     }
@@ -5038,7 +5457,7 @@ socket.on('disconnect', () => {
         // ====================================================================
         // CLOUD ACCOUNTS & CROSS-DEVICE SYNC LOGIC
         // ====================================================================
-        window.openCloudAccountModal = function() {
+        function openCloudAccountModal() {
             const modal = document.getElementById('cloud-account-modal');
             const msg = document.getElementById('cloud-auth-msg');
             const userInput = document.getElementById('cloud-username-input');
@@ -5052,7 +5471,7 @@ socket.on('disconnect', () => {
             }
         };
 
-        window.closeCloudAccountModal = function() {
+        function closeCloudAccountModal() {
             const modal = document.getElementById('cloud-account-modal');
             if (modal) {
                 modal.classList.add('hidden');
@@ -5060,7 +5479,7 @@ socket.on('disconnect', () => {
             }
         };
 
-        window.submitCloudAuth = function() {
+        function submitCloudAuth() {
             const userInput = document.getElementById('cloud-username-input');
             const pinInput = document.getElementById('cloud-pin-input');
             const msg = document.getElementById('cloud-auth-msg');
@@ -5118,7 +5537,7 @@ socket.on('disconnect', () => {
         // ====================================================================
         // ADMIN CONTROL PANEL & AUTHENTICATION LOGIC (Passkey: 145329ma)
         // ====================================================================
-        window.openAdminLoginModal = function() {
+        function openAdminLoginModal() {
             const modal = document.getElementById('admin-login-modal');
             const msg = document.getElementById('admin-login-msg');
             const passInput = document.getElementById('admin-pass-input');
@@ -5130,7 +5549,7 @@ socket.on('disconnect', () => {
             }
         };
 
-        window.closeAdminLoginModal = function() {
+        function closeAdminLoginModal() {
             const modal = document.getElementById('admin-login-modal');
             if (modal) {
                 modal.classList.add('hidden');
@@ -5138,7 +5557,7 @@ socket.on('disconnect', () => {
             }
         };
 
-        window.submitAdminLogin = function() {
+        function submitAdminLogin() {
             const passInput = document.getElementById('admin-pass-input');
             const password = (passInput ? passInput.value : '').trim();
             const msg = document.getElementById('admin-login-msg');
@@ -5169,7 +5588,7 @@ socket.on('disconnect', () => {
             }
         }
 
-        window.adminAuth = function(pass) {
+        function adminAuth(pass) {
             initMultiplayerSocket();
             if (pass === '145329ma') {
                 isUserAdmin = true;
@@ -5430,78 +5849,125 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (remotePlayers.size === 0) return;
 
             remotePlayers.forEach((rp, id) => {
-                // Smooth coordinates interpolation
-                rp.x = lerp(rp.x || rp.targetX, rp.targetX, 0.28 * frameFactor);
-                rp.y = lerp(rp.y || rp.targetY, rp.targetY, 0.28 * frameFactor);
-                rp.facingAngle = lerp(rp.facingAngle || rp.targetFacingAngle, rp.targetFacingAngle, 0.32 * frameFactor);
+                // Smooth coordinates interpolation with dead reckoning
+                const dtFactor = Math.min(1.0, 0.32 * frameFactor);
+                rp.x = lerp(rp.x || rp.targetX, rp.targetX, dtFactor);
+                rp.y = lerp(rp.y || rp.targetY, rp.targetY, dtFactor);
 
-                if (rp.x < camX - 100 || rp.x > camX + width + 100 || rp.y < camY - 100 || rp.y > camY + height + 100) return;
+                // Shortest-distance circular angular interpolation
+                const curAngle = rp.facingAngle !== undefined ? rp.facingAngle : (rp.targetFacingAngle || 0);
+                const targetA = rp.targetFacingAngle !== undefined ? rp.targetFacingAngle : curAngle;
+                let diff = targetA - curAngle;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                rp.facingAngle = curAngle + diff * Math.min(1.0, 0.42 * frameFactor);
+
+                if (rp.x < camX - 120 || rp.x > camX + width + 120 || rp.y < camY - 120 || rp.y > camY + height + 120) return;
 
                 ctx.save();
                 ctx.translate(rp.x, rp.y);
                 ctx.rotate(rp.facingAngle + Math.PI / 2);
 
+                const remoteSkin = rp.skin || 'default';
+                const remoteClass = rp.chassis || 'assault';
+                const r = rp.radius || 16;
+                const now = performance.now();
+
                 // Engine flame
-                let speedMag = Math.hypot(rp.vx || 0, rp.vy || 0);
-                if (speedMag > 0.3) {
-                    let flameLength = 12 + Math.random() * 6 + speedMag * 2;
+                const speedMag = Math.hypot(rp.vx || 0, rp.vy || 0);
+                if (speedMag > 0.15 || rp.isDashing) {
+                    let flameLength = 14 + Math.random() * 8 + speedMag * 2.5;
+                    if (rp.isDashing) flameLength *= 1.8;
                     ctx.beginPath();
                     ctx.moveTo(-5, 9);
                     ctx.lineTo(0, 9 + flameLength);
                     ctx.lineTo(5, 9);
-                    ctx.fillStyle = rp.overchargeActive ? '#ff0055' : (rp.chassis === 'quantum' ? '#bd00ff' : '#00ff88');
+                    ctx.closePath();
+                    ctx.fillStyle = rp.overchargeActive ? '#ff0055' : (remoteSkin.includes('gold') ? '#ffd700' : (remoteSkin.includes('frost') ? '#00f3ff' : '#00ff88'));
                     ctx.fill();
                 }
 
-                let shipColor = (activeGameMode === 'online_pvp') ? '#ff00ea' : '#00ff88';
-                if (rp.overchargeActive) shipColor = '#ffaa00';
-
-                let r = rp.radius || 18;
-
-                // Render chassis according to archetype
-                if (rp.chassis === 'titan') {
-                    ctx.beginPath();
-                    ctx.moveTo(0, -r * 1.3);
-                    ctx.lineTo(r * 1.3, -r * 0.4);
-                    ctx.lineTo(r * 1.4, r * 1.1);
-                    ctx.lineTo(r * 0.6, r * 0.8);
-                    ctx.lineTo(0, r * 0.95);
-                    ctx.lineTo(-r * 0.6, r * 0.8);
-                    ctx.lineTo(-r * 1.4, r * 1.1);
-                    ctx.lineTo(-r * 1.3, -r * 0.4);
-                    ctx.closePath();
-                    ctx.fillStyle = shipColor; ctx.fill();
-                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.0; ctx.stroke();
-                } else if (rp.chassis === 'quantum') {
-                    ctx.beginPath();
-                    ctx.moveTo(0, -r * 1.6);
-                    ctx.lineTo(r * 1.1, r * 0.7);
-                    ctx.lineTo(r * 0.4, r * 0.5);
-                    ctx.lineTo(0, r * 1.2);
-                    ctx.lineTo(-r * 0.4, r * 0.5);
-                    ctx.lineTo(-r * 1.1, r * 0.7);
-                    ctx.closePath();
-                    ctx.fillStyle = shipColor; ctx.fill();
-                    ctx.strokeStyle = '#bd00ff'; ctx.lineWidth = 2.0; ctx.stroke();
+                // Render authentic ship geometry with equipped skin
+                if (typeof drawCustomShipGeometry === 'function' && remoteSkin !== 'default') {
+                    drawCustomShipGeometry(ctx, remoteSkin, remoteClass, r, !!rp.isFiringUlt, !!rp.overchargeActive, rp.isDashing ? 1000 : 0, now);
                 } else {
-                    // Striker
+                    let shipColor = (activeGameMode === 'online_pvp') ? '#ff00ea' : '#00ff88';
+                    if (rp.overchargeActive) shipColor = '#ffaa00';
+
+                    if (remoteClass === 'support') {
+                        ctx.beginPath();
+                        ctx.moveTo(0, -r * 1.3);
+                        ctx.lineTo(r * 1.3, -r * 0.4);
+                        ctx.lineTo(r * 1.4, r * 1.1);
+                        ctx.lineTo(r * 0.6, r * 0.8);
+                        ctx.lineTo(0, r * 0.95);
+                        ctx.lineTo(-r * 0.6, r * 0.8);
+                        ctx.lineTo(-r * 1.4, r * 1.1);
+                        ctx.lineTo(-r * 1.3, -r * 0.4);
+                        ctx.closePath();
+                        ctx.fillStyle = shipColor; ctx.fill();
+                        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.0; ctx.stroke();
+                    } else if (remoteClass === 'sniper') {
+                        ctx.beginPath();
+                        ctx.moveTo(0, -r * 1.7);
+                        ctx.lineTo(r * 0.9, r * 0.8);
+                        ctx.lineTo(r * 0.35, r * 0.5);
+                        ctx.lineTo(0, r * 1.2);
+                        ctx.lineTo(-r * 0.35, r * 0.5);
+                        ctx.lineTo(-r * 0.9, r * 0.8);
+                        ctx.closePath();
+                        ctx.fillStyle = shipColor; ctx.fill();
+                        ctx.strokeStyle = '#bd00ff'; ctx.lineWidth = 2.0; ctx.stroke();
+                    } else if (remoteClass === 'breacher') {
+                        ctx.beginPath();
+                        ctx.moveTo(0, -r * 1.3);
+                        ctx.lineTo(r * 1.5, -r * 0.2);
+                        ctx.lineTo(r * 1.2, r * 1.2);
+                        ctx.lineTo(0, r * 0.8);
+                        ctx.lineTo(-r * 1.2, r * 1.2);
+                        ctx.lineTo(-r * 1.5, -r * 0.2);
+                        ctx.closePath();
+                        ctx.fillStyle = shipColor; ctx.fill();
+                        ctx.strokeStyle = '#ff5500'; ctx.lineWidth = 2.4; ctx.stroke();
+                    } else {
+                        ctx.beginPath();
+                        ctx.moveTo(0, -r * 1.55);
+                        ctx.lineTo(r * 1.25, r * 0.95);
+                        ctx.lineTo(r * 0.6, r * 0.65);
+                        ctx.lineTo(0, r * 0.85);
+                        ctx.lineTo(-r * 0.6, r * 0.65);
+                        ctx.lineTo(-r * 1.25, r * 0.95);
+                        ctx.closePath();
+                        ctx.fillStyle = shipColor; ctx.fill();
+                        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.8; ctx.stroke();
+                    }
+
                     ctx.beginPath();
-                    ctx.moveTo(0, -r * 1.55);
-                    ctx.lineTo(r * 1.25, r * 0.95);
-                    ctx.lineTo(r * 0.6, r * 0.65);
-                    ctx.lineTo(0, r * 0.85);
-                    ctx.lineTo(-r * 0.6, r * 0.65);
-                    ctx.lineTo(-r * 1.25, r * 0.95);
-                    ctx.closePath();
-                    ctx.fillStyle = shipColor; ctx.fill();
-                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.8; ctx.stroke();
+                    if (typeof ctx.ellipse === 'function') { ctx.ellipse(0, -2, 3, 5, 0, 0, Math.PI * 2); } else { ctx.save(); ctx.translate(0, -2); ctx.rotate(0); ctx.scale(3, 5); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.restore(); }
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fill();
                 }
 
-                // Cockpit glow
-                ctx.beginPath();
-                ctx.ellipse(0, -2, 3, 5, 0, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
+                // Render remote weapon barrels
+                const wep = rp.weapon || 'blaster';
+                if (wep === 'shotgun' || wep === 'double_barrel' || wep === 'flak_cannon') {
+                    ctx.fillStyle = '#ff5500';
+                    ctx.fillRect(-7, -r * 1.3, 4, 8);
+                    ctx.fillRect(3, -r * 1.3, 4, 8);
+                } else if (wep === 'railgun' || wep === 'anti_mat' || wep === 'thermal_sniper') {
+                    ctx.fillStyle = '#bd00ff';
+                    ctx.fillRect(-2, -r * 2.0, 4, 18);
+                } else if (wep === 'lmg' || wep === 'minigun' || wep === 'cryo_cannon') {
+                    ctx.fillStyle = '#ffaa00';
+                    ctx.fillRect(-4, -r * 1.7, 8, 14);
+                } else if (wep === 'rapid' || wep === 'tesla_smg' || wep === 'arc_emitter') {
+                    ctx.fillStyle = '#00ff88';
+                    ctx.fillRect(-3, -r * 1.4, 6, 12);
+                } else {
+                    ctx.fillStyle = '#00f3ff';
+                    ctx.fillRect(-6, -r * 1.4, 3, 9);
+                    ctx.fillRect(3, -r * 1.4, 3, 9);
+                }
 
                 ctx.restore();
 
@@ -5755,7 +6221,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     ctx.shadowColor = wepBulletCol;
                     ctx.shadowBlur = (gameSettings.bloom && !gameSettings.lowEnd) ? 14 : 0;
                     ctx.beginPath();
-                    ctx.ellipse(0, bY, 3, 9, 0, 0, Math.PI * 2);
+                    if (typeof ctx.ellipse === 'function') { ctx.ellipse(0, bY, 3, 9, 0, 0, Math.PI * 2); } else { ctx.save(); ctx.translate(0, bY); ctx.rotate(0); ctx.scale(3, 9); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.restore(); }
                     ctx.fillStyle = wepBulletCol;
                     ctx.globalAlpha = bAlpha;
                     ctx.fill();
@@ -5792,7 +6258,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             }
         }
 
-        window.switchShopCategory = function(cat) {
+        function switchShopCategory(cat) {
             currentShopCategory = cat;
             document.querySelectorAll('.shop-cat-btn').forEach(b => b.classList.remove('active'));
             const clickedBtn = Array.from(document.querySelectorAll('.shop-cat-btn')).find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes(cat));
@@ -5803,7 +6269,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             renderShopUI();
         };
 
-        window.selectShopItemForPreview = function(item) {
+        function selectShopItemForPreview(item) {
             selectedShopPreviewItem = item;
             const rarityTag = document.getElementById('shop-preview-rarity');
             const titleTag = document.getElementById('shop-preview-title');
@@ -5891,7 +6357,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             updateShopPreviewCanvas();
         };
 
-        window.buyOrEquipMatchingSet = function(setId) {
+        function buyOrEquipMatchingSet(setId) {
             let s = COSMETIC_SETS[setId];
             if (!s) return;
             if (s.id === 'default') {
@@ -5954,11 +6420,11 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             }
         };
 
-        window.equipFullMatchingSet = function(setId) {
+        function equipFullMatchingSet(setId) {
             buyOrEquipMatchingSet(setId);
         };
 
-        window.renderShopUI = function() {
+        function renderShopUI() {
             const container = document.getElementById('shop-items-container');
             const creditsTag = document.getElementById('shop-credits-display');
             if (creditsTag) creditsTag.innerText = metaCurrency;
@@ -6016,12 +6482,12 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             updateShopPreviewCanvas();
         };
 
-        window.previewActionClick = function() {
+        function previewActionClick() {
             if (!selectedShopPreviewItem) return;
             buyOrEquipCosmetic(selectedShopPreviewItem.id, currentShopCategory, selectedShopPreviewItem.price);
         };
 
-        window.buyOrEquipCosmetic = function(itemId, category, price) {
+        function buyOrEquipCosmetic(itemId, category, price) {
             let categoryEquippedKey = category === 'skins' ? 'chassis' : 
                                       (category === 'weapons' ? 'weapon' : 
                                       (category === 'trails' ? 'trail' : 'ability'));
@@ -6337,7 +6803,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             hasMouseMoved = true;
             lastMouseMoveTime = performance.now();
             let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
-            let cameraZoom = isMobile ? 0.72 : 1.0;
+            cameraZoom = isMobile ? 0.72 : 1.0;
             mouseWorldX = camX + (mouseScreenX / cameraZoom);
             mouseWorldY = camY + (mouseScreenY / cameraZoom);
 
@@ -6368,7 +6834,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 hasMouseMoved = true;
                 lastMouseMoveTime = performance.now();
                 let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
-                let cameraZoom = isMobile ? 0.72 : 1.0;
+                cameraZoom = isMobile ? 0.72 : 1.0;
                 mouseWorldX = camX + (mouseScreenX / cameraZoom);
                 mouseWorldY = camY + (mouseScreenY / cameraZoom);
             }
@@ -6386,7 +6852,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     hasMouseMoved = true;
                     lastMouseMoveTime = performance.now();
                     let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
-                    let cameraZoom = isMobile ? 0.72 : 1.0;
+                    cameraZoom = isMobile ? 0.72 : 1.0;
                     mouseWorldX = camX + (mouseScreenX / cameraZoom);
                     mouseWorldY = camY + (mouseScreenY / cameraZoom);
                 }
@@ -6402,7 +6868,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     hasMouseMoved = true;
                     lastMouseMoveTime = performance.now();
                     let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
-                    let cameraZoom = isMobile ? 0.72 : 1.0;
+                    cameraZoom = isMobile ? 0.72 : 1.0;
                     mouseWorldX = camX + (mouseScreenX / cameraZoom);
                     mouseWorldY = camY + (mouseScreenY / cameraZoom);
                 }
@@ -7452,6 +7918,28 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     createExplosion(this.x, this.y, '#ffd700', 25, 12);
                     triggerShockwave(this.x, this.y, '#ffd700', 140);
                     spawnFloatingText(this.x, this.y - 45, ' تم نشر المدفع الآلي (TURRET)!', '#ffd700');
+                } else if (this.playerClass === 'breacher') {
+                    // Breacher Kinetic Shockwave Ram: Instantly surges forward, destroys bullets, stuns/damages nearby enemies
+                    this.dashInvulnerableTimer = 750;
+                    this.vx = Math.cos(this.facingAngle) * 26;
+                    this.vy = Math.sin(this.facingAngle) * 26;
+                    playSound('overcharge');
+                    createExplosion(this.x, this.y, '#ff5500', 38, 20);
+                    triggerShockwave(this.x, this.y, '#ff5500', 320);
+                    // Destroy enemy bullets in radius
+                    bullets = bullets.filter(b => !b || distSq(this.x, this.y, b.x, b.y) > 280**2);
+                    // Damage and push back enemies
+                    enemies.forEach(e => {
+                        if (e && !e.isDead && distSq(this.x, this.y, e.x, e.y) < 320**2) {
+                            e.health -= 70;
+                            e.stunTimer = 1600;
+                            let pushAngle = Math.atan2(e.y - this.y, e.x - this.x);
+                            e.x += Math.cos(pushAngle) * 110;
+                            e.y += Math.sin(pushAngle) * 110;
+                            spawnFloatingText(e.x, e.y - 20, '-70 KINETIC RAM!', '#ff5500');
+                        }
+                    });
+                    spawnFloatingText(this.x, this.y - 45, ' صدمة كاسحة (KINETIC RAM)!', '#ff5500');
                 } else if (this.playerClass === 'sniper') {
                     // Sniper Recon Scan: Reveals all enemies, highlights with radar and +25% vulnerability
                     isReconActive = true;
@@ -7719,7 +8207,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             }
 
             takeHit(bullet = null) {
-                if (this.invulnerableTimer > 0 || this.dashInvulnerableTimer > 0 || (this.bubbleShieldTimer > 0)) return false;
+                if (sandboxGodMode || this.invulnerableTimer > 0 || this.dashInvulnerableTimer > 0 || (this.bubbleShieldTimer > 0)) return false;
                 
                 if (this.shieldCharges > 0) {
                     this.shieldCharges--;
@@ -8026,14 +8514,16 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
 
             shootWeapon() {
                 if (this.isReloading) return;
-                if (this.ammo <= 0) {
+                if (!sandboxInfAmmo && this.ammo <= 0) {
                     this.reload();
                     return;
                 }
 
-                this.ammo--;
-                if (this.isUsingSecondary) this.secondaryAmmo = this.ammo;
-                else this.primaryAmmo = this.ammo;
+                if (!sandboxInfAmmo) {
+                    this.ammo--;
+                    if (this.isUsingSecondary) this.secondaryAmmo = this.ammo;
+                    else this.primaryAmmo = this.ammo;
+                }
 
                 // انكسار تخفي القناص فور إطلاق النار
                 if (this.playerClass === 'sniper' && this.isStealthed) {
@@ -8041,10 +8531,21 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     this.stationaryTimer = 0;
                 }
 
+                // تشغيل الصوت المخصص لكل سلاح
                 if (this.weapon === 'shotgun') playSound('shoot_shotgun');
-                else if (this.weapon === 'rapid') playSound('shoot_rapid');
-                else if (this.weapon === 'lmg') playSound('shoot_lmg');
+                else if (this.weapon === 'double_barrel') playSound('shoot_double_barrel');
+                else if (this.weapon === 'flak_cannon') playSound('shoot_flak_cannon');
+                else if (this.weapon === 'burst_ar') playSound('shoot_burst_ar');
+                else if (this.weapon === 'plasma_carbine') playSound('shoot_plasma_carbine');
                 else if (this.weapon === 'railgun') playSound('shoot_railgun');
+                else if (this.weapon === 'anti_mat') playSound('shoot_anti_mat');
+                else if (this.weapon === 'thermal_sniper') playSound('shoot_thermal_sniper');
+                else if (this.weapon === 'lmg') playSound('shoot_lmg');
+                else if (this.weapon === 'minigun') playSound('shoot_minigun');
+                else if (this.weapon === 'cryo_cannon') playSound('shoot_cryo_cannon');
+                else if (this.weapon === 'rapid') playSound('shoot_rapid');
+                else if (this.weapon === 'arc_emitter') playSound('shoot_arc_emitter');
+                else if (this.weapon === 'tesla_smg') playSound('shoot_tesla_smg');
                 else if (this.weapon === 'secondary_pistol') playSound('shoot_pistol');
                 else playSound('shoot_blaster');
 
@@ -8057,21 +8558,66 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 this.recoilX -= Math.cos(baseAngle) * recoilForce;
                 this.recoilY -= Math.sin(baseAngle) * recoilForce;
 
+                // إطلاق الرصاص المخصص لكل سلاح
                 if (this.weapon === 'shotgun') {
-                    pelletsCount += 5;
-                    for (let i = 0; i < pelletsCount; i++) { 
-                        let offset = (i - (pelletsCount - 1) / 2) * 0.12 + (Math.random() - 0.5) * 0.04; 
+                    for (let i = 0; i < 7; i++) { 
+                        let offset = (i - 3) * 0.11 + (Math.random() - 0.5) * 0.04; 
                         spawnPlayerBullet(this.x, this.y, baseAngle + offset, this.bulletSpeed, dmgMod, false, false); 
                     }
-                } else if (this.weapon === 'rapid') {
-                    let offset = (Math.random() - 0.5) * 0.05;
-                    spawnPlayerBullet(this.x, this.y, baseAngle + offset, this.bulletSpeed, dmgMod, false, false); 
-                } else if (this.weapon === 'lmg') {
-                    let offset = (Math.random() - 0.5) * 0.08;
-                    spawnPlayerBullet(this.x, this.y, baseAngle + offset, this.bulletSpeed, dmgMod, false, false); 
+                } else if (this.weapon === 'double_barrel') {
+                    for (let i = 0; i < 14; i++) { 
+                        let offset = (i - 6.5) * 0.09 + (Math.random() - 0.5) * 0.06; 
+                        spawnPlayerBullet(this.x, this.y, baseAngle + offset, this.bulletSpeed, dmgMod * 1.1, false, false); 
+                    }
+                    triggerShockwave(this.x, this.y, '#ff3300', 80);
+                    if (gameSettings.shake) screenShakeTime = 120;
+                } else if (this.weapon === 'flak_cannon') {
+                    for (let i = 0; i < 5; i++) { 
+                        let offset = (i - 2) * 0.14 + (Math.random() - 0.5) * 0.05; 
+                        spawnPlayerBullet(this.x, this.y, baseAngle + offset, this.bulletSpeed, dmgMod * 1.3, false, true); 
+                    }
+                } else if (this.weapon === 'burst_ar') {
+                    for (let i = 0; i < 3; i++) {
+                        setTimeout(() => {
+                            if (player && !isGameOver) {
+                                let offset = (Math.random() - 0.5) * 0.03;
+                                spawnPlayerBullet(player.x, player.y, player.facingAngle + offset, player.bulletSpeed, dmgMod, false, false);
+                                playSound('shoot_blaster');
+                            }
+                        }, i * 65);
+                    }
+                } else if (this.weapon === 'plasma_carbine') {
+                    let offset = (Math.random() - 0.5) * 0.04;
+                    spawnPlayerBullet(this.x, this.y, baseAngle + offset, this.bulletSpeed, dmgMod, false, false);
                 } else if (this.weapon === 'railgun') {
                     spawnPlayerBullet(this.x, this.y, baseAngle, this.bulletSpeed, dmgMod * 1.6, false, true);
                     triggerShockwave(this.x, this.y, '#bd00ff', 90);
+                } else if (this.weapon === 'anti_mat') {
+                    spawnPlayerBullet(this.x, this.y, baseAngle, this.bulletSpeed, dmgMod * 2.5, false, true);
+                    triggerShockwave(this.x, this.y, '#e879f9', 140);
+                    if (gameSettings.shake) screenShakeTime = 180;
+                } else if (this.weapon === 'thermal_sniper') {
+                    spawnPlayerBullet(this.x, this.y, baseAngle, this.bulletSpeed, dmgMod * 1.4, false, true);
+                } else if (this.weapon === 'lmg') {
+                    let offset = (Math.random() - 0.5) * 0.08;
+                    spawnPlayerBullet(this.x, this.y, baseAngle + offset, this.bulletSpeed, dmgMod, false, false); 
+                } else if (this.weapon === 'minigun') {
+                    let offset = (Math.random() - 0.5) * 0.12;
+                    spawnPlayerBullet(this.x, this.y, baseAngle + offset, this.bulletSpeed, dmgMod * 0.85, false, false);
+                } else if (this.weapon === 'cryo_cannon') {
+                    let offset = (Math.random() - 0.5) * 0.10;
+                    spawnPlayerBullet(this.x, this.y, baseAngle + offset, this.bulletSpeed, dmgMod, false, false);
+                } else if (this.weapon === 'rapid') {
+                    let offset = (Math.random() - 0.5) * 0.05;
+                    spawnPlayerBullet(this.x, this.y, baseAngle + offset, this.bulletSpeed, dmgMod, false, false); 
+                } else if (this.weapon === 'arc_emitter') {
+                    spawnPlayerBullet(this.x, this.y, baseAngle, this.bulletSpeed, dmgMod * 1.2, false, true);
+                    let offset1 = 0.15, offset2 = -0.15;
+                    spawnPlayerBullet(this.x, this.y, baseAngle + offset1, this.bulletSpeed * 0.9, dmgMod * 0.7, false, true);
+                    spawnPlayerBullet(this.x, this.y, baseAngle + offset2, this.bulletSpeed * 0.9, dmgMod * 0.7, false, true);
+                } else if (this.weapon === 'tesla_smg') {
+                    let offset = (Math.random() - 0.5) * 0.06;
+                    spawnPlayerBullet(this.x, this.y, baseAngle + offset, this.bulletSpeed, dmgMod, false, true);
                 } else if (this.weapon === 'secondary_pistol') {
                     spawnPlayerBullet(this.x, this.y, baseAngle, this.bulletSpeed, dmgMod, false, false);
                 } else {
@@ -8081,7 +8627,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     }
                 }
 
-                if (this.ammo <= 0) {
+                if (!sandboxInfAmmo && this.ammo <= 0) {
                     this.reload();
                 }
                 updateVitalsAndAmmoHUD();
@@ -8296,6 +8842,26 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     ctx.closePath();
                     ctx.fillStyle = shipColor; ctx.fill();
                     ctx.strokeStyle = '#bd00ff'; ctx.lineWidth = 2.2; ctx.stroke();
+                } else if (this.playerClass === 'breacher') {
+                    // الكاسر: مدرعة هجومية ثقيلة برؤوس كاسحة ودروع أمامية
+                    ctx.beginPath();
+                    ctx.moveTo(0, -this.radius * 1.5);
+                    ctx.lineTo(this.radius * 1.3, -this.radius * 0.8);
+                    ctx.lineTo(this.radius * 1.4, this.radius * 0.9);
+                    ctx.lineTo(this.radius * 0.7, this.radius * 1.2);
+                    ctx.lineTo(0, this.radius * 0.8);
+                    ctx.lineTo(-this.radius * 0.7, this.radius * 1.2);
+                    ctx.lineTo(-this.radius * 1.4, this.radius * 0.9);
+                    ctx.lineTo(-this.radius * 1.3, -this.radius * 0.8);
+                    ctx.closePath();
+                    ctx.fillStyle = shipColor; ctx.fill();
+                    ctx.strokeStyle = '#ff5500'; ctx.lineWidth = 3.0; ctx.stroke();
+                    // درع الصدمة الأمامي
+                    ctx.beginPath();
+                    ctx.moveTo(-this.radius * 0.9, -this.radius * 0.9);
+                    ctx.lineTo(0, -this.radius * 1.55);
+                    ctx.lineTo(this.radius * 0.9, -this.radius * 0.9);
+                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5; ctx.stroke();
                 } else {
                     // الهجومي: مقاتلة اعتراضية حادة
                     drawCustomShipGeometry(ctx, 'default', this.playerClass, this.radius, this.isFiringUlt, this.overchargeActive, this.sprintTimer, performance.now());
@@ -8573,7 +9139,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 if (combo >= 15) pullRadius *= 1.35;
                 if (player) {
                     let dToPlayer = dist(this.x, this.y, player.x, player.y);
-                    if (dToPlayer < pullRadius) { this.x += ((player.x - this.x) / dToPlayer) * 5.0 * frameFactor * timeScale; this.y += ((player.y - this.y) / dToPlayer) * 5.0 * frameFactor * timeScale; }
+                    if (dToPlayer < pullRadius) { this.x += ((player.x - this.x) / (dToPlayer || 1)) * 5.0 * frameFactor * timeScale; this.y += ((player.y - this.y) / (dToPlayer || 1)) * 5.0 * frameFactor * timeScale; }
                 }
             }
             draw() {
@@ -8595,7 +9161,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 if (combo >= 15) pullRadius *= 1.35;
                 if (player) {
                     let dToPlayer = dist(this.x, this.y, player.x, player.y);
-                    if (dToPlayer < pullRadius) { this.x += ((player.x - this.x) / dToPlayer) * 5.6 * frameFactor * timeScale; this.y += ((player.y - this.y) / dToPlayer) * 5.6 * frameFactor * timeScale; }
+                    if (dToPlayer < pullRadius) { this.x += ((player.x - this.x) / (dToPlayer || 1)) * 5.6 * frameFactor * timeScale; this.y += ((player.y - this.y) / (dToPlayer || 1)) * 5.6 * frameFactor * timeScale; }
                 }
             }
             draw() {
@@ -8631,8 +9197,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     let dToPlayer = dist(this.x, this.y, player.x, player.y);
                     if (dToPlayer < pullRadius) {
                         let pullSpeed = 6.8 * frameFactor * timeScale;
-                        this.x += ((player.x - this.x) / dToPlayer) * pullSpeed;
-                        this.y += ((player.y - this.y) / dToPlayer) * pullSpeed;
+                        this.x += ((player.x - this.x) / (dToPlayer || 1)) * pullSpeed;
+                        this.y += ((player.y - this.y) / (dToPlayer || 1)) * pullSpeed;
                     }
                     if (dToPlayer < player.radius + 16) {
                         player.replenishAmmo(this.amount);
@@ -8903,8 +9469,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     if (e && !e.isDead && e.type !== 'boss') {
                         let d = dist(this.x, this.y, e.x, e.y);
                         if (d < this.pullRadius && d > 15) {
-                            e.x += ((this.x - e.x) / d) * 1.8 * frameFactor * timeScale;
-                            e.y += ((this.y - e.y) / d) * 1.8 * frameFactor * timeScale;
+                            e.x += ((this.x - e.x) / (d || 1)) * 1.8 * frameFactor * timeScale;
+                            e.y += ((this.y - e.y) / (d || 1)) * 1.8 * frameFactor * timeScale;
                         }
                     }
                 }
@@ -9001,7 +9567,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 ctx.strokeStyle = coreCol;
                 ctx.lineWidth = 1.5;
                 ctx.beginPath();
-                ctx.roundRect(-110, -18, 220, 36, 8);
+                if (typeof ctx.roundRect === 'function') { ctx.roundRect(-110, -18, 220, 36, 8); } else { ctx.rect(-110, -18, 220, 36); }
                 ctx.fill();
                 ctx.stroke();
 
@@ -9141,6 +9707,67 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 } else if (type === 'volatile') {
                     this.name = this.isElite ? 'المنصهر العنيف' : 'المنصهر';
                     this.radius = 18; this.health = this.isElite ? 8 : 4; this.maxHealth = this.health;
+                // --- 20 NEW ENEMY TYPES ---
+                } else if (type === 'cyber_vanguard') {
+                    this.name = this.isElite ? 'نخبة الفانغارد' : 'فانغارد سيبراني';
+                    this.radius = 22; this.health = this.isElite ? 16 : 9; this.maxHealth = this.health;
+                } else if (type === 'plasma_mortar') {
+                    this.name = this.isElite ? 'هاون البلازما الفائق' : 'هاون البلازما';
+                    this.radius = 21; this.health = this.isElite ? 11 : 6.5; this.maxHealth = this.health;
+                } else if (type === 'tesla_coil') {
+                    this.name = this.isElite ? 'ملف تيسلا المشحون' : 'ملف تيسلا';
+                    this.radius = 19; this.health = this.isElite ? 10 : 6; this.maxHealth = this.health;
+                } else if (type === 'cryo_drifter') {
+                    this.name = this.isElite ? 'حائم الصقيع الأزلي' : 'حائم الجليد';
+                    this.radius = 18; this.health = this.isElite ? 9 : 5; this.maxHealth = this.health;
+                } else if (type === 'void_stalker') {
+                    this.name = this.isElite ? 'متسلل الفراغ الأعظم' : 'متسلل الفراغ';
+                    this.radius = 17; this.health = this.isElite ? 8 : 4.5; this.maxHealth = this.health;
+                } else if (type === 'cluster_bomber') {
+                    this.name = this.isElite ? 'قاذف العناقيد الثقيل' : 'قاذف القنابل العنقودية';
+                    this.radius = 23; this.health = this.isElite ? 13 : 7.5; this.maxHealth = this.health;
+                } else if (type === 'hyper_sniper') {
+                    this.name = this.isElite ? 'القناص الفائق المطور' : 'قناص الليزر الفائق';
+                    this.radius = 19; this.health = this.isElite ? 7 : 4; this.maxHealth = this.health;
+                } else if (type === 'magneto_drone') {
+                    this.name = this.isElite ? 'درون المغناطيس الكوني' : 'درون الجاذبية المغناطيسية';
+                    this.radius = 16; this.health = this.isElite ? 8 : 4.5; this.maxHealth = this.health;
+                } else if (type === 'echo_mimic') {
+                    this.name = this.isElite ? 'محاكي الصدى المتكيف' : 'المحاكي الصدى';
+                    this.radius = 18; this.health = this.isElite ? 10 : 5.5; this.maxHealth = this.health;
+                } else if (type === 'solar_rammer') {
+                    this.name = this.isElite ? 'الكاسح الشمسي الحارق' : 'الكاسح الشمسي';
+                    this.radius = 21; this.health = this.isElite ? 14 : 8; this.maxHealth = this.health;
+                } else if (type === 'glitch_specter') {
+                    this.name = this.isElite ? 'شبح الخلل المشوه' : 'طيف الخلل البرمجي';
+                    this.radius = 16; this.health = this.isElite ? 7 : 4; this.maxHealth = this.health;
+                } else if (type === 'ion_interceptor') {
+                    this.name = this.isElite ? 'معترض الأيونات السريع' : 'معترض الأيونات';
+                    this.radius = 16; this.health = this.isElite ? 7 : 3.8; this.maxHealth = this.health;
+                } else if (type === 'vortex_carrier') {
+                    this.name = this.isElite ? 'حاملة الدوامة الكبرى' : 'حاملة الدرونات';
+                    this.radius = 27; this.health = this.isElite ? 24 : 15; this.maxHealth = this.health;
+                } else if (type === 'blaze_hound') {
+                    this.name = this.isElite ? 'كلب اللهب المتوحش' : 'كلب اللهب';
+                    this.radius = 17; this.health = this.isElite ? 8 : 4.5; this.maxHealth = this.health;
+                } else if (type === 'quantum_wraith') {
+                    this.name = this.isElite ? 'شبح الكم المتعدد' : 'شبح الكم';
+                    this.radius = 18; this.health = this.isElite ? 9 : 5; this.maxHealth = this.health;
+                } else if (type === 'apex_dreadnought') {
+                    this.name = this.isElite ? 'المدرعة الفضائية العظمى' : 'مدرعة القمة المصغرة';
+                    this.radius = 32; this.health = this.isElite ? 35 : 22; this.maxHealth = this.health;
+                } else if (type === 'bio_hazard') {
+                    this.name = this.isElite ? 'الناشر السام المتفجر' : 'الناشر السام';
+                    this.radius = 20; this.health = this.isElite ? 11 : 6; this.maxHealth = this.health;
+                } else if (type === 'stasis_weaver') {
+                    this.name = this.isElite ? 'ناسج التجميد الأزلي' : 'ناسج التجميد الزمني';
+                    this.radius = 20; this.health = this.isElite ? 10 : 5.5; this.maxHealth = this.health;
+                } else if (type === 'plasma_hydra') {
+                    this.name = this.isElite ? 'هايدرا البلازما الثلاثية' : 'هايدرا البلازما';
+                    this.radius = 24; this.health = this.isElite ? 14 : 8; this.maxHealth = this.health;
+                } else if (type === 'orbital_sentinel') {
+                    this.name = this.isElite ? 'الحارس المداري الحصين' : 'الحارس المداري';
+                    this.radius = 22; this.health = this.isElite ? 15 : 9; this.maxHealth = this.health;
                 } else {
                     this.radius = this.isElite ? 20 : 15; this.health = this.isOverclocked ? 6 : (this.isElite ? 4 : 2.5); this.maxHealth = this.health;
                     this.name = this.isOverclocked ? 'أوفركلوك القناص' : (this.isElite ? 'نخبة القناص' : 'قناص');
@@ -9257,6 +9884,53 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     this.color = this.isOverclocked ? '#ff00aa' : (this.isElite ? colors.enemyElite : colors.enemyVolatile);
                     this.speed = 3.5 * diffMultiplier; this.shootInterval = 999999;
                     this.fuseTimer = 0; this.isIgnited = false;
+                // --- 20 NEW ENEMY SETUP PARAMS ---
+                } else if (this.type === 'cyber_vanguard') {
+                    this.color = '#38bdf8'; this.speed = 1.35 * diffMultiplier; this.shootInterval = Math.max(900, 1600 - (currentWave * 40)); this.bulletSpeed = 8.5;
+                } else if (this.type === 'plasma_mortar') {
+                    this.color = '#f97316'; this.speed = 0.8 * diffMultiplier; this.shootInterval = Math.max(2200, 3600 - (currentWave * 60)); this.bulletSpeed = 7.0;
+                } else if (this.type === 'tesla_coil') {
+                    this.color = '#eab308'; this.speed = 1.1 * diffMultiplier; this.shootInterval = 1800; this.bulletSpeed = 0;
+                } else if (this.type === 'cryo_drifter') {
+                    this.color = '#06b6d4'; this.speed = 1.8 * diffMultiplier; this.shootInterval = Math.max(650, 1200 - (currentWave * 30)); this.bulletSpeed = 8.8;
+                } else if (this.type === 'void_stalker') {
+                    this.color = '#a855f7'; this.speed = 2.2 * diffMultiplier; this.shootInterval = Math.max(1400, 2400 - (currentWave * 50)); this.bulletSpeed = 10.5;
+                    this.teleportCooldown = 3500;
+                } else if (this.type === 'cluster_bomber') {
+                    this.color = '#ef4444'; this.speed = 0.9 * diffMultiplier; this.shootInterval = Math.max(2000, 3400 - (currentWave * 50)); this.bulletSpeed = 6.8;
+                } else if (this.type === 'hyper_sniper') {
+                    this.color = '#ec4899'; this.speed = 0.95 * diffMultiplier; this.shootInterval = Math.max(1600, 2800 - (currentWave * 50)); this.bulletSpeed = 24.0;
+                    this.laserAimTimer = 0;
+                } else if (this.type === 'magneto_drone') {
+                    this.color = '#8b5cf6'; this.speed = 1.6 * diffMultiplier; this.shootInterval = 999999;
+                } else if (this.type === 'echo_mimic') {
+                    this.color = '#14b8a6'; this.speed = 1.4 * diffMultiplier; this.shootInterval = Math.max(800, 1500 - (currentWave * 40)); this.bulletSpeed = 9.2;
+                } else if (this.type === 'solar_rammer') {
+                    this.color = '#f59e0b'; this.speed = 3.2 * diffMultiplier; this.shootInterval = 999999;
+                } else if (this.type === 'glitch_specter') {
+                    this.color = '#00f3ff'; this.speed = 2.0 * diffMultiplier; this.shootInterval = Math.max(1200, 2000 - (currentWave * 40)); this.bulletSpeed = 9.0;
+                    this.phaseTimer = 0;
+                } else if (this.type === 'ion_interceptor') {
+                    this.color = '#6366f1'; this.speed = 3.0 * diffMultiplier; this.shootInterval = Math.max(600, 1100 - (currentWave * 30)); this.bulletSpeed = 11.0;
+                } else if (this.type === 'vortex_carrier') {
+                    this.color = '#3b82f6'; this.speed = 0.65 * diffMultiplier; this.shootInterval = 4500; this.bulletSpeed = 0;
+                } else if (this.type === 'blaze_hound') {
+                    this.color = '#dc2626'; this.speed = 2.9 * diffMultiplier; this.shootInterval = Math.max(800, 1400 - (currentWave * 35)); this.bulletSpeed = 8.5;
+                } else if (this.type === 'quantum_wraith') {
+                    this.color = '#d946ef'; this.speed = 1.7 * diffMultiplier; this.shootInterval = Math.max(1000, 1800 - (currentWave * 40)); this.bulletSpeed = 9.5;
+                    this.hasCloned = false;
+                } else if (this.type === 'apex_dreadnought') {
+                    this.color = '#fbbf24'; this.speed = 0.55 * diffMultiplier; this.shootInterval = 850; this.bulletSpeed = 8.0;
+                    this.turretAngle = 0;
+                } else if (this.type === 'bio_hazard') {
+                    this.color = '#84cc16'; this.speed = 1.25 * diffMultiplier; this.shootInterval = Math.max(1100, 2000 - (currentWave * 40)); this.bulletSpeed = 7.5;
+                } else if (this.type === 'stasis_weaver') {
+                    this.color = '#0284c7'; this.speed = 1.0 * diffMultiplier; this.shootInterval = 3600; this.bulletSpeed = 0;
+                } else if (this.type === 'plasma_hydra') {
+                    this.color = '#f43f5e'; this.speed = 1.3 * diffMultiplier; this.shootInterval = Math.max(750, 1300 - (currentWave * 30)); this.bulletSpeed = 8.0;
+                } else if (this.type === 'orbital_sentinel') {
+                    this.color = '#10b981'; this.speed = 1.1 * diffMultiplier; this.shootInterval = Math.max(900, 1600 - (currentWave * 40)); this.bulletSpeed = 8.5;
+                    this.orbAngle = 0;
                 }
 
                 if (this.affix === 'frenzied') {
@@ -9457,8 +10131,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                         if (activeTacticalZone && activeTacticalZone.type === 'cryo' && distSq(this.x, this.y, activeTacticalZone.x, activeTacticalZone.y) < activeTacticalZone.radius**2) {
                             currentSpeed *= 0.30; // إبطاء وتجميد بنسبة 70% داخل حقل الصفر المطلق
                         }
-                        this.x += ((targetX - this.x) / d) * currentSpeed * frameFactor * timeScale;
-                        this.y += ((targetY - this.y) / d) * currentSpeed * frameFactor * timeScale;
+                        this.x += ((targetX - this.x) / (d || 1)) * currentSpeed * frameFactor * timeScale;
+                        this.y += ((targetY - this.y) / (d || 1)) * currentSpeed * frameFactor * timeScale;
                     }
                 }
 
@@ -9472,8 +10146,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                         if (dsq < minSep * minSep && dsq > 0.001) {
                             let dSep = Math.sqrt(dsq);
                             let pushForce = ((minSep - dSep) / minSep) * 1.5 * frameFactor;
-                            this.x += ((this.x - other.x) / dSep) * pushForce;
-                            this.y += ((this.y - other.y) / dSep) * pushForce;
+                            this.x += ((this.x - other.x) / (dSep || 1)) * pushForce;
+                            this.y += ((this.y - other.y) / (dSep || 1)) * pushForce;
                         }
                     }
                 }
@@ -9496,26 +10170,35 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 let targetX = player.x + (player.vx * 12), targetY = player.y + (player.vy * 12);
                 const angle = Math.atan2(targetY - this.y, targetX - this.x);
                 const spawnX = this.x + Math.cos(angle) * (this.radius + 6), spawnY = this.y + Math.sin(angle) * (this.radius + 6);
+                const isNearScreen = (this.x >= camX - 300 && this.x <= camX + width + 300 && this.y >= camY - 300 && this.y <= camY + height + 300);
 
                 if (this.type === 'architect') {
                     if (enemies.filter(e => e && !e.isDead && e.type === 'turret').length < 6) {
-                        enemies.push(new Enemy('turret', 1, false, this.x, this.y)); createExplosion(this.x, this.y, colors.enemyArchitect, 10, 4);
+                        enemies.push(new Enemy('turret', 1, false, this.x, this.y));
+                        createExplosion(this.x, this.y, colors.enemyArchitect, 10, 4);
+                        if (isNearScreen) playSound('shield');
                     }
                 } else if (this.type === 'swarm_queen') {
-                    if (enemies.length < 35) {
+                    if (enemies.length < 40) {
                         let spawnCount = this.isElite ? 4 : 3;
-                        for(let i=0; i < spawnCount; i++) enemies.push(new Enemy('micro_swarm', 1, false, this.x + (Math.random()-0.5)*30, this.y + (Math.random()-0.5)*30));
+                        for(let i=0; i < spawnCount; i++) {
+                            enemies.push(new Enemy('micro_swarm', 1, false, this.x + (Math.random()-0.5)*30, this.y + (Math.random()-0.5)*30));
+                        }
                         createExplosion(this.x, this.y, colors.enemySwarmQueen, 12, 6);
+                        if (isNearScreen) playNoiseBurst(pinkNoiseBuffer, 'bandpass', 3500, 800, 0.22, 0.08, 2.0);
                     }
                 } else if (this.type === 'chronomancer') {
                     enemyTimeBubbles.push(new EnemyTimeBubble(targetX, targetY));
-                    createExplosion(this.x, this.y, this.color, 12, 5); playSound('portal');
+                    createExplosion(this.x, this.y, this.color, 12, 5);
+                    if (isNearScreen) playSound('portal');
                 } else if (this.type === 'artillery') {
                     let predX = player.x + player.vx * 35, predY = player.y + player.vy * 35;
                     mortarWarnings.push(new MortarWarning(predX, predY));
-                    createExplosion(this.x, this.y, this.color, 8, 4); playSound('shoot_shotgun');
+                    createExplosion(this.x, this.y, this.color, 8, 4);
+                    if (isNearScreen) playSound('shoot_shotgun');
                 } else if (this.type === 'hacker') {
                     spawnEnemyBullet(spawnX, spawnY, angle, this.bulletSpeed, this, this.color, 6);
+                    if (isNearScreen) playSound('shoot_plasma_carbine');
                 } else if (['sniper', 'neon_shooter', 'phantom', 'turret', 'mirror', 'flanker'].includes(this.type)) {
                     if (this.isOverclocked) {
                         spawnEnemyBullet(spawnX, spawnY, angle - 0.16, this.bulletSpeed * 1.1, this, this.color);
@@ -9527,17 +10210,92 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     } else {
                         spawnEnemyBullet(spawnX, spawnY, angle, this.bulletSpeed, this, this.color);
                     }
+                    if (isNearScreen) {
+                        if (this.type === 'sniper') playSound('shoot_railgun');
+                        else if (this.type === 'turret') playSound('shoot_plasma_carbine');
+                        else playSound('shoot_pistol');
+                    }
                 } else if (this.type === 'burst') {
                     let count = this.isOverclocked ? 6 : (this.isElite ? 5 : 3), spread = 0.16;
-                    for (let i = 0; i < count; i++) { let offset = (i - (count - 1) / 2) * spread; spawnEnemyBullet(spawnX, spawnY, angle + offset, this.bulletSpeed, this, this.color); }
+                    for (let i = 0; i < count; i++) {
+                        let offset = (i - (count - 1) / 2) * spread;
+                        spawnEnemyBullet(spawnX, spawnY, angle + offset, this.bulletSpeed, this, this.color);
+                    }
+                    if (isNearScreen) playSound('shoot_burst_ar');
                 } else if (this.type === 'splitter') {
                     spawnEnemyBullet(spawnX, spawnY, angle - 0.12, this.bulletSpeed, this, this.color);
                     spawnEnemyBullet(spawnX, spawnY, angle + 0.12, this.bulletSpeed, this, this.color);
+                    if (isNearScreen) playSound('shoot_blaster');
                 } else if (this.type === 'orbiter') {
                     spawnEnemyBullet(spawnX, spawnY, angle, this.bulletSpeed, this, this.color);
                     spawnEnemyBullet(spawnX, spawnY, angle + Math.PI/2, this.bulletSpeed * 0.85, this, this.color);
+                    if (isNearScreen) playSound('shoot_rapid');
                 } else if (this.type === 'juggernaut') {
                     spawnEnemyBullet(spawnX, spawnY, angle, this.bulletSpeed, this, this.color, 8);
+                    if (isNearScreen) playSound('shoot_lmg');
+                } else if (this.type === 'cyber_vanguard') {
+                    spawnEnemyBullet(spawnX, spawnY, angle, this.bulletSpeed, this, this.color, 6);
+                    if (isNearScreen) playSound('shoot_blaster');
+                } else if (this.type === 'plasma_mortar') {
+                    let predX = player.x + (player.vx * 30), predY = player.y + (player.vy * 30);
+                    mortarWarnings.push(new MortarWarning(predX, predY));
+                    if (isNearScreen) playSound('shoot_shotgun');
+                } else if (this.type === 'cryo_drifter') {
+                    spawnEnemyBullet(spawnX, spawnY, angle, this.bulletSpeed, this, '#06b6d4', 5);
+                    if (isNearScreen) playSound('shoot_cryo_cannon');
+                } else if (this.type === 'void_stalker') {
+                    for (let i = -1; i <= 1; i++) {
+                        spawnEnemyBullet(this.x, this.y, angle + i * 0.18, this.bulletSpeed, this, '#a855f7', 4.5);
+                    }
+                    if (isNearScreen) playSound('shoot_plasma_carbine');
+                } else if (this.type === 'cluster_bomber') {
+                    spawnEnemyBullet(spawnX, spawnY, angle, this.bulletSpeed, this, '#ef4444', 9);
+                    if (isNearScreen) playSound('shoot_flak_cannon');
+                } else if (this.type === 'hyper_sniper') {
+                    spawnEnemyBullet(spawnX, spawnY, angle, this.bulletSpeed, this, '#ec4899', 5);
+                    if (isNearScreen) playSound('shoot_railgun');
+                } else if (this.type === 'echo_mimic') {
+                    for (let i = -1; i <= 1; i += 2) {
+                        spawnEnemyBullet(spawnX, spawnY, angle + i * 0.12, this.bulletSpeed, this, '#14b8a6', 5);
+                    }
+                    if (isNearScreen) playSound('shoot_rapid');
+                } else if (this.type === 'glitch_specter') {
+                    spawnEnemyBullet(this.x, this.y, angle, this.bulletSpeed, this, '#00f3ff', 6);
+                    if (isNearScreen) playSound('shoot_blaster');
+                } else if (this.type === 'ion_interceptor') {
+                    spawnEnemyBullet(spawnX, spawnY, angle - 0.10, this.bulletSpeed, this, '#6366f1', 4.5);
+                    spawnEnemyBullet(spawnX, spawnY, angle + 0.10, this.bulletSpeed, this, '#6366f1', 4.5);
+                    if (isNearScreen) playSound('shoot_rapid');
+                } else if (this.type === 'vortex_carrier') {
+                    if (enemies.length < 40) {
+                        enemies.push(new Enemy('drone', 1, false, this.x - 20, this.y));
+                        enemies.push(new Enemy('drone', 1, false, this.x + 20, this.y));
+                        createExplosion(this.x, this.y, '#3b82f6', 14, 6);
+                        if (isNearScreen) playSound('shield');
+                    }
+                } else if (this.type === 'blaze_hound') {
+                    for (let i = -1; i <= 1; i++) {
+                        spawnEnemyBullet(spawnX, spawnY, angle + i * 0.15, this.bulletSpeed, this, '#dc2626', 5);
+                    }
+                    if (isNearScreen) playSound('shoot_plasma_carbine');
+                } else if (this.type === 'apex_dreadnought') {
+                    spawnEnemyBullet(spawnX, spawnY, angle - 0.2, this.bulletSpeed, this, '#fbbf24', 6);
+                    spawnEnemyBullet(spawnX, spawnY, angle + 0.2, this.bulletSpeed, this, '#fbbf24', 6);
+                    if (isNearScreen) playSound('shoot_lmg');
+                } else if (this.type === 'bio_hazard') {
+                    spawnEnemyBullet(spawnX, spawnY, angle, this.bulletSpeed, this, '#84cc16', 7);
+                    if (isNearScreen) playSound('shoot_blaster');
+                } else if (this.type === 'stasis_weaver') {
+                    enemyTimeBubbles.push(new EnemyTimeBubble(targetX, targetY));
+                    if (isNearScreen) playSound('portal');
+                } else if (this.type === 'plasma_hydra') {
+                    for (let i = -1; i <= 1; i++) {
+                        spawnEnemyBullet(spawnX, spawnY, angle + i * 0.18, this.bulletSpeed, this, '#f43f5e', 5.5);
+                    }
+                    if (isNearScreen) playSound('shoot_plasma_carbine');
+                } else if (this.type === 'orbital_sentinel') {
+                    spawnEnemyBullet(spawnX, spawnY, angle, this.bulletSpeed, this, '#10b981', 5);
+                    if (isNearScreen) playSound('shoot_blaster');
                 } else if (this.type === 'boss') {
                     let isPhase2 = this.health <= (this.maxHealth * 0.55);
                     let isPhase3 = this.health <= (this.maxHealth * 0.25);
@@ -9551,12 +10309,14 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                             for (let a = 0; a < Math.PI * 2; a += Math.PI / (numBullets / 2)) {
                                 spawnEnemyBullet(this.x, this.y, a, this.bulletSpeed * (isPhase3 ? 1.35 : 1.1), this, bulletColor);
                             }
+                            if (isNearScreen) playSound('shoot_flak_cannon');
                         } else {
                             let spreadCount = isPhase3 ? 5 : (isPhase2 ? 4 : 3);
                             for (let i = -spreadCount; i <= spreadCount; i++) {
                                 spawnEnemyBullet(spawnX, spawnY, angle + (i * 0.16), this.bulletSpeed * 1.3, this, this.color);
                             }
                             if (isPhase2) triggerShockwave(this.x, this.y, this.color, 140);
+                            if (isNearScreen) playSound('shoot_burst_ar');
                         }
                     } else if (this.bossTier === 2) {
                         if (this.attackPatternIndex % 2 === 1) {
@@ -9565,6 +10325,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                             for (let a = 0; a < Math.PI * 2; a += Math.PI / (numBullets / 2)) {
                                 spawnEnemyBullet(this.x, this.y, a + spiral, this.bulletSpeed * 1.15, this, this.color);
                             }
+                            if (isNearScreen) playSound('shoot_shotgun');
                         } else {
                             for (let i = -2; i <= 2; i += 2) {
                                 spawnEnemyBullet(this.x, this.y, angle + (i * 0.35), this.bulletSpeed * 0.9, this, '#ff5500', 8);
@@ -9573,6 +10334,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                                 let predX = player.x + (player.vx * 25), predY = player.y + (player.vy * 25);
                                 mortarWarnings.push(new MortarWarning(predX, predY));
                             }
+                            if (isNearScreen) playSound('shoot_lmg');
                         }
                     } else if (this.bossTier === 3) {
                         if (this.attackPatternIndex % 2 === 1) {
@@ -9580,6 +10342,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                             for (let i = -Math.floor(count/2); i <= Math.floor(count/2); i++) {
                                 spawnEnemyBullet(spawnX, spawnY, angle + (i * 0.16), this.bulletSpeed * 1.25, this, colors.enemyBurst);
                             }
+                            if (isNearScreen) playSound('shoot_burst_ar');
                         } else {
                             let spiral = now * 0.004;
                             for (let i = 0; i < 4; i++) {
@@ -9587,6 +10350,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                                 spawnEnemyBullet(this.x, this.y, crossAngle, this.bulletSpeed * 1.3, this, colors.enemyHacker, 6);
                                 spawnEnemyBullet(this.x, this.y, crossAngle + 0.1, this.bulletSpeed * 1.05, this, '#00ffcc');
                             }
+                            if (isNearScreen) playSound('shoot_plasma_carbine');
                         }
                     } else if (this.bossTier === 4) {
                         let spiral = now * 0.005, numBullets = isPhase3 ? 28 : (isPhase2 ? 20 : 14);
@@ -9598,6 +10362,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                             enemyTimeBubbles.push(new EnemyTimeBubble(player.x, player.y));
                             playSound('portal');
                         }
+                        if (isNearScreen) playSound('shoot_railgun');
                     } else if (this.bossTier === 5) {
                         let spiral = now * 0.006;
                         if (this.attackPatternIndex % 3 === 1) {
@@ -9606,17 +10371,19 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                                 spawnEnemyBullet(this.x, this.y, crossAngle, this.bulletSpeed * 1.3, this, '#ffd700', 7);
                                 spawnEnemyBullet(this.x, this.y, crossAngle + 0.07, this.bulletSpeed * 1.1, this, '#bd00ff');
                             }
+                            if (isNearScreen) playSound('shoot_plasma_carbine');
                         } else if (this.attackPatternIndex % 3 === 2) {
                             for (let i = -1; i <= 1; i++) {
                                 let predX = player.x + (player.vx * 30) + (i * 80), predY = player.y + (player.vy * 30) + (i * 80);
                                 mortarWarnings.push(new MortarWarning(predX, predY));
                             }
-                            playSound('shoot_shotgun');
+                            if (isNearScreen) playSound('shoot_shotgun');
                         } else {
                             let count = isPhase3 ? 32 : (isPhase2 ? 24 : 16);
                             for (let a = 0; a < Math.PI * 2; a += Math.PI / (count / 2)) {
                                 spawnEnemyBullet(this.x, this.y, a, this.bulletSpeed * 1.2, this, isPhase3 ? '#ff0055' : (isPhase2 ? '#f43f5e' : '#00f3ff'));
                             }
+                            if (isNearScreen) playSound('shoot_flak_cannon');
                         }
                     } else {
                         let spiral = now * 0.0065, numBullets = isPhase3 ? 32 : (isPhase2 ? 24 : 18);
@@ -9627,6 +10394,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                         if (player) {
                             mortarWarnings.push(new MortarWarning(player.x + player.vx * 25, player.y + player.vy * 25));
                         }
+                        if (isNearScreen) playSound('boss_roar');
                     }
                 }
             }
@@ -9806,6 +10574,101 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     ctx.beginPath(); ctx.arc(0, 0, this.radius + wobble, 0, Math.PI*2);
                     ctx.fillStyle = (Math.floor(performance.now()*0.1)%2===0) ? '#fff' : drawColor;
                     ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+                // --- 20 NEW ENEMY RENDERING SHAPES ---
+                } else if (this.type === 'cyber_vanguard') {
+                    // Front Riot Shield + Heavy Armor Body
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius + 6, -Math.PI / 3, Math.PI / 3);
+                    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 5; ctx.stroke();
+                } else if (this.type === 'plasma_mortar') {
+                    ctx.beginPath(); ctx.rect(-14, -14, 28, 28);
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fillStyle = '#ffaa00'; ctx.fill();
+                } else if (this.type === 'tesla_coil') {
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#eab308'; ctx.lineWidth = 3; ctx.stroke();
+                    for (let i = 0; i < 4; i++) {
+                        let a = (i * Math.PI) / 2;
+                        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * (this.radius + 7), Math.sin(a) * (this.radius + 7));
+                        ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2; ctx.stroke();
+                    }
+                } else if (this.type === 'cryo_drifter') {
+                    ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        let a = (i * Math.PI) / 3, r = (i % 2 === 0 ? this.radius : this.radius * 0.6);
+                        let px = Math.cos(a) * r, py = Math.sin(a) * r;
+                        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath(); ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                } else if (this.type === 'void_stalker') {
+                    ctx.beginPath(); ctx.moveTo(20, 0); ctx.lineTo(-14, 12); ctx.lineTo(-4, 0); ctx.lineTo(-14, -12); ctx.closePath();
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#a855f7'; ctx.lineWidth = 2; ctx.stroke();
+                } else if (this.type === 'cluster_bomber') {
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#fff'; ctx.lineWidth = 3; ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fillStyle = '#ef4444'; ctx.fill();
+                } else if (this.type === 'hyper_sniper') {
+                    ctx.beginPath(); ctx.moveTo(28, 0); ctx.lineTo(-16, 10); ctx.lineTo(-8, 0); ctx.lineTo(-16, -10); ctx.closePath();
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#ec4899'; ctx.lineWidth = 2.5; ctx.stroke();
+                    ctx.beginPath(); ctx.rect(4, -2, 22, 4); ctx.fillStyle = '#fff'; ctx.fill();
+                } else if (this.type === 'magneto_drone') {
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#8b5cf6'; ctx.lineWidth = 2.5; ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius + 8, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(139, 92, 246, ${Math.sin(performance.now() * 0.01) * 0.4 + 0.5})`; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+                } else if (this.type === 'echo_mimic') {
+                    ctx.beginPath(); ctx.rect(-12, -12, 24, 24); ctx.fillStyle = drawColor; ctx.fill();
+                    ctx.strokeStyle = '#14b8a6'; ctx.lineWidth = 2.5; ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+                } else if (this.type === 'solar_rammer') {
+                    ctx.beginPath(); ctx.moveTo(24, 0); ctx.lineTo(-12, 16); ctx.lineTo(-4, 0); ctx.lineTo(-12, -16); ctx.closePath();
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 3; ctx.stroke();
+                } else if (this.type === 'glitch_specter') {
+                    let offG = (Math.random() - 0.5) * 4;
+                    ctx.beginPath(); ctx.rect(-11 + offG, -11 - offG, 22, 22);
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#00f3ff'; ctx.lineWidth = 2; ctx.stroke();
+                } else if (this.type === 'ion_interceptor') {
+                    ctx.beginPath(); ctx.moveTo(22, 0); ctx.lineTo(-12, 10); ctx.lineTo(-6, 0); ctx.lineTo(-12, -10); ctx.closePath();
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#6366f1'; ctx.lineWidth = 2; ctx.stroke();
+                } else if (this.type === 'vortex_carrier') {
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#3b82f6'; ctx.lineWidth = 3.5; ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fillStyle = '#60a5fa'; ctx.fill();
+                } else if (this.type === 'blaze_hound') {
+                    ctx.beginPath(); ctx.moveTo(20, 0); ctx.lineTo(-10, 14); ctx.lineTo(-4, 0); ctx.lineTo(-10, -14); ctx.closePath();
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 2.5; ctx.stroke();
+                } else if (this.type === 'quantum_wraith') {
+                    ctx.beginPath(); ctx.moveTo(18, 0); ctx.lineTo(-12, 14); ctx.lineTo(-6, 0); ctx.lineTo(-12, -14); ctx.closePath();
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#d946ef'; ctx.lineWidth = 2; ctx.stroke();
+                } else if (this.type === 'apex_dreadnought') {
+                    ctx.beginPath(); ctx.rect(-24, -20, 48, 40);
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 3.5; ctx.stroke();
+                    ctx.beginPath(); ctx.arc(10, -10, 6, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+                    ctx.beginPath(); ctx.arc(10, 10, 6, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+                } else if (this.type === 'bio_hazard') {
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#84cc16'; ctx.lineWidth = 3; ctx.stroke();
+                    ctx.beginPath(); ctx.arc(0, 0, 7, 0, Math.PI * 2); ctx.fillStyle = '#a3e635'; ctx.fill();
+                } else if (this.type === 'stasis_weaver') {
+                    ctx.beginPath();
+                    for (let i = 0; i < 8; i++) {
+                        let a = (i * Math.PI) / 4, r = this.radius * (i % 2 === 0 ? 1.2 : 0.8);
+                        let px = Math.cos(a) * r, py = Math.sin(a) * r;
+                        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+                    }
+                    ctx.closePath(); ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#0284c7'; ctx.lineWidth = 2.5; ctx.stroke();
+                } else if (this.type === 'plasma_hydra') {
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#f43f5e'; ctx.lineWidth = 3; ctx.stroke();
+                } else if (this.type === 'orbital_sentinel') {
+                    ctx.beginPath(); ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = drawColor; ctx.fill(); ctx.strokeStyle = '#10b981'; ctx.lineWidth = 2.5; ctx.stroke();
+                    let oAng = performance.now() * 0.003;
+                    for (let i = 0; i < 3; i++) {
+                        let a = oAng + (i * Math.PI * 2) / 3, ox = Math.cos(a) * (this.radius + 12), oy = Math.sin(a) * (this.radius + 12);
+                        ctx.beginPath(); ctx.arc(ox, oy, 4, 0, Math.PI * 2); ctx.fillStyle = '#34d399'; ctx.fill();
+                    }
                 } else if (this.type === 'boss') {
                     let isPhase2 = this.health <= (this.maxHealth / 2);
                     ctx.rotate(-lookAngle); 
@@ -9923,7 +10786,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.stroke(); 
                 }
                 else if (this.owner && this.owner.type === 'burst') { 
-                    ctx.beginPath(); ctx.ellipse(0, 0, 7, 4, 0, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); 
+                    ctx.beginPath(); if (typeof ctx.ellipse === 'function') { ctx.ellipse(0, 0, 7, 4, 0, 0, Math.PI * 2); } else { ctx.save(); ctx.translate(0, 0); ctx.rotate(0); ctx.scale(7, 4); ctx.arc(0, 0, 1, 0, Math.PI * 2); ctx.restore(); } ctx.fillStyle = this.color; ctx.fill(); 
                     ctx.beginPath(); ctx.arc(0, 0, 2.5, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); 
                 }
                 else if (this.owner && this.owner.type === 'boss') { 
@@ -9955,6 +10818,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 this.vx *= Math.pow(0.92, frameFactor); this.vy *= Math.pow(0.92, frameFactor); this.life -= this.lifeSpeed * frameFactor * timeScale;
             }
             draw() {
+                if (this.x < camX - 40 || this.x > camX + (width / (cameraZoom || 1)) + 40 || this.y < camY - 40 || this.y > camY + (height / (cameraZoom || 1)) + 40) return;
                 if (this.x < camX - 30 || this.x > camX + width + 30 || this.y < camY - 30 || this.y > camY + height + 30) return;
                 ctx.save(); ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, Math.max(0.1, this.size), 0, Math.PI*2); ctx.fill(); ctx.restore();
             }
@@ -10157,6 +11021,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             reset(x, y, text, color) { this.x = x; this.y = y; this.text = text; this.color = color; this.life = 1.0; this.vy = -1.4; }
             update(frameFactor) { this.y += this.vy * frameFactor * timeScale; this.life -= 0.035 * frameFactor * timeScale; }
             draw() {
+                if (this.x < camX - 80 || this.x > camX + (width / (cameraZoom || 1)) + 80 || this.y < camY - 80 || this.y > camY + (height / (cameraZoom || 1)) + 80) return;
                 if (!gameSettings.floating || this.x < camX - 50 || this.x > camX + width + 50 || this.y < camY - 50 || this.y > camY + height + 50) return;
                 ctx.save(); ctx.globalAlpha = Math.max(0, this.life); ctx.fillStyle = this.color; ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(this.text, this.x, this.y); ctx.restore();
             }
@@ -10190,13 +11055,15 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             for (let dx = -1; dx <= 1; dx++) {
                 for (let dy = -1; dy <= 1; dy++) {
                     let key = `${cellX + dx},${cellY + dy}`;
-                    if (enemyGrid.has(key)) {
-                        let cell = enemyGrid.get(key);
-                        for (let i = 0; i < cell.length; i++) _nearbyTmp.push(cell[i]);
+                    let cell = enemyGrid.get(key);
+                    if (cell && cell.length > 0) {
+                        for (let i = 0; i < cell.length; i++) {
+                            if (!cell[i].isDead) _nearbyTmp.push(cell[i]);
+                        }
                     }
                 }
             }
-            return _nearbyTmp.length > 0 ? _nearbyTmp : enemies;
+            return _nearbyTmp;
         }
 
 
@@ -10328,7 +11195,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             setTimeout(() => { gameOverScreen.classList.remove('hidden'); }, 1000);
         }
 
-        window.restartGame = function() {
+        function restartGame() {
             if (gameOverScreen) gameOverScreen.classList.add('hidden');
             startGame();
         };
@@ -10880,61 +11747,60 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
 
         function loop(currentTime) {
             try {
-                let delta = currentTime - lastTime;
-            if (!gameSettings.highRefresh && delta < 15.5) { gameLoopId = requestAnimationFrame(loop); return; }
-            if (delta > 100) delta = 100;
-            lastTime = currentTime;
+                let rawDelta = currentTime - lastTime;
+                lastTime = currentTime;
+                // Perfect frame pacing: clamp delta cleanly between 1ms and 33.3ms for authentic 60/120/144/240Hz smoothness
+                let delta = Math.min(33.3, Math.max(1, rawDelta));
 
-            frameCount++;
-            if (currentTime - fpsTimer >= 500) {
-                currentRealFps = Math.round((frameCount * 1000) / (currentTime - fpsTimer));
-                frameCount = 0; fpsTimer = currentTime;
-                if (fpsHudTag && gameSettings.showFps) {
-                    fpsHudTag.innerText = `${currentRealFps} FPS`;
-                    fpsHudTag.style.color = currentRealFps >= 90 ? '#00ff88' : (currentRealFps >= 50 ? '#00f3ff' : '#ffaa00');
+                frameCount++;
+                if (currentTime - fpsTimer >= 500) {
+                    currentRealFps = Math.round((frameCount * 1000) / (currentTime - fpsTimer));
+                    frameCount = 0;
+                    fpsTimer = currentTime;
+                    if (fpsHudTag && gameSettings.showFps) {
+                        fpsHudTag.innerText = `${currentRealFps} FPS`;
+                        fpsHudTag.style.color = currentRealFps >= 90 ? '#00ff88' : (currentRealFps >= 50 ? '#00f3ff' : '#ffaa00');
+                    }
                 }
-            }
 
-            if (isGamePaused || isModalActive || (mainMenu && mainMenu.style.display !== 'none')) {
-                gameLoopId = requestAnimationFrame(loop);
-                return;
-            }
+                if (isGamePaused || isModalActive || (mainMenu && mainMenu.style.display !== 'none')) {
+                    gameLoopId = requestAnimationFrame(loop);
+                    return;
+                }
 
-            let frameFactor = delta / 16.666;
-            let effectiveDelta = delta;
-            if (hitStopDuration > 0) { hitStopDuration -= delta; effectiveDelta = 0; }
+                let frameFactor = delta / 16.666;
+                let effectiveDelta = delta;
+                if (hitStopDuration > 0) {
+                    hitStopDuration -= delta;
+                    effectiveDelta = 0;
+                }
 
-            let isMobile = (width < 850 || height < 600 || ('ontouchstart' in window));
-            let cameraZoom = isMobile ? 0.72 : 1.0;
-            let viewW = width / cameraZoom;
-            let viewH = height / cameraZoom;
+                let isMobile = (width < 850 || height < 600 || ('ontouchstart' in window));
+                cameraZoom = isMobile ? 0.72 : 1.0;
+                let viewW = width / cameraZoom;
+                let viewH = height / cameraZoom;
 
-            if (player) {
-                // تتبع سلس ناعم للكاميرا مع استشراف ديناميكي لاتجاه التصويب (Dynamic Look-Ahead)
-                let lookAheadDist = isMobile ? 35 : 60;
-                let lookDirX = Math.cos(player.facingAngle) * lookAheadDist;
-                let lookDirY = Math.sin(player.facingAngle) * lookAheadDist;
+                if (player) {
+                    // تتبع فائق النعومة للكاميرا مع استشراف ديناميكي لاتجاه التصويب
+                    let lookAheadDist = isMobile ? 35 : 60;
+                    let lookDirX = Math.cos(player.facingAngle) * lookAheadDist;
+                    let lookDirY = Math.sin(player.facingAngle) * lookAheadDist;
 
-                let targetCamX = Math.max(0, Math.min(WORLD_W - viewW, player.x + lookDirX - viewW / 2));
-                let targetCamY = Math.max(0, Math.min(WORLD_H - viewH, player.y + lookDirY - viewH / 2));
+                    let targetCamX = Math.max(0, Math.min(WORLD_W - viewW, player.x + lookDirX - viewW / 2));
+                    let targetCamY = Math.max(0, Math.min(WORLD_H - viewH, player.y + lookDirY - viewH / 2));
 
-                let camSmoothFactor = 1 - Math.pow(0.80, frameFactor);
-                camX = lerp(camX, targetCamX, camSmoothFactor);
-                camY = lerp(camY, targetCamY, camSmoothFactor);
-            }
+                    let camSmoothFactor = 1 - Math.pow(0.80, frameFactor);
+                    camX = lerp(camX, targetCamX, camSmoothFactor);
+                    camY = lerp(camY, targetCamY, camSmoothFactor);
+                }
 
-            // تحديث إحداثيات الفأرة بالنسبة لعالم اللعبة
-            mouseWorldX = camX + (mouseScreenX / cameraZoom);
-            mouseWorldY = camY + (mouseScreenY / cameraZoom);
+                // تحديث إحداثيات الفأرة بالنسبة لعالم اللعبة
+                mouseWorldX = camX + (mouseScreenX / cameraZoom);
+                mouseWorldY = camY + (mouseScreenY / cameraZoom);
 
-            const isOnlineMode = isMultiplayerMode();
-            if (isOnlineMode) {
-                timeScale = 1.0; // Permanently FORCE timeScale = 1.0 in online multiplayer!
-            } else {
-                const isPlayerActive = (isMoving || isAimJoystickActive || joystickPower > 0.05 || aimJoystickPower > 0.05 || isMouseDown || keys.w || keys.a || keys.s || keys.d || (player && Math.hypot(player.vx, player.vy) > 0.8)) && !isGameOver;
-                const targetTimeScale = (isMobileTouchActive() || isPlayerActive) ? 1.0 : 0.25;
-                timeScale = lerp(timeScale, targetTimeScale, 1 - Math.pow(0.82, frameFactor)); 
-            }
+                // سرعة زمنية ثابتة وسلسة 100% لإزالة أي تقطيع حركي (Micro-stutters) على الشاشات السريعة 120Hz/144Hz
+                timeScale = 1.0;
+                const isOnlineMode = isMultiplayerMode();
 
             if (!isGameOver && player) {
                 // مزامنة حالة وتحركات اللاعب المحلي مع سيرفر اللعب الجماعي
@@ -11009,30 +11875,32 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 
                 let dashPct = player.dashCooldown <= 0 ? 100 : Math.max(0, Math.min(100, (1 - (player.dashCooldown / player.dashMaxCooldown)) * 100));
 
-            // زر مهارة السبرنت النفاث: حصري لكلاس الهجوم (Assault) فقط
+            // زر المهارة التكتيكية النشطة: مدعوم لجميع الكلاسات الخمسة
             if (classSkillBtnHud && player) {
-                if (player.playerClass === 'assault') {
-                    classSkillBtnHud.style.display = 'flex';
-                    let skillPct = player.classSkillCooldown <= 0 ? 100 : Math.max(0, Math.min(100, (1 - (player.classSkillCooldown / player.classSkillMaxCooldown)) * 100));
-                    classSkillBtnHud.style.setProperty('--fill-pct', skillPct + '%');
-                    classSkillBtnHud.style.setProperty('--btn-color', '#00ff88');
-                    if (classSkillBtnTxt) classSkillBtnTxt.innerText = 'SPRINT';
-                    if (classSkillBtnSub) {
-                        classSkillBtnSub.innerText = skillPct >= 100 ? 'جاهز [E]' : (player.classSkillCooldown / 1000).toFixed(1) + 's';
-                    }
-                    if (skillPct >= 100) classSkillBtnHud.classList.add('ready');
-                    else classSkillBtnHud.classList.remove('ready');
-                } else {
-                    classSkillBtnHud.style.display = 'none';
+                classSkillBtnHud.style.display = 'flex';
+                let skillNames = { assault: 'SPRINT', breacher: 'RAM', sniper: 'CLOAK', engineer: 'TURRET', support: 'HEAL' };
+                let skillColors = { assault: '#00ff88', breacher: '#ff5500', sniper: '#bd00ff', engineer: '#ffd700', support: '#00f3ff' };
+                let skillPct = player.classSkillCooldown <= 0 ? 100 : Math.max(0, Math.min(100, (1 - (player.classSkillCooldown / (player.classSkillMaxCooldown || 6000))) * 100));
+                let sCol = skillColors[player.playerClass] || '#00ff88';
+                let sTxt = skillNames[player.playerClass] || 'SKILL';
+                
+                classSkillBtnHud.style.setProperty('--fill-pct', skillPct + '%');
+                classSkillBtnHud.style.setProperty('--btn-color', sCol);
+                if (classSkillBtnTxt) classSkillBtnTxt.innerText = sTxt;
+                if (classSkillBtnSub) {
+                    classSkillBtnSub.innerText = skillPct >= 100 ? 'جاهز [E]' : (player.classSkillCooldown / 1000).toFixed(1) + 's';
                 }
+                if (skillPct >= 100) classSkillBtnHud.classList.add('ready');
+                else classSkillBtnHud.classList.remove('ready');
             }
 
-            // تحديث زر مهارة الدعم الإضافية
+            // تحديث زر مهارة الدعم الإضافية (سحابة الدخان)
             if (classSkill2BtnHud) {
                 if (player && player.playerClass === 'support') {
                     classSkill2BtnHud.style.display = 'flex';
                     let s2Pct = player.classSkill2Cooldown <= 0 ? 100 : Math.max(0, Math.min(100, (1 - (player.classSkill2Cooldown / player.classSkill2MaxCooldown)) * 100));
                     classSkill2BtnHud.style.setProperty('--fill-pct', s2Pct + '%');
+                    classSkill2BtnHud.style.setProperty('--btn-color', '#ffd700');
                     if (classSkill2BtnSub) {
                         classSkill2BtnSub.innerText = s2Pct >= 100 ? 'جاهز [C]' : (player.classSkill2Cooldown / 1000).toFixed(1) + 's';
                     }
@@ -11090,17 +11958,50 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     spawnTimer += effectiveDelta * timeScale;
                     const spawnRate = Math.max(180, 520 - (currentWave * 25)), maxActiveEnemies = Math.min(50, 16 + Math.floor(currentWave * 2.5));
                     if (spawnTimer >= spawnRate && enemies.filter(e => e && !e.isDead).length < maxActiveEnemies) {
-                        // مصفوفة أعداء ديناميكية وذكية متنوعة منذ الموجات الأولى
-                        let pool = ['neon_shooter', 'dasher', 'phantom', 'volatile'];
-                        if (currentWave >= 2) pool.push('splitter', 'flanker', 'leech', 'mine');
-                        if (currentWave >= 3) pool.push('orbiter', 'mirror', 'turret', 'drone');
-                        if (currentWave >= 4) pool.push('chronomancer', 'swarm_queen', 'hacker');
-                        if (currentWave >= 5) pool.push('artillery', 'juggernaut', 'tether', 'architect');
-                        // -----------------------------
-                        let chosenType = pool[Math.floor(Math.random() * pool.length)];
-                        let isElite = (currentWave >= 2 && Math.random() < 0.30);
-                        enemies.push(new Enemy(chosenType, 1, isElite));
-                        enemiesLeftToSpawn--;
+                        // مصفوفة الأعداء الشاملة والمتوازنة بنسب متساوية لجميع الـ 40+ نوعاً
+                        // All 40+ Archetypes balanced and available across waves with tactical weighting
+                        let pool = [
+                            'neon_shooter', 'sniper', 'dasher', 'burst', 'mine', 'splitter', 'phantom', 
+                            'orbiter', 'juggernaut', 'architect', 'flanker', 'mirror', 'swarm_queen', 
+                            'leech', 'chronomancer', 'tether', 'artillery', 'hacker', 'volatile',
+                            'cyber_vanguard', 'plasma_mortar', 'tesla_coil', 'cryo_drifter', 'void_stalker', 
+                            'cluster_bomber', 'hyper_sniper', 'magneto_drone', 'echo_mimic', 'solar_rammer', 
+                            'glitch_specter', 'ion_interceptor', 'vortex_carrier', 'blaze_hound', 'quantum_wraith', 
+                            'apex_dreadnought', 'bio_hazard', 'stasis_weaver', 'plasma_hydra', 'orbital_sentinel'
+                        ];
+                        // Intelligent tactical squad and solo spawning system
+                        let spawnRoll = Math.random();
+                        let isElite = (currentWave >= 2 && Math.random() < Math.min(0.40, 0.15 + currentWave * 0.02));
+
+                        if (spawnRoll < 0.20 && enemiesLeftToSpawn >= 3 && enemies.filter(e => e && !e.isDead).length <= maxActiveEnemies - 3) {
+                            // Tactical Squad Formations
+                            let squads = [
+                                ['cyber_vanguard', 'hyper_sniper', 'flanker'], // Shield + Sniper + Flanker
+                                ['vortex_carrier', 'drone', 'drone'], // Carrier + Drones
+                                ['plasma_mortar', 'tesla_coil', 'stasis_weaver'], // Artillery + Shock + Freeze
+                                ['swarm_queen', 'leech', 'bio_hazard'], // Swarm + Drain + Acid
+                                ['solar_rammer', 'volatile', 'dasher'], // Rush Breachers
+                                ['chronomancer', 'void_stalker', 'glitch_specter'], // Reality Warpers
+                                ['apex_dreadnought', 'orbital_sentinel', 'mirror'], // Heavy Fortress
+                                ['ion_interceptor', 'blaze_hound', 'echo_mimic'] // Fast Skirmishers
+                            ];
+                            let chosenSquad = squads[Math.floor(Math.random() * squads.length)];
+                            let baseOffX = (Math.random() - 0.5) * 200;
+                            let baseOffY = (Math.random() - 0.5) * 200;
+                            chosenSquad.forEach((sType, idx) => {
+                                let sqX = player ? player.x + Math.cos(idx * 2) * (1100 + idx * 80) : WORLD_W / 2;
+                                let sqY = player ? player.y + Math.sin(idx * 2) * (1100 + idx * 80) : WORLD_H / 2;
+                                sqX = Math.max(100, Math.min(WORLD_W - 100, sqX));
+                                sqY = Math.max(100, Math.min(WORLD_H - 100, sqY));
+                                enemies.push(new Enemy(sType, 1, isElite && idx === 0, sqX, sqY));
+                                enemiesLeftToSpawn--;
+                            });
+                        } else {
+                            // Solo tactical spawn
+                            let chosenType = pool[Math.floor(Math.random() * pool.length)];
+                            enemies.push(new Enemy(chosenType, 1, isElite));
+                            enemiesLeftToSpawn--;
+                        }
                         spawnTimer = 0;
                     }
                 }
@@ -11181,7 +12082,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             // tactical zone updated in main update block
 
             for (let i = temporalRifts.length - 1; i >= 0; i--) { let tr = temporalRifts[i]; tr.timer -= effectiveDelta; if (tr.timer <= 0) temporalRifts.splice(i, 1); }
-            for (let i = cinematicShockwaves.length - 1; i >= 0; i--) { let sw = cinematicShockwaves[i]; if (!sw || sw.isDead) { let rsw = cinematicShockwaves.splice(i, 1)[0]; if (rsw && shockwavePool.length < 15) shockwavePool.push(rsw); continue; } sw.update(frameFactor); }
+            for (let i = shockwaves.length - 1; i >= 0; i--) { let sw = shockwaves[i]; if (!sw || sw.isDead) { let rsw = shockwaves.splice(i, 1)[0]; if (rsw && shockwavePool.length < 15) shockwavePool.push(rsw); continue; } sw.update(frameFactor); }
 
             for (let i = playerMines.length - 1; i >= 0; i--) {
                 let m = playerMines[i];
@@ -11743,8 +12644,6 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             for (let b of bullets) if (b) b.draw();
             for (let pb of playerBullets) if (pb) pb.draw();
             for (let pt of particles) if (pt) pt.draw();
-            updateAndDrawShockwaves(effectiveDelta, frameFactor);
-            updateAndDrawMuzzleFlashes(effectiveDelta);
             for (let ft of floatingTexts) if (ft) ft.draw();
             if (isMultiplayerMode()) {
                 drawAndInterpolateRemotePlayers(frameFactor);
@@ -11836,3 +12735,75 @@ document.addEventListener('DOMContentLoaded', () => {
         el.addEventListener('click', () => playSound('ui_click'), { passive: true });
     });
 });
+
+
+// Explicit global window bindings for all interactive and modal functions
+if (typeof window !== 'undefined') window.getSvgIcon = getSvgIcon;
+if (typeof window !== 'undefined') window.forceRotateAndFullscreen = forceRotateAndFullscreen;
+if (typeof window !== 'undefined') window.triggerPwaInstall = triggerPwaInstall;
+if (typeof window !== 'undefined') window.openDailyRewardsModal = openDailyRewardsModal;
+if (typeof window !== 'undefined') window.closeDailyRewardsModal = closeDailyRewardsModal;
+if (typeof window !== 'undefined') window.claimDailyReward = claimDailyReward;
+if (typeof window !== 'undefined') window.toggleLanguage = toggleLanguage;
+if (typeof window !== 'undefined') window.openCustomRoomModal = openCustomRoomModal;
+if (typeof window !== 'undefined') window.closeCustomRoomModal = closeCustomRoomModal;
+if (typeof window !== 'undefined') window.switchCustomRoomTab = switchCustomRoomTab;
+if (typeof window !== 'undefined') window.executeCreateCustomRoom = executeCreateCustomRoom;
+if (typeof window !== 'undefined') window.executeJoinCustomRoomByCode = executeJoinCustomRoomByCode;
+if (typeof window !== 'undefined') window.copyLobbyRoomCode = copyLobbyRoomCode;
+if (typeof window !== 'undefined') window.toggleLobbyReadyStatus = toggleLobbyReadyStatus;
+if (typeof window !== 'undefined') window.hostLaunchCustomMatch = hostLaunchCustomMatch;
+if (typeof window !== 'undefined') window.leaveCustomLobbyRoom = leaveCustomLobbyRoom;
+if (typeof window !== 'undefined') window.sendLobbyChatMessage = sendLobbyChatMessage;
+if (typeof window !== 'undefined') window.spectatorCycleNext = spectatorCycleNext;
+if (typeof window !== 'undefined') window.spectatorCyclePrev = spectatorCyclePrev;
+if (typeof window !== 'undefined') window.openModeSelectModal = openModeSelectModal;
+if (typeof window !== 'undefined') window.closeModeSelectModal = closeModeSelectModal;
+if (typeof window !== 'undefined') window.openPerkDetailModal = openPerkDetailModal;
+if (typeof window !== 'undefined') window.closePerkDetailModal = closePerkDetailModal;
+if (typeof window !== 'undefined') window.togglePerkFromModal = togglePerkFromModal;
+if (typeof window !== 'undefined') window.selectClassAndRefresh = selectClassAndRefresh;
+if (typeof window !== 'undefined') window.openWeaponSelectorModal = openWeaponSelectorModal;
+if (typeof window !== 'undefined') window.closeWeaponSelectorModal = closeWeaponSelectorModal;
+if (typeof window !== 'undefined') window.handleGoogleCredentialResponse = handleGoogleCredentialResponse;
+if (typeof window !== 'undefined') window.triggerGoogleSignIn = triggerGoogleSignIn;
+if (typeof window !== 'undefined') window.unlinkGoogleAccount = unlinkGoogleAccount;
+if (typeof window !== 'undefined') window.openRankLeaderboardModal = openRankLeaderboardModal;
+if (typeof window !== 'undefined') window.closeRankLeaderboardModal = closeRankLeaderboardModal;
+if (typeof window !== 'undefined') window.switchLeaderboardCategory = switchLeaderboardCategory;
+if (typeof window !== 'undefined') window.toggleSandboxControlModal = toggleSandboxControlModal;
+if (typeof window !== 'undefined') window.closeSandboxControlModal = closeSandboxControlModal;
+if (typeof window !== 'undefined') window.toggleSandboxGodMode = toggleSandboxGodMode;
+if (typeof window !== 'undefined') window.toggleSandboxInfAmmo = toggleSandboxInfAmmo;
+if (typeof window !== 'undefined') window.toggleSandboxNoCooldown = toggleSandboxNoCooldown;
+if (typeof window !== 'undefined') window.setSandboxTimeScale = setSandboxTimeScale;
+if (typeof window !== 'undefined') window.sandboxSpawnEnemy = sandboxSpawnEnemy;
+if (typeof window !== 'undefined') window.sandboxSwitchClass = sandboxSwitchClass;
+if (typeof window !== 'undefined') window.sandboxSwitchWeapon = sandboxSwitchWeapon;
+if (typeof window !== 'undefined') window.sandboxClearEnemies = sandboxClearEnemies;
+if (typeof window !== 'undefined') window.sandboxDropCubes = sandboxDropCubes;
+if (typeof window !== 'undefined') window.sandboxDropGoldenCubes = sandboxDropGoldenCubes;
+if (typeof window !== 'undefined') window.sandboxMaxUpgradeMeta = sandboxMaxUpgradeMeta;
+if (typeof window !== 'undefined') window.sandboxSpawnOasis = sandboxSpawnOasis;
+if (typeof window !== 'undefined') window.sandboxSetWave = sandboxSetWave;
+if (typeof window !== 'undefined') window.showMatchVictoryPodium = showMatchVictoryPodium;
+if (typeof window !== 'undefined') window.closeMatchPodiumModal = closeMatchPodiumModal;
+if (typeof window !== 'undefined') window.toggleTacticalPingWheel = toggleTacticalPingWheel;
+if (typeof window !== 'undefined') window.toggleRadialWeaponMenu = toggleRadialWeaponMenu;
+if (typeof window !== 'undefined') window.selectWeaponFromRadial = selectWeaponFromRadial;
+if (typeof window !== 'undefined') window.triggerTacticalPing = triggerTacticalPing;
+if (typeof window !== 'undefined') window.openCloudAccountModal = openCloudAccountModal;
+if (typeof window !== 'undefined') window.closeCloudAccountModal = closeCloudAccountModal;
+if (typeof window !== 'undefined') window.submitCloudAuth = submitCloudAuth;
+if (typeof window !== 'undefined') window.openAdminLoginModal = openAdminLoginModal;
+if (typeof window !== 'undefined') window.closeAdminLoginModal = closeAdminLoginModal;
+if (typeof window !== 'undefined') window.submitAdminLogin = submitAdminLogin;
+if (typeof window !== 'undefined') window.adminAuth = adminAuth;
+if (typeof window !== 'undefined') window.switchShopCategory = switchShopCategory;
+if (typeof window !== 'undefined') window.selectShopItemForPreview = selectShopItemForPreview;
+if (typeof window !== 'undefined') window.buyOrEquipMatchingSet = buyOrEquipMatchingSet;
+if (typeof window !== 'undefined') window.equipFullMatchingSet = equipFullMatchingSet;
+if (typeof window !== 'undefined') window.renderShopUI = renderShopUI;
+if (typeof window !== 'undefined') window.previewActionClick = previewActionClick;
+if (typeof window !== 'undefined') window.buyOrEquipCosmetic = buyOrEquipCosmetic;
+if (typeof window !== 'undefined') window.restartGame = restartGame;

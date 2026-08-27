@@ -28,9 +28,33 @@
 
         * { box-sizing: border-box; user-select: none; -webkit-user-select: none; margin: 0; padding: 0; }
         body { overflow: hidden; background-color: var(--bg-color); font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; touch-action: none; width: 100vw; height: 100vh; }
-        #gameCanvas { display: block; width: 100vw; height: 100vh; image-rendering: auto; }
+        #gameCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: block;
+            image-rendering: auto;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+            z-index: 1;
+        }
         
-        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: env(safe-area-inset-top, 12px) 14px env(safe-area-inset-bottom, 12px) 14px; z-index: 10; }
+        #ui-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: env(safe-area-inset-top, 12px) 14px env(safe-area-inset-bottom, 12px) 14px;
+            z-index: 10;
+        }
         
         .hud-top-left-dock {
             position: absolute;
@@ -253,9 +277,9 @@
         .instructions { text-align: center; color: rgba(255, 255, 255, 0.5); font-size: 0.6rem; }
 
         .hud-action-btn {
-            position: absolute;
+            position: relative;
             border-radius: 50%;
-            display: none;
+            display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
@@ -340,67 +364,69 @@
             box-shadow: 0 0 8px rgba(0, 243, 255, 0.4);
         }
 
-        /* Ergonomic Ability Cluster (Arched around Right Aim Joystick) */
+        /* Tactical Ability Cluster (Responsive Dock on Desktop PC & Touch Cluster on Mobile) */
         #hud-abilities-cluster {
-            position: absolute;
+            position: fixed;
             bottom: max(14px, env(safe-area-inset-bottom, 14px));
             right: max(14px, env(safe-area-inset-right, 14px));
-            z-index: 26;
+            z-index: 30;
             pointer-events: none;
-            display: none;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 12px;
+            background: rgba(4, 9, 18, 0.75);
+            border: 1px solid rgba(0, 243, 255, 0.25);
+            border-radius: 40px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(0, 243, 255, 0.05);
+        }
+
+        #hud-abilities-cluster > * {
+            pointer-events: auto;
         }
 
         #hud-abilities-cluster.hidden {
             display: none !important;
         }
 
+        #hud-abilities-cluster .hud-action-btn {
+            position: relative !important;
+            bottom: auto !important;
+            right: auto !important;
+            width: 52px;
+            height: 52px;
+            flex-shrink: 0;
+            pointer-events: auto !important;
+        }
+
         #dash-btn-hud {
-            bottom: 16px;
-            right: 150px;
-            width: 62px;
-            height: 62px;
+            width: 58px !important;
+            height: 58px !important;
             --btn-color: var(--dash-color);
         }
         #class-skill-btn-hud {
-            bottom: 86px;
-            right: 150px;
-            width: 54px;
-            height: 54px;
             --btn-color: #00ff88;
         }
         #class-skill2-btn-hud {
-            bottom: 148px;
-            right: 150px;
-            width: 48px;
-            height: 48px;
             --btn-color: #ffd700;
         }
         #swap-weapon-btn-hud {
-            bottom: 16px;
-            right: 220px;
-            width: 52px;
-            height: 52px;
-            --btn-color: #bd00ff;
-        }
-        #reload-btn-hud {
-            bottom: 146px;
-            right: 18px;
-            width: 48px;
-            height: 48px;
             --btn-color: #00f3ff;
         }
+        #reload-btn-hud {
+            --btn-color: #38bdf8;
+        }
         #super-emp-btn-hud, #overcharge-btn-hud {
-            bottom: 80px;
-            right: 212px;
-            width: 48px;
-            height: 48px;
             --btn-color: var(--overcharge-color);
         }
+        #radial-trigger-btn-hud {
+            --btn-color: #f59e0b;
+        }
         #ult-btn-hud {
-            bottom: 146px;
-            right: 76px;
-            width: 52px;
-            height: 52px;
+            width: 58px !important;
+            height: 58px !important;
             --btn-color: var(--ult-color);
         }
 
@@ -518,13 +544,31 @@
         }
 
         @media (min-width: 900px) and (min-height: 600px) and (pointer: fine) {
-            /* Desktop HUD layout - Hide touch joysticks, overlay, and mobile touch button cluster on PC */
+            /* Desktop HUD layout - Hide touch joysticks but display ability cluster cleanly */
             .touch-controls-overlay,
             #touch-controls-container,
             #joystick-base,
-            #joystick-aim-base,
-            #hud-abilities-cluster {
+            #joystick-aim-base {
                 display: none !important;
+            }
+
+            #hud-abilities-cluster {
+                display: flex !important;
+                flex-direction: row;
+                gap: 12px;
+                bottom: 24px;
+                right: 28px;
+                pointer-events: none;
+            }
+
+            #hud-abilities-cluster .hud-action-btn {
+                position: relative !important;
+                bottom: auto !important;
+                right: auto !important;
+                width: 58px !important;
+                height: 58px !important;
+                pointer-events: auto !important;
+                cursor: pointer;
             }
         }
 
@@ -4891,8 +4935,8 @@ canvas#game-canvas {
     backdrop-filter: blur(12px);
 }
 
-@media screen and (orientation: portrait) and (max-width: 900px) {
-    .portrait-orientation-warning {
+@media screen and (orientation: portrait) and (max-width: 600px) and (pointer: coarse) and (hover: none) {
+    .portrait-orientation-warning:not(.hidden) {
         display: flex !important;
     }
 }
@@ -6185,9 +6229,8 @@ html[lang="en"] .shop-preview-info {
    ===================================================================
    =================================================================== */
 
-/* --- 1. PORTRAIT ORIENTATION WARNING FOR MOBILE --- */
-@media screen and (orientation: portrait) and (max-width: 950px) and (pointer: coarse) {
-    .portrait-orientation-warning {
+@media screen and (orientation: portrait) and (max-width: 600px) and (pointer: coarse) and (hover: none) {
+    .portrait-orientation-warning:not(.hidden) {
         display: flex !important;
         position: fixed !important;
         inset: 0 !important;
@@ -7729,81 +7772,9 @@ html[lang="en"] .shop-preview-info {
         transform: translate(-50%, -50%) !important;
     }
 
-    /* Ergonomic Ability Cluster (Clean Arc around Right Aim Joystick) */
-    #hud-abilities-cluster {
-        position: absolute !important;
-        bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
-        right: max(12px, env(safe-area-inset-right, 12px)) !important;
-        pointer-events: none !important;
-        z-index: 26 !important;
-    }
-
-    #hud-abilities-cluster > * {
-        pointer-events: auto !important;
-    }
-
-    #dash-btn-hud {
-        position: absolute !important;
-        bottom: 14px !important;
-        right: 144px !important;
-        width: 56px !important;
-        height: 56px !important;
-    }
-
-    #class-skill-btn-hud {
-        position: absolute !important;
-        bottom: 78px !important;
-        right: 144px !important;
-        width: 48px !important;
-        height: 48px !important;
-    }
-
-    #swap-weapon-btn-hud {
-        position: absolute !important;
-        bottom: 14px !important;
-        right: 208px !important;
+    #hud-abilities-cluster .hud-action-btn {
         width: 46px !important;
         height: 46px !important;
-    }
-
-    #super-emp-btn-hud, #overcharge-btn-hud {
-        position: absolute !important;
-        bottom: 70px !important;
-        right: 202px !important;
-        width: 44px !important;
-        height: 44px !important;
-    }
-
-    #ult-btn-hud {
-        position: absolute !important;
-        bottom: 138px !important;
-        right: 68px !important;
-        width: 48px !important;
-        height: 48px !important;
-    }
-
-    #reload-btn-hud {
-        position: absolute !important;
-        bottom: 138px !important;
-        right: 14px !important;
-        width: 44px !important;
-        height: 44px !important;
-    }
-
-    #class-skill2-btn-hud {
-        position: absolute !important;
-        bottom: 138px !important;
-        right: 126px !important;
-        width: 44px !important;
-        height: 44px !important;
-    }
-
-    #radial-trigger-btn-hud {
-        position: absolute !important;
-        bottom: 130px !important;
-        right: 182px !important;
-        width: 42px !important;
-        height: 42px !important;
     }
 
     .hud-action-btn .btn-text {
@@ -7915,4 +7886,183 @@ html[lang="en"] .shop-preview-info {
         padding: 2px 8px !important;
         font-size: 0.68rem !important;
     }
+}
+
+/* ====================================================================
+   TRUE SANDBOX MASTER PANEL & LEADERBOARD TABS STYLING
+   ==================================================================== */
+.sandbox-modal-card {
+    background: rgba(6, 12, 20, 0.97) !important;
+    border: 2px solid #00ff88 !important;
+    box-shadow: 0 0 45px rgba(0, 255, 136, 0.35), inset 0 0 25px rgba(0, 255, 136, 0.08) !important;
+    max-width: 860px !important;
+    width: 95vw !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+}
+
+.sandbox-modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px 20px;
+}
+
+.sandbox-section {
+    background: rgba(12, 22, 34, 0.85);
+    border: 1px solid rgba(0, 255, 136, 0.25);
+    border-radius: 10px;
+    padding: 12px 16px;
+}
+
+.sandbox-sec-title {
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: #00ff88;
+    margin-bottom: 10px;
+    letter-spacing: 0.5px;
+}
+
+.sandbox-btn-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.sandbox-toggle-btn, .sandbox-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(8, 16, 26, 0.9);
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Chakra Petch', sans-serif;
+    font-weight: 700;
+    font-size: 0.82rem;
+    transition: all 0.2s ease;
+}
+
+.sandbox-toggle-btn:hover, .sandbox-action-btn:hover {
+    border-color: #00ff88;
+    box-shadow: 0 0 14px rgba(0, 255, 136, 0.35);
+    transform: translateY(-1px);
+}
+
+.sandbox-toggle-btn.active {
+    border-color: #00ff88 !important;
+    background: rgba(0, 255, 136, 0.18) !important;
+    box-shadow: 0 0 18px rgba(0, 255, 136, 0.4) !important;
+}
+
+.sandbox-toggle-btn .sb-status {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: #8899a6;
+}
+
+.sandbox-toggle-btn.active .sb-status {
+    background: #00ff88;
+    color: #000000;
+    font-weight: 900;
+}
+
+.sandbox-time-btn-row, .sandbox-class-btn-row, .sandbox-wep-btn-row, .sandbox-drops-btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.sandbox-time-btn, .sb-class-btn, .sb-wep-btn, .sandbox-drop-btn {
+    background: rgba(14, 24, 38, 0.85);
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.80rem;
+    transition: all 0.2s ease;
+}
+
+.sandbox-time-btn.active, .sb-class-btn.active, .sb-wep-btn.active {
+    border-color: #00ff88;
+    background: rgba(0, 255, 136, 0.25);
+    color: #00ff88;
+    box-shadow: 0 0 12px rgba(0, 255, 136, 0.4);
+}
+
+.sandbox-select {
+    width: 100%;
+    background: rgba(8, 16, 26, 0.95);
+    border: 1.5px solid rgba(0, 255, 136, 0.4);
+    color: #ffffff;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.90rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    outline: none;
+}
+
+.sandbox-spawn-btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.rank-tab-btn {
+    background: rgba(14, 24, 38, 0.9);
+    border: 1.5px solid rgba(255, 255, 255, 0.18);
+    color: #8899a6;
+    padding: 8px 18px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 800;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.rank-tab-btn:hover, .rank-tab-btn.active {
+    color: #ffd700;
+    border-color: #ffd700;
+    background: rgba(255, 215, 0, 0.15);
+    box-shadow: 0 0 16px rgba(255, 215, 0, 0.35);
+}
+
+
+
+/* ===================================================================
+   MASTER STABILITY & MOBILE TOUCH POLISH (PHASE 2 & 5)
+   =================================================================== */
+html, body {
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    overscroll-behavior: none;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+#gameCanvas {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+.hud-action-btn {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#touch-controls-container, #joystick-base, #joystick-aim-base {
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
 }

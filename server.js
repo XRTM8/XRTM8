@@ -52,8 +52,9 @@ const io = new Server(server, {
         origin: "*",
         methods: ["GET", "POST"]
     },
-    pingInterval: 10000,
-    pingTimeout: 5000
+    pingInterval: 20000,
+    pingTimeout: 30000,
+    maxHttpBufferSize: 1e6
 });
 
 const PORT = process.env.PORT || 3000;
@@ -82,6 +83,34 @@ app.use(express.static(path.resolve(__dirname), {
 
 app.get('/', (req, res) => {
     res.sendFile(path.resolve(__dirname, 'index.html'));
+});
+
+app.get('/api/leaderboard', async (req, res) => {
+    try {
+        const topPlayers = await dbAll(`
+            SELECT username, level, trophies, pvp_kills, pvp_deaths, pve_revives, total_kills, highest_wave, credits
+            FROM players
+            ORDER BY trophies DESC, total_kills DESC, highest_wave DESC
+            LIMIT 50
+        `);
+        res.json({ success: true, leaderboard: topPlayers || [] });
+    } catch (e) {
+        res.json({ success: false, leaderboard: [], error: e.message });
+    }
+});
+
+app.get('/api/server-info', (req, res) => {
+    res.json({
+        onlineCount: activeSockets.size,
+        rooms: Array.from(gameRooms.values()).map(r => ({
+            id: r.id,
+            name: r.name,
+            mode: r.mode,
+            playerCount: r.players.size,
+            maxPlayers: r.maxPlayers,
+            isCustom: r.isCustom
+        }))
+    });
 });
 
 // ====================================================================
@@ -357,16 +386,22 @@ function dbAll(sql, params = []) {
         return new Promise((resolve, reject) => {
             db.all(sql, params, (err, rows) => {
                 if (err) reject(err);
-                else resolve(rows);
+                else resolve(rows || []);
             });
         });
     }
 
     return new Promise((resolve) => {
         const sqlUpper = sql.toUpperCase();
-        if (sqlUpper.includes('FROM PLAYERS ORDER BY TROPHIES')) {
-            const sorted = [...jsonDbState.players].sort((a, b) => (b.trophies || 0) - (a.trophies || 0));
-            resolve(sorted.slice(0, 25));
+        if (sqlUpper.includes('FROM PLAYERS')) {
+            const sorted = [...jsonDbState.players].sort((a, b) => {
+                const tropDiff = (b.trophies || 0) - (a.trophies || 0);
+                if (tropDiff !== 0) return tropDiff;
+                const killDiff = (b.total_kills || 0) - (a.total_kills || 0);
+                if (killDiff !== 0) return killDiff;
+                return (b.highest_wave || 0) - (a.highest_wave || 0);
+            });
+            resolve(sorted.slice(0, 50));
         } else {
             resolve([]);
         }
@@ -485,29 +520,45 @@ const playerMovementHistory = new Map(); // socketId -> { lastX, lastY, lastTime
 const playerShootHistory = new Map();    // socketId -> { lastShootTime, bulletCountInSec, resetSecTime }
 
 function verifyPlayerMovement(socket, newState) {
+    if (!newState || typeof newState.x !== 'number' || typeof newState.y !== 'number') return false;
     const now = Date.now();
-    const history = playerMovementHistory.get(socket.id);
+    let history = playerMovementHistory.get(socket.id);
     if (!history) {
         playerMovementHistory.set(socket.id, { lastX: newState.x, lastY: newState.y, lastTime: now, warnings: 0 });
         return true;
     }
 
-    const elapsedMs = Math.max(16, now - history.lastTime);
-    const maxAllowedSpeedUnitsPerSec = newState.isDashing ? 2200 : (newState.sprintActive ? 1100 : 650);
-    const maxAllowedDistance = (maxAllowedSpeedUnitsPerSec * (elapsedMs / 1000)) + 90; // with latency buffer
+    // If player is respawning, dead, or warped, reset anchor seamlessly
+    if (newState.isRespawn || newState.portalWarp || newState.isDead || (newState.health !== undefined && newState.health <= 0)) {
+        history.lastX = newState.x;
+        history.lastY = newState.y;
+        history.lastTime = now;
+        history.warnings = 0;
+        return true;
+    }
+
+    const elapsedMs = Math.max(16, Math.min(2000, now - history.lastTime));
+    const maxAllowedSpeedUnitsPerSec = newState.isDashing ? 2800 : (newState.sprintActive ? 1600 : 950);
+    const maxAllowedDistance = (maxAllowedSpeedUnitsPerSec * (elapsedMs / 1000)) + 300; // generous latency buffer
 
     const distanceTravelled = Math.hypot(newState.x - history.lastX, newState.y - history.lastY);
 
-    if (distanceTravelled > maxAllowedDistance && !newState.portalWarp) {
+    if (distanceTravelled > maxAllowedDistance) {
         history.warnings++;
-        if (history.warnings >= 8) {
-            console.error(`[BAN] [Anti-Cheat] Auto-disconnecting ${socket.id} for excessive movement delta manipulation.`);
-            socket.emit('banned_notification', { reason: 'تم فصلك تلقائياً بسبب تلاعب غير مسموح في الحركة.' });
-            socket.disconnect(true);
-            return false;
+        // Decay warnings slowly over time
+        if (history.warnings > 25) {
+            console.warn(`[WARN] [Anti-Cheat] Excess movement speed detected for ${socket.id} (${distanceTravelled.toFixed(0)}px vs max ${maxAllowedDistance.toFixed(0)}px). Correcting position.`);
+            history.warnings = 5;
         }
-        return false;
+        // Sync position to current to avoid perpetual distance accumulation
+        history.lastX = newState.x;
+        history.lastY = newState.y;
+        history.lastTime = now;
+        return true;
     }
+
+    // Decay warning count on valid movement
+    if (history.warnings > 0) history.warnings = Math.max(0, history.warnings - 0.1);
 
     history.lastX = newState.x;
     history.lastY = newState.y;
@@ -839,11 +890,24 @@ io.on('connection', async (socket) => {
 
         existingPlayer.x = state.x;
         existingPlayer.y = state.y;
-        existingPlayer.angle = state.angle || 0;
-        existingPlayer.hp = state.hp !== undefined ? state.hp : existingPlayer.hp;
+        existingPlayer.vx = typeof state.vx === 'number' ? state.vx : 0;
+        existingPlayer.vy = typeof state.vy === 'number' ? state.vy : 0;
+        existingPlayer.facingAngle = typeof state.facingAngle === 'number' ? state.facingAngle : (typeof state.angle === 'number' ? state.angle : 0);
+        existingPlayer.angle = existingPlayer.facingAngle;
+        existingPlayer.hp = state.health !== undefined ? state.health : (state.hp !== undefined ? state.hp : existingPlayer.hp);
+        existingPlayer.health = existingPlayer.hp;
+        existingPlayer.maxHealth = state.maxHealth || existingPlayer.maxHealth || 100;
         existingPlayer.shield = state.shield !== undefined ? state.shield : existingPlayer.shield;
+        existingPlayer.chassis = state.chassis || existingPlayer.chassis || 'assault';
+        existingPlayer.weapon = state.weapon || existingPlayer.weapon || 'blaster';
+        existingPlayer.skin = state.skin || existingPlayer.skin || 'default';
+        existingPlayer.username = meta.username || existingPlayer.username;
         existingPlayer.isDashing = !!state.isDashing;
         existingPlayer.sprintActive = !!state.sprintActive;
+        existingPlayer.overchargeActive = !!state.overchargeActive;
+        existingPlayer.isFiringUlt = !!state.isFiringUlt;
+        existingPlayer.score = state.score !== undefined ? state.score : existingPlayer.score;
+        existingPlayer.kills = state.kills !== undefined ? state.kills : existingPlayer.kills;
         existingPlayer.lastUpdate = Date.now();
     });
 
@@ -855,15 +919,22 @@ io.on('connection', async (socket) => {
         const meta = activeSockets.get(socket.id);
         if (!meta || !meta.currentRoomId) return;
 
+        const bulletAngle = (bulletData && typeof bulletData.angle === 'number')
+            ? bulletData.angle
+            : (bulletData && (bulletData.vx || bulletData.vy) ? Math.atan2(bulletData.vy || 0, bulletData.vx || 1) : 0);
+
         socket.to(meta.currentRoomId).emit('remote_shoot', {
             shooterId: socket.id,
             x: bulletData ? bulletData.x : 0,
             y: bulletData ? bulletData.y : 0,
-            vx: bulletData ? bulletData.vx : 0,
-            vy: bulletData ? bulletData.vy : 0,
-            type: bulletData ? bulletData.type : 'normal',
-            color: bulletData ? bulletData.color : '#00f3ff',
-            weaponType: bulletData ? bulletData.weaponType : 'blaster'
+            angle: bulletAngle,
+            speed: (bulletData && bulletData.speed) ? bulletData.speed : 22,
+            damage: (bulletData && bulletData.damage) ? bulletData.damage : 14,
+            isParried: !!(bulletData && bulletData.isParried),
+            isPiercing: !!(bulletData && bulletData.isPiercing),
+            type: bulletData ? (bulletData.type || 'normal') : 'normal',
+            color: bulletData ? (bulletData.color || '#00f3ff') : '#00f3ff',
+            weaponType: bulletData ? (bulletData.weaponType || 'blaster') : 'blaster'
         });
     });
 
@@ -874,6 +945,7 @@ io.on('connection', async (socket) => {
         socket.to(meta.currentRoomId).emit('remote_action', {
             playerId: socket.id,
             action: actionData ? actionData.action : 'dash',
+            type: actionData ? actionData.action : 'dash',
             x: actionData ? actionData.x : 0,
             y: actionData ? actionData.y : 0
         });
@@ -957,18 +1029,34 @@ io.on('connection', async (socket) => {
         if (!room) return;
 
         const playerState = room.players.get(socket.id);
+        const spawnX = Math.floor(3500 + (Math.random() - 0.5) * 1200);
+        const spawnY = Math.floor(3500 + (Math.random() - 0.5) * 1200);
+
         if (playerState) {
             playerState.hp = 100;
+            playerState.health = 100;
             playerState.shield = 50;
-            playerState.x = Math.floor(3500 + Math.random() * 1000);
-            playerState.y = Math.floor(3500 + Math.random() * 1000);
-
-            io.to(room.id).emit('player_respawned', {
-                id: socket.id,
-                x: playerState.x,
-                y: playerState.y
-            });
+            playerState.x = spawnX;
+            playerState.y = spawnY;
+            playerState.vx = 0;
+            playerState.vy = 0;
+            playerState.lastUpdate = Date.now();
         }
+
+        // Reset anti-cheat anchor cleanly
+        playerMovementHistory.set(socket.id, {
+            lastX: spawnX,
+            lastY: spawnY,
+            lastTime: Date.now(),
+            warnings: 0
+        });
+
+        io.to(room.id).emit('player_respawned', {
+            id: socket.id,
+            username: meta.username,
+            x: spawnX,
+            y: spawnY
+        });
     });
 
     // ----------------------------------------------------------------
@@ -1043,19 +1131,59 @@ io.on('connection', async (socket) => {
     });
 
     // ----------------------------------------------------------------
-    // Rank Leaderboard Telemetry
+    // Rank Leaderboard Telemetry & Match Records Submission
     // ----------------------------------------------------------------
-    socket.on('get_rank_leaderboard', async () => {
+    socket.on('get_rank_leaderboard', async (options) => {
         try {
+            const category = (options && options.category) ? options.category : 'trophies';
+            let orderClause = 'ORDER BY trophies DESC, total_kills DESC';
+            if (category === 'kills' || category === 'pvp') {
+                orderClause = 'ORDER BY pvp_kills DESC, total_kills DESC';
+            } else if (category === 'wave') {
+                orderClause = 'ORDER BY highest_wave DESC, trophies DESC';
+            }
+
             const topPlayers = await dbAll(`
-                SELECT username, level, trophies, pvp_kills, pve_revives, total_kills
+                SELECT username, level, trophies, pvp_kills, pvp_deaths, pve_revives, total_kills, highest_wave, credits
                 FROM players
-                ORDER BY trophies DESC, pvp_kills DESC
-                LIMIT 25
+                ${orderClause}
+                LIMIT 50
             `);
-            socket.emit('rank_leaderboard_data', topPlayers);
+            socket.emit('rank_leaderboard_data', topPlayers || []);
         } catch (e) {
             socket.emit('rank_leaderboard_data', []);
+        }
+    });
+
+    socket.on('submit_match_record', async (data) => {
+        if (!data) return;
+        const meta = activeSockets.get(socket.id);
+        const username = meta ? meta.username : sanitizeUsername(data.username);
+        const score = Math.max(0, parseInt(data.score, 10) || 0);
+        const wave = Math.max(1, parseInt(data.wave, 10) || 1);
+        const kills = Math.max(0, parseInt(data.kills, 10) || 0);
+        const pvpKills = Math.max(0, parseInt(data.pvpKills, 10) || 0);
+        const credits = Math.max(0, parseInt(data.credits, 10) || 0);
+        const level = Math.max(1, parseInt(data.level, 10) || 1);
+
+        try {
+            const existing = await dbGet('SELECT * FROM players WHERE username = ? COLLATE NOCASE', [username]);
+            if (existing) {
+                const newWave = Math.max(existing.highest_wave || 1, wave);
+                const newKills = (existing.total_kills || 0) + kills;
+                const newPvpKills = (existing.pvp_kills || 0) + pvpKills;
+                const newTrophies = Math.max(existing.trophies || 0, Math.floor(score / 50) + (newWave * 10));
+                const newCredits = (existing.credits || 0) + credits;
+                const newLevel = Math.max(existing.level || 1, level);
+
+                await dbRun(`
+                    UPDATE players
+                    SET highest_wave = ?, total_kills = ?, pvp_kills = ?, trophies = ?, credits = ?, level = ?, last_seen = CURRENT_TIMESTAMP
+                    WHERE username = ? COLLATE NOCASE
+                `, [newWave, newKills, newPvpKills, newTrophies, newCredits, newLevel, username]);
+            }
+        } catch (e) {
+            console.error('Error submitting match record:', e);
         }
     });
 
