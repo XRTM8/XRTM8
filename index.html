@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@600;700;800;900&family=Cairo:wght@600;700;800;900&family=Changa:wght@700;800;900&family=Chakra+Petch:wght@700;900&family=Rajdhani:wght@700;900&family=Share+Tech+Mono&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=102">
+    <link rel="stylesheet" href="style.css?v=104">
     <meta name="theme-color" content="#00f3ff">
     <script>
         // Load PWA manifest and Google Identity services safely on HTTP/HTTPS environments
@@ -333,12 +333,13 @@
             <span class="btn-sub" id="swap-btn-sub">[1/2]</span>
         </div>
 
-        <div id="class-skill2-btn-hud" class="hud-action-btn" style="display: none;" title="Support Ammo & Shield Overdrive (C)">
+        <div id="class-skill2-btn-hud" class="hud-action-btn supply-skill-btn" style="display: none;" title="Support Ammo & Shield Overdrive (C)">
+            <span class="btn-icon" style="font-size: 1.15rem; line-height: 1;"><svg class="c-icon c-icon-gold"><use href="#icon-lightning"></use></svg></span>
             <span class="btn-text" id="class-skill2-btn-txt">AMMO+</span>
             <span class="btn-sub" id="class-skill2-btn-sub">C</span>
         </div>
 
-        <div id="reload-btn-hud" class="hud-action-btn" title="Reload (R)" onclick="if(player) player.reload();">
+        <div id="reload-btn-hud" class="hud-action-btn reload-btn-element" style="display: none;" title="Reload (R)" onclick="if(player) player.reload();">
             <span class="btn-text" data-i18n="hudReload">RELOAD</span>
             <span class="btn-sub" id="reload-btn-sub">R</span>
         </div>
@@ -346,11 +347,6 @@
         <div id="super-emp-btn-hud" class="hud-action-btn over-btn" title="Overcharge Purple Nova Ability (Q / Z)">
             <span class="btn-text" style="color:#bd00ff; font-weight:900;">NOVA</span>
             <span class="btn-sub" id="super-emp-btn-sub" style="color:#ffffff;">Q</span>
-        </div>
-
-        <div id="radial-trigger-btn-hud" class="hud-action-btn" title="Radial Arsenal Menu (Tab)" onclick="toggleRadialWeaponMenu()" style="display: none;">
-            <span class="btn-text">WEP</span>
-            <span class="btn-sub">TAB</span>
         </div>
 
         <div id="ult-btn-hud" class="hud-action-btn" title="Orbital Ult (F)">
@@ -853,6 +849,13 @@
                     <div class="setting-row">
                         <span data-i18n="floatingJoyLabel">الجويستيك العائم (Dynamic):</span>
                         <button class="toggle-btn active" id="setting-floating-joy-btn" onclick="toggleSetting('floatingJoystick')" data-i18n="enabled">مفعل</button>
+                    </div>
+                    <div class="setting-row">
+                        <span data-i18n="controlsModeLabel">نمط أزرار التحكم (HUD Layout):</span>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="toggle-btn active" id="btn-controls-minimal" onclick="setControlsLayoutMode('minimal')">مبسط وذكي (2 أزرار)</button>
+                            <button class="toggle-btn" id="btn-controls-pro" onclick="setControlsLayoutMode('pro')">احترافي كامل</button>
+                        </div>
                     </div>
                 </div>
 
@@ -1378,6 +1381,37 @@
                         <!-- جاري التوليد ديناميكياً -->
                     </div>
                 </div>
+            <!-- ترسانة الأسلحة التكتيكية السريعة المدمجة بالخريطة -->
+            <div class="tactical-map-arsenal-bar">
+                <div class="arsenal-bar-header">
+                    <span class="arsenal-bar-title"><svg class="c-icon c-icon-cyan"><use href="#icon-target"></use></svg> ترسانة الأسلحة التكتيكية (Quick Weapon Arsenal):</span>
+                </div>
+                <div class="map-arsenal-slots-grid">
+                    <button class="map-arsenal-card" data-wep="blaster" onclick="selectWeaponFromMap('blaster')">
+                        <span class="m-wep-icon"><svg class="c-icon c-icon-cyan"><use href="#icon-bullet"></use></svg></span>
+                        <span class="m-wep-name">Blaster</span>
+                    </button>
+                    <button class="map-arsenal-card" data-wep="rapid" onclick="selectWeaponFromMap('rapid')">
+                        <span class="m-wep-icon"><svg class="c-icon c-icon-green"><use href="#icon-crosshair"></use></svg></span>
+                        <span class="m-wep-name">SMG Rapid</span>
+                    </button>
+                    <button class="map-arsenal-card" data-wep="lmg" onclick="selectWeaponFromMap('lmg')">
+                        <span class="m-wep-icon"><svg class="c-icon c-icon-red"><use href="#icon-flame"></use></svg></span>
+                        <span class="m-wep-name">LMG Heavy</span>
+                    </button>
+                    <button class="map-arsenal-card" data-wep="shotgun" onclick="selectWeaponFromMap('shotgun')">
+                        <span class="m-wep-icon"><svg class="c-icon c-icon-orange"><use href="#icon-shield"></use></svg></span>
+                        <span class="m-wep-name">Shotgun</span>
+                    </button>
+                    <button class="map-arsenal-card" data-wep="railgun" onclick="selectWeaponFromMap('railgun')">
+                        <span class="m-wep-icon"><svg class="c-icon c-icon-purple"><use href="#icon-lightning"></use></svg></span>
+                        <span class="m-wep-name">Railgun</span>
+                    </button>
+                    <button class="map-arsenal-card" data-wep="secondary_pistol" onclick="selectWeaponFromMap('secondary_pistol')">
+                        <span class="m-wep-icon"><svg class="c-icon c-icon-gold"><use href="#icon-star"></use></svg></span>
+                        <span class="m-wep-name">Pistol Pro</span>
+                    </button>
+                </div>
             </div>
 
             <!-- الشريط السفلي: البيركات والآثار المكتسبة -->
@@ -1626,32 +1660,37 @@
     </div>
 
     
-    <!-- بكرة اختيار السلاح التفاعلية (Radial Weapon Selector Menu) -->
-    <div id="radial-weapon-menu" class="radial-menu-overlay hidden">
+    <!-- بكرة اختيار السلاح والعتاد التكتيكية الاحترافية (Cyberpunk Tactical Arsenal Radial Wheel) -->
+    <div id="radial-weapon-menu" class="radial-menu-overlay hidden" onclick="if(event.target===this) toggleRadialWeaponMenu(false)">
         <div class="radial-center-hub">
-            <div class="radial-center-title" data-i18n="radialArsenalTitle">ترسانة العتاد</div>
-            <div class="radial-center-sub" data-i18n="radialArsenalSub">اختر السلاح</div>
+            <div class="radial-center-title" id="radial-hub-title" data-i18n="radialArsenalTitle">ترسانة العتاد</div>
+            <div class="radial-center-sub" id="radial-hub-sub" data-i18n="radialArsenalSub">اختر السلاح السريع</div>
+            <div class="radial-hub-stats" id="radial-hub-stats"></div>
         </div>
         <div class="radial-slots-container">
-            <div class="radial-slot" onclick="selectWeaponFromRadial('blaster')" title="Blaster">
-                <span class="r-icon"></span>
-                <span class="r-name">Blaster</span>
+            <div class="radial-slot slot-blaster" onmouseenter="previewRadialWeapon('blaster')" onclick="selectWeaponFromRadial('blaster')" title="Blaster">
+                <span class="r-icon"><svg class="c-icon c-icon-cyan"><use href="#icon-bullet"></use></svg></span>
+                <span class="r-name">BLASTER</span>
             </div>
-            <div class="radial-slot" onclick="selectWeaponFromRadial('rapid')" title="SMG">
-                <span class="r-icon"></span>
-                <span class="r-name">SMG</span>
+            <div class="radial-slot slot-rapid" onmouseenter="previewRadialWeapon('rapid')" onclick="selectWeaponFromRadial('rapid')" title="SMG">
+                <span class="r-icon"><svg class="c-icon c-icon-green"><use href="#icon-crosshair"></use></svg></span>
+                <span class="r-name">SMG RAPID</span>
             </div>
-            <div class="radial-slot" onclick="selectWeaponFromRadial('lmg')" title="LMG">
+            <div class="radial-slot slot-lmg" onmouseenter="previewRadialWeapon('lmg')" onclick="selectWeaponFromRadial('lmg')" title="LMG">
                 <span class="r-icon"><svg class="c-icon c-icon-red"><use href="#icon-flame"></use></svg></span>
-                <span class="r-name">LMG</span>
+                <span class="r-name">LMG HEAVY</span>
             </div>
-            <div class="radial-slot" onclick="selectWeaponFromRadial('shotgun')" title="Shotgun">
-                <span class="r-icon"></span>
-                <span class="r-name">Shotgun</span>
+            <div class="radial-slot slot-shotgun" onmouseenter="previewRadialWeapon('shotgun')" onclick="selectWeaponFromRadial('shotgun')" title="Shotgun">
+                <span class="r-icon"><svg class="c-icon c-icon-orange"><use href="#icon-shield"></use></svg></span>
+                <span class="r-name">SHOTGUN</span>
             </div>
-            <div class="radial-slot" onclick="selectWeaponFromRadial('railgun')" title="Railgun">
-                <span class="r-icon"></span>
-                <span class="r-name">Railgun</span>
+            <div class="radial-slot slot-railgun" onmouseenter="previewRadialWeapon('railgun')" onclick="selectWeaponFromRadial('railgun')" title="Railgun">
+                <span class="r-icon"><svg class="c-icon c-icon-purple"><use href="#icon-lightning"></use></svg></span>
+                <span class="r-name">RAILGUN</span>
+            </div>
+            <div class="radial-slot slot-pistol" onmouseenter="previewRadialWeapon('secondary_pistol')" onclick="selectWeaponFromRadial('secondary_pistol')" title="Pistol">
+                <span class="r-icon"><svg class="c-icon c-icon-gold"><use href="#icon-star"></use></svg></span>
+                <span class="r-name">PISTOL PRO</span>
             </div>
         </div>
     </div>
@@ -1905,8 +1944,7 @@
         </div>
     </div>
 
-    <!-- تضمين مكتبة Socket.IO للعب الجماعي المباشر محلياً وأوفلاين (Tauri/Capacitor App Support) -->
     <script src="socket.io.min.js"></script>
-    <script src="script.js?v=102"></script>
+    <script src="script.js?v=104"></script>
 </body>
 </html>

@@ -544,20 +544,31 @@
         /* 7. RADIAL ARSENAL MENU (Hidden) */
         #radial-trigger-btn-hud {
             display: none !important;
-            width: 44px !important;
-            height: 44px !important;
-            --rx: -46px;
-            --ry: -144px;
-            --btn-color: #f59e0b;
         }
 
-        /* 8. CLASS SKILL 2 / SMOKE (Angle ~18°, Outer Orbit) */
+        /* 8. CLASS SKILL 2 / AMMO & SHIELD SUPPLY (Support Class Exclusive) */
         #class-skill2-btn-hud {
-            width: 44px !important;
-            height: 44px !important;
+            width: 48px !important;
+            height: 48px !important;
             --rx: -146px;
             --ry: -48px;
             --btn-color: #ffd700;
+            background: radial-gradient(circle at 35% 35%, rgba(255, 215, 0, 0.45), rgba(15, 25, 20, 0.95)) !important;
+            border: 2px solid #ffd700 !important;
+            border-radius: 50% !important;
+            box-shadow: 0 0 18px rgba(255, 215, 0, 0.7), inset 0 0 10px rgba(0, 255, 136, 0.5) !important;
+            animation: supplyPulse 2.2s infinite ease-in-out;
+        }
+
+        @keyframes supplyPulse {
+            0%, 100% {
+                box-shadow: 0 0 14px rgba(255, 215, 0, 0.6), inset 0 0 8px rgba(0, 255, 136, 0.4);
+                border-color: #ffd700;
+            }
+            50% {
+                box-shadow: 0 0 24px rgba(255, 215, 0, 0.95), inset 0 0 14px rgba(0, 255, 136, 0.85);
+                border-color: #00ff88;
+            }
         }
 
         /* 9. SANDBOX (Angle ~98°, Outer Orbit) */
@@ -3182,6 +3193,69 @@ body {
     height: 8px;
     border-radius: 50%;
     display: inline-block;
+}
+
+.tactical-map-arsenal-bar {
+    background: rgba(10, 18, 28, 0.85);
+    border-top: 1px solid rgba(0, 243, 255, 0.25);
+    padding: 8px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.arsenal-bar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.arsenal-bar-title {
+    font-family: 'Chakra Petch', sans-serif;
+    font-size: 0.80rem;
+    font-weight: 700;
+    color: #00f3ff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.map-arsenal-slots-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 6px;
+}
+.map-arsenal-card {
+    background: rgba(15, 25, 38, 0.9);
+    border: 1.5px solid rgba(0, 243, 255, 0.25);
+    border-radius: 6px;
+    padding: 5px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #e0f2fe;
+}
+.map-arsenal-card:hover, .map-arsenal-card.active-wep {
+    background: rgba(0, 243, 255, 0.22);
+    border-color: #00f3ff;
+    box-shadow: 0 0 12px rgba(0, 243, 255, 0.5);
+    transform: translateY(-2px);
+}
+.map-arsenal-card.active-wep {
+    border-color: #00ff88;
+    box-shadow: 0 0 14px rgba(0, 255, 136, 0.6);
+}
+.map-arsenal-card .m-wep-icon {
+    font-size: 1.0rem;
+    line-height: 1;
+}
+.map-arsenal-card .m-wep-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    font-weight: 700;
 }
 
 .tactical-bottom-perks-dock {

@@ -171,11 +171,7 @@ function updateMobileControlsVisibility() {
     }
 
     if (sbBtn) {
-        if (isPlaying && activeGameMode === 'sandbox') {
-            sbBtn.style.display = 'flex';
-        } else {
-            sbBtn.style.display = 'none';
-        }
+        sbBtn.style.display = (isPlaying && activeGameMode === 'sandbox') ? 'flex' : 'none';
     }
 
     if (isPlaying) {
@@ -189,12 +185,16 @@ function updateMobileControlsVisibility() {
         const reloadBtn = document.getElementById('reload-btn-hud');
         const swapWepBtn = document.getElementById('swap-weapon-btn-hud');
         const radialBtn = document.getElementById('radial-trigger-btn-hud');
+        const classSkill2Btn = document.getElementById('class-skill2-btn-hud');
+
         if (dashBtn) dashBtn.style.display = 'flex';
         if (ultBtn) ultBtn.style.display = 'flex';
         if (superEmp) superEmp.style.display = 'flex';
-        if (reloadBtn) reloadBtn.style.display = 'flex';
+        if (reloadBtn) reloadBtn.style.display = (gameSettings.controlsLayout === 'pro') ? 'flex' : 'none';
         if (swapWepBtn) swapWepBtn.style.display = 'flex';
         if (radialBtn) radialBtn.style.display = 'none';
+        if (classSkill2Btn) classSkill2Btn.style.display = (player && player.playerClass === 'support') ? 'flex' : 'none';
+        if (sbBtn) sbBtn.style.display = (activeGameMode === 'sandbox') ? 'flex' : 'none';
 
         if (isTouch) {
             if (touchContainer) {
@@ -1642,7 +1642,8 @@ function isSandboxMode() {
             lowEnd: rawSettings.lowEnd !== undefined ? rawSettings.lowEnd : false,
             bloom: rawSettings.bloom !== undefined ? rawSettings.bloom : true,
             haptic: rawSettings.haptic !== undefined ? rawSettings.haptic : true,
-            floatingJoystick: rawSettings.floatingJoystick !== undefined ? rawSettings.floatingJoystick : true
+            floatingJoystick: rawSettings.floatingJoystick !== undefined ? rawSettings.floatingJoystick : true,
+            controlsLayout: rawSettings.controlsLayout || 'minimal'
         };
 
         // متغيرات طور الساند بوكس الحقيقي (Sandbox Master State)
@@ -2650,6 +2651,33 @@ function isSandboxMode() {
             if (btnHaptic) { btnHaptic.innerText = gameSettings.haptic ? 'مفعل' : 'معطل'; btnHaptic.className = `toggle-btn ${gameSettings.haptic ? 'active' : ''}`; }
             if (btnFloatingJoy) { btnFloatingJoy.innerText = gameSettings.floatingJoystick ? 'مفعل' : 'معطل'; btnFloatingJoy.className = `toggle-btn ${gameSettings.floatingJoystick ? 'active' : ''}`; }
             if (pBtnFloatingJoy) { pBtnFloatingJoy.innerText = gameSettings.floatingJoystick ? 'مفعل' : 'معطل'; pBtnFloatingJoy.className = `toggle-btn ${gameSettings.floatingJoystick ? 'active' : ''}`; }
+            updateControlsLayoutUI();
+        }
+
+        function setControlsLayoutMode(mode) {
+            gameSettings.controlsLayout = mode;
+            saveSettings();
+            updateControlsLayoutUI();
+            if (typeof playSound === 'function') playSound('click');
+        }
+
+        function updateControlsLayoutUI() {
+            const isMinimal = (gameSettings.controlsLayout !== 'pro');
+            const btnMin = document.getElementById('btn-controls-minimal');
+            const btnPro = document.getElementById('btn-controls-pro');
+            if (btnMin && btnPro) {
+                if (isMinimal) {
+                    btnMin.classList.add('active');
+                    btnPro.classList.remove('active');
+                } else {
+                    btnPro.classList.add('active');
+                    btnMin.classList.remove('active');
+                }
+            }
+            const reloadBtn = document.getElementById('reload-btn-hud');
+            if (reloadBtn) {
+                reloadBtn.style.display = isMinimal ? 'none' : 'flex';
+            }
         }
 
         // Master Volume Control
@@ -4473,31 +4501,63 @@ function updateGoogleUI() {
             }
         };
 
+        function previewRadialWeapon(weaponType) {
+            const hubTitle = document.getElementById('radial-hub-title');
+            const hubSub = document.getElementById('radial-hub-sub');
+            const hubStats = document.getElementById('radial-hub-stats');
+            const wCfg = WEAPON_CONFIGS[weaponType] || WEAPON_CONFIGS['blaster'];
+            if (hubTitle) hubTitle.innerText = wCfg.name || weaponType.toUpperCase();
+            if (hubSub) hubSub.innerText = `${wCfg.type || 'ENERGY'} ARSENAL`;
+            if (hubStats) hubStats.innerText = `DMG: ${wCfg.baseDmg || 14} | MAG: ${wCfg.baseMag || 20} | SPD: ${wCfg.speed || 10}`;
+            if (typeof playSound === 'function') playSound('click');
+        }
+
         function toggleRadialWeaponMenu(force) {
             const radial = document.getElementById('radial-weapon-menu');
             if (!radial) return;
-            if (force !== undefined) {
-                if (force) { radial.classList.remove('hidden'); radial.style.display = 'flex'; }
-                else { radial.classList.add('hidden'); radial.style.display = 'none'; }
+            let shouldOpen = false;
+            if (force !== undefined) shouldOpen = force;
+            else shouldOpen = (radial.classList.contains('hidden') || radial.style.display === 'none');
+
+            if (shouldOpen) {
+                radial.classList.remove('hidden');
+                radial.style.display = 'flex';
+                sandboxCustomTimeScale = 0.12; // Slow-motion Matrix bullet-time!
+                if (typeof playSound === 'function') playSound('portal');
+                if (player) previewRadialWeapon(player.weapon || 'blaster');
             } else {
-                if (radial.classList.contains('hidden') || radial.style.display === 'none') {
-                    radial.classList.remove('hidden');
-                    radial.style.display = 'flex';
-                } else {
-                    radial.classList.add('hidden');
-                    radial.style.display = 'none';
-                }
+                radial.classList.add('hidden');
+                radial.style.display = 'none';
+                sandboxCustomTimeScale = null;
             }
         };
 
         function selectWeaponFromRadial(weaponType) {
-            window.toggleRadialWeaponMenu(false);
-            if (player && typeof player.setPrimaryWeapon === 'function') {
-                player.setPrimaryWeapon(weaponType);
-            } else if (player) {
-                player.currentWeapon = weaponType;
+            toggleRadialWeaponMenu(false);
+            if (!player) return;
+            if (weaponType === 'secondary_pistol') {
+                if (!player.isUsingSecondary) player.swapWeapon();
+            } else {
+                if (player.isUsingSecondary) player.swapWeapon();
+                player.primaryWeapon = weaponType;
+                player.weapon = weaponType;
+                let cCfg = CLASSES_CONFIG[player.playerClass] || CLASSES_CONFIG['assault'];
+                let wCfg = WEAPON_CONFIGS[weaponType] || WEAPON_CONFIGS['blaster'];
+                player.bulletSpeed = wCfg.speed;
+                player.shootInterval = wCfg.interval;
+                player.recoilBase = wCfg.recoil;
+                player.isPiercing = wCfg.piercing || false;
+                player.damageMultiplier = (wCfg.baseDmg * player.dmgMultiplier) / 14;
+                player.maxAmmo = Math.round(wCfg.baseMag * cCfg.magMultiplier);
+                player.ammo = player.maxAmmo;
+                player.primaryAmmo = player.maxAmmo;
+                player.reloadDuration = wCfg.reloadTime;
+                player.isReloading = false;
+                player.reloadTimer = 0;
+                spawnFloatingText(player.x, player.y - 45, `🎯 ${wCfg.name}`, '#00f3ff');
             }
-            if (typeof playSound === 'function') playSound('click');
+            if (typeof playSound === 'function') playSound('shield');
+            updateVitalsAndAmmoHUD();
         };
 
         function triggerTacticalPing(type, emote, text) {
@@ -6858,17 +6918,42 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             }
         });
 
-        // تحويل لمسات الشاشة على الكانفاس مباشرة للتصويب والتفاعل التكتيكي
+        // تحويل لمسات الشاشة على الكانفاس مباشرة للتصويب والتبديل السريع بالنقرتين
+        let lastCanvasTouchTime = 0;
+        let lastCanvasTouchX = 0;
+        let lastCanvasTouchY = 0;
+
         if (canvas) {
             canvas.addEventListener('touchstart', (e) => {
                 if (isGameOver || isGamePaused || isModalActive || (mainMenu && mainMenu.style.display !== 'none')) return;
                 if (e.touches && e.touches.length > 0) {
                     const t = e.touches[0];
+                    const now = performance.now();
                     const coords = getCanvasTouchCoords(t.clientX, t.clientY);
+
+                    // فحص النقر المزدوج (Double Tap) لتبديل السلاح التكتيكي
+                    const dt = now - lastCanvasTouchTime;
+                    const dx = Math.abs(t.clientX - lastCanvasTouchX);
+                    const dy = Math.abs(t.clientY - lastCanvasTouchY);
+                    
+                    let isLeftJoyZone = (t.clientX < window.innerWidth * 0.35 && t.clientY > window.innerHeight * 0.45);
+                    if (dt > 50 && dt < 360 && dx < 70 && dy < 70 && !isLeftJoyZone) {
+                        if (player && typeof player.swapWeapon === 'function') {
+                            player.swapWeapon();
+                            if (typeof triggerHapticPulse === 'function') triggerHapticPulse(35);
+                            lastCanvasTouchTime = 0;
+                            return;
+                        }
+                    }
+
+                    lastCanvasTouchTime = now;
+                    lastCanvasTouchX = t.clientX;
+                    lastCanvasTouchY = t.clientY;
+
                     mouseScreenX = coords.screenX;
                     mouseScreenY = coords.screenY;
                     hasMouseMoved = true;
-                    lastMouseMoveTime = performance.now();
+                    lastMouseMoveTime = now;
                     let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
                     cameraZoom = isMobile ? 0.72 : 1.0;
                     mouseWorldX = camX + (mouseScreenX / cameraZoom);
@@ -8759,6 +8844,16 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 } else {
                     if (this.shootTimer < this.shootInterval) {
                         this.shootTimer += delta * 0.4;
+                    }
+                    // إعادة التلقيم الذكي التلقائي عند التوقف عن الرمي أو نفاد الذخيرة
+                    if (!this.isReloading && this.ammo < this.maxAmmo) {
+                        this.idleReloadTimer = (this.idleReloadTimer || 0) + delta;
+                        if (this.idleReloadTimer >= 1400 || this.ammo <= 0) {
+                            this.idleReloadTimer = 0;
+                            this.reload();
+                        }
+                    } else {
+                        this.idleReloadTimer = 0;
                     }
                 }
 
@@ -11699,6 +11794,47 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     mapActivePerksContainer.innerHTML = html || `<span style="color: #667788; font-size: 0.78rem;">لا توجد بيركات</span>`;
                 }
             }
+            updateMapArsenalCards();
+        }
+
+        function selectWeaponFromMap(weaponType) {
+            if (!player) return;
+            if (weaponType === 'secondary_pistol') {
+                if (!player.isUsingSecondary) player.swapWeapon();
+            } else {
+                if (player.isUsingSecondary) player.swapWeapon();
+                player.primaryWeapon = weaponType;
+                player.weapon = weaponType;
+                let cCfg = CLASSES_CONFIG[player.playerClass] || CLASSES_CONFIG['assault'];
+                let wCfg = WEAPON_CONFIGS[weaponType] || WEAPON_CONFIGS['blaster'];
+                player.bulletSpeed = wCfg.speed;
+                player.shootInterval = wCfg.interval;
+                player.recoilBase = wCfg.recoil;
+                player.isPiercing = wCfg.piercing || false;
+                player.damageMultiplier = (wCfg.baseDmg * player.dmgMultiplier) / 14;
+                player.maxAmmo = Math.round(wCfg.baseMag * cCfg.magMultiplier);
+                player.ammo = player.maxAmmo;
+                player.primaryAmmo = player.maxAmmo;
+                player.reloadDuration = wCfg.reloadTime;
+                player.isReloading = false;
+                player.reloadTimer = 0;
+                spawnFloatingText(player.x, player.y - 45, `🎯 ${wCfg.name}`, '#00f3ff');
+            }
+            if (typeof playSound === 'function') playSound('shield');
+            updateVitalsAndAmmoHUD();
+            updateMapArsenalCards();
+        }
+
+        function updateMapArsenalCards() {
+            if (!player) return;
+            document.querySelectorAll('.map-arsenal-card').forEach(btn => {
+                let wep = btn.getAttribute('data-wep');
+                if (wep === player.weapon) {
+                    btn.classList.add('active-wep');
+                } else {
+                    btn.classList.remove('active-wep');
+                }
+            });
         }
 
         function drawExpandedTacticalMap() {
@@ -13115,6 +13251,9 @@ if (typeof window !== 'undefined') window.closeMatchPodiumModal = closeMatchPodi
 if (typeof window !== 'undefined') window.toggleTacticalPingWheel = toggleTacticalPingWheel;
 if (typeof window !== 'undefined') window.toggleRadialWeaponMenu = toggleRadialWeaponMenu;
 if (typeof window !== 'undefined') window.selectWeaponFromRadial = selectWeaponFromRadial;
+if (typeof window !== 'undefined') window.selectWeaponFromMap = selectWeaponFromMap;
+if (typeof window !== 'undefined') window.previewRadialWeapon = previewRadialWeapon;
+if (typeof window !== 'undefined') window.setControlsLayoutMode = setControlsLayoutMode;
 if (typeof window !== 'undefined') window.triggerTacticalPing = triggerTacticalPing;
 if (typeof window !== 'undefined') window.openCloudAccountModal = openCloudAccountModal;
 if (typeof window !== 'undefined') window.closeCloudAccountModal = closeCloudAccountModal;
