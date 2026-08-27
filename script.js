@@ -154,6 +154,10 @@ function updateMobileControlsVisibility() {
     const isTouch = isMobileTouchActive();
     const isPlaying = !isGameOver && !isGamePaused && (!mainMenu || mainMenu.style.display === 'none');
     
+    document.body.classList.toggle('sandbox-mode-active', (activeGameMode === 'sandbox'));
+    document.body.classList.toggle('class-support-active', !!(player && player.playerClass === 'support'));
+    document.body.classList.toggle('controls-pro-active', (gameSettings.controlsLayout === 'pro'));
+
     if (isTouch) {
         document.body.classList.add('mobile-touch-mode');
         document.body.classList.remove('desktop-mode');
@@ -191,7 +195,7 @@ function updateMobileControlsVisibility() {
         if (ultBtn) ultBtn.style.display = 'flex';
         if (superEmp) superEmp.style.display = 'flex';
         if (reloadBtn) reloadBtn.style.display = (gameSettings.controlsLayout === 'pro') ? 'flex' : 'none';
-        if (swapWepBtn) swapWepBtn.style.display = 'flex';
+        if (swapWepBtn) swapWepBtn.style.display = (gameSettings.controlsLayout === 'pro') ? 'flex' : 'none';
         if (radialBtn) radialBtn.style.display = 'none';
         if (classSkill2Btn) classSkill2Btn.style.display = (player && player.playerClass === 'support') ? 'flex' : 'none';
         if (sbBtn) sbBtn.style.display = (activeGameMode === 'sandbox') ? 'flex' : 'none';
@@ -5044,6 +5048,10 @@ socket.on('disconnect', () => {
                         spawnFloatingText(rp.x, rp.y - 40, `- غادر ${data.username || 'العميل'}`, '#ff0055');
                         remotePlayers.delete(data.id);
                     }
+                    if ((activeGameMode === 'online_pve' || activeGameMode === 'online_coop') && player && player.isKnockedDown && !hasAliveTeammates()) {
+                        spawnFloatingText(player.x, player.y - 50, '☠️ انهيار كامل للفريق (SQUAD WIPE)!', '#ff0055');
+                        triggerGameOver();
+                    }
                 });
 
                 socket.on('room_tick_sync', (playersList) => {
@@ -5185,28 +5193,52 @@ socket.on('disconnect', () => {
                 });
 
                 socket.on('pve_downed_alert', (data) => {
-                    pveDownedPlayers.set(data.id, {
-                        ...data,
-                        downedTimer: data.bleedoutSeconds || 15
-                    });
+                    let dId = data.downedId || data.id;
+                    let dName = data.downedUsername || data.username || 'زميل';
+                    if (dId && (!player || dId !== socket.id)) {
+                        pveDownedPlayers.set(dId, {
+                            id: dId,
+                            username: dName,
+                            x: data.x || (player ? player.x : 2000),
+                            y: data.y || (player ? player.y : 2000),
+                            downedTimer: data.bleedoutSeconds || 999
+                        });
+                    }
 
                     const banner = document.getElementById('pve-downed-banner');
                     const agentVal = document.getElementById('downed-agent-val');
                     const timerVal = document.getElementById('downed-timer-val');
 
                     if (banner) banner.classList.remove('hidden');
-                    if (agentVal) agentVal.innerText = data.username;
+                    if (agentVal) agentVal.innerText = dName;
                     if (timerVal) timerVal.innerText = data.bleedoutSeconds || 15;
                     playSound('shield');
+
+                    if (player && player.isKnockedDown && !hasAliveTeammates()) {
+                        spawnFloatingText(player.x, player.y - 50, '☠️ انهيار كامل للفريق (SQUAD WIPE)!', '#ff0055');
+                        triggerGameOver();
+                    }
                 });
 
                 socket.on('pve_revive_success', (data) => {
-                    pveDownedPlayers.delete(data.targetId);
+                    let targetId = data.revivedId || data.targetId;
+                    if (targetId) pveDownedPlayers.delete(targetId);
                     const banner = document.getElementById('pve-downed-banner');
                     if (pveDownedPlayers.size === 0 && banner) banner.classList.add('hidden');
 
-                    createExplosion(player ? player.x : 0, player ? player.y : 0, '#00ff88', 35, 12);
-                    spawnFloatingText(player ? player.x : width / 2, player ? player.y - 45 : height / 2, `[OK] تم إنعاش ${data.targetName} بواسطة ${data.reviverName}!`, '#00ff88');
+                    if (player && (socket.id === targetId || targetId === 'self')) {
+                        player.isKnockedDown = false;
+                        player.hp = player.maxHp;
+                        player.shieldCharges = player.shieldMaxCharges;
+                        player.invulnerableTimer = 3000;
+                        updateVitalsAndAmmoHUD();
+                        createExplosion(player.x, player.y, '#00ff88', 40, 16);
+                        triggerShockwave(player.x, player.y, '#00ff88', 350);
+                        spawnFloatingText(player.x, player.y - 45, `⚡ تم إصلاح مركبتك وإنعاشك بواسطة ${data.reviverName || 'الزميل'}!`, '#00ff88');
+                    } else {
+                        createExplosion(player ? player.x : 0, player ? player.y : 0, '#00ff88', 35, 12);
+                        spawnFloatingText(player ? player.x : width / 2, player ? player.y - 45 : height / 2, `[OK] تم إنعاش ${data.targetName || 'الزميل'} بواسطة ${data.reviverName}!`, '#00ff88');
+                    }
                     playSound('heal');
                 });
 
@@ -6720,10 +6752,12 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             joystickBase.addEventListener('lostpointercapture', resetJoystick);
         }
 
-        // Dynamic Left-Zone Floating Joystick Touch Activation
+        // Dynamic Left-Zone & Right-Zone Floating Joystick Touch Activation
         window.addEventListener('pointerdown', (e) => {
             if (isGameOver || isGamePaused || isModalActive || (mainMenu && mainMenu.style.display !== 'none')) return;
             if (!isMobileTouchActive() && e.pointerType === 'mouse') return; // Ignore desktop mouse
+            
+            // 1. Left Side Movement Zone
             if (e.clientX < window.innerWidth * 0.42 && e.clientY > 60) {
                 if (e.target && (e.target.closest('.hud-action-btn') || e.target.closest('#pause-btn-hud') || e.target.closest('.overlay-screen') || e.target.closest('.modal-backdrop') || e.target.closest('button') || e.target.closest('input'))) return;
                 if (joystickPointerId === null && joystickBase && gameSettings.floatingJoystick !== false) {
@@ -6741,6 +6775,21 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     joystickPointerId = e.pointerId;
                     try { joystickBase.setPointerCapture(e.pointerId); } catch(err) {}
                     handleJoystickMove(e.clientX, e.clientY);
+                }
+            }
+
+            // 2. Right Side Aim & Shoot Zone
+            if (e.clientX > window.innerWidth * 0.48 && e.clientY > 60) {
+                if (e.target && (e.target.closest('.hud-action-btn') || e.target.closest('#mobile-pause-btn-hud') || e.target.closest('#mobile-map-btn-hud') || e.target.closest('.overlay-screen') || e.target.closest('.modal-backdrop') || e.target.closest('button') || e.target.closest('input'))) return;
+                if (aimJoystickPointerId === null && joystickAimBase) {
+                    updateJoystickCenter();
+                    aimJoystickPointerId = e.pointerId;
+                    try { joystickAimBase.setPointerCapture(e.pointerId); } catch(err) {}
+                    joystickAimBase.classList.add('aiming-active');
+                    handleAimJoystickMove(e.clientX, e.clientY);
+                    if (player && !isGameOver) {
+                        player.shootTimer = player.shootInterval;
+                    }
                 }
             }
         }, { passive: true });
@@ -6768,6 +6817,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         }
 
         function handleJoystickMove(clientX, clientY) {
+            if (joystickBaseX === 0 || joystickBaseY === 0) updateJoystickCenter();
             let dx = clientX - joystickBaseX, dy = clientY - joystickBaseY, distVal = Math.hypot(dx, dy);
             if (distVal > 0) joystickAngle = Math.atan2(dy, dx);
             
@@ -6831,15 +6881,16 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         }
 
         function handleAimJoystickMove(clientX, clientY) {
+            if (aimJoystickBaseX === 0 || aimJoystickBaseY === 0) updateJoystickCenter();
             let dx = clientX - aimJoystickBaseX, dy = clientY - aimJoystickBaseY, distVal = Math.hypot(dx, dy);
             if (distVal > 0) aimJoystickAngle = Math.atan2(dy, dx);
             
             let rawPower = Math.min(1.0, distVal / maxRadius);
-            if (rawPower < 0.06) {
+            if (rawPower < 0.04) {
                 aimJoystickPower = 0;
                 isAimJoystickActive = false;
             } else {
-                let norm = (rawPower - 0.06) / 0.94;
+                let norm = (rawPower - 0.04) / 0.96;
                 aimJoystickPower = Math.pow(norm, 1.1);
                 isAimJoystickActive = true;
             }
@@ -6849,7 +6900,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             let thumbY = Math.sin(aimJoystickAngle) * clampedDist;
             if (joystickAimThumb) {
                 joystickAimThumb.style.transition = 'none';
-                joystickAimThumb.style.transform = `translate3d(${thumbX}px, ${thumbY}px, 0)`;
+                let rotAngle = aimJoystickAngle + Math.PI / 2;
+                joystickAimThumb.style.transform = `translate3d(${thumbX}px, ${thumbY}px, 0) rotate(${rotAngle}rad)`;
             }
         }
 
@@ -6885,7 +6937,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             mouseWorldX = camX + (mouseScreenX / cameraZoom);
             mouseWorldY = camY + (mouseScreenY / cameraZoom);
 
-            // تدوير وتوجيه جويستك الرماية نحو موضع الماوس المشار إليه فوراً (PC Mouse Only)
+            // تدوير وتوجيه جويستك الرماية نحو موضع الماوس المشار إليه فوراً مع البقاء في السنتر (PC Mouse Only)
             if (!isMobileTouchActive() && joystickAimThumb && !isAimJoystickActive) {
                 let targetAng = 0;
                 if (player) {
@@ -6893,11 +6945,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 } else {
                     targetAng = Math.atan2(mouseScreenY - (window.innerHeight - 80), mouseScreenX - (window.innerWidth - 80));
                 }
-                let thumbDist = isMouseDown ? 28 : 22;
-                let thumbX = Math.cos(targetAng) * thumbDist;
-                let thumbY = Math.sin(targetAng) * thumbDist;
                 joystickAimThumb.style.transition = 'none';
-                joystickAimThumb.style.transform = `translate3d(${thumbX}px, ${thumbY}px, 0) rotate(${targetAng + Math.PI/2}rad)`;
+                joystickAimThumb.style.transform = `translate3d(0px, 0px, 0) rotate(${targetAng + Math.PI/2}rad)`;
             }
         });
 
@@ -8080,6 +8129,18 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             }
         }
 
+        function hasAliveTeammates() {
+            if (!remotePlayers || remotePlayers.size === 0) return false;
+            for (let [rId, rp] of remotePlayers.entries()) {
+                if (!rp) continue;
+                let isDowned = pveDownedPlayers.has(rId) || rp.isDowned || ((rp.health !== undefined) && rp.health <= 0);
+                if (!isDowned) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         class Player {
             constructor(weapon, pClass) {
                 this.x = WORLD_W / 2; this.y = WORLD_H / 2; this.radius = 16; 
@@ -8124,7 +8185,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 this.stationaryTimer = 0;
                 this.isKnockedDown = false;
                 this.reviveTimer = 0;
-                this.maxRevives = 2;
+                this.maxRevives = (activeGameMode === 'online_pve') ? 1 : 0;
                 this.revivesUsed = 0;
                 this.hasBubbleShield = false;
                 this.bubbleShieldTimer = 0;   // Sniper Stationary Timer
@@ -8598,11 +8659,11 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             }
 
             takeHit(bullet = null) {
-                if (sandboxGodMode || this.invulnerableTimer > 0 || this.dashInvulnerableTimer > 0 || (this.bubbleShieldTimer > 0)) return false;
+                if ((sandboxGodMode && isSandboxMode()) || this.invulnerableTimer > 0 || this.dashInvulnerableTimer > 0 || (this.bubbleShieldTimer > 0)) return false;
                 
                 if (this.shieldCharges > 0) {
                     this.shieldCharges--;
-                    this.invulnerableTimer = 1100;
+                    this.invulnerableTimer = 800;
                     playSound('parry');
                     sessionParries++;
                     if (gameSettings.shake) screenShakeTime = 320;
@@ -8620,33 +8681,50 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
 
                 // خصم نقاط الحياة المباشرة
                 this.hp -= 35;
-                this.invulnerableTimer = 1200;
+                this.invulnerableTimer = 800;
                 playSound('shield');
                 if (gameSettings.shake) screenShakeTime = 450;
                 createExplosion(this.x, this.y, '#ff0055', 25, 12);
                 updateVitalsAndAmmoHUD();
 
                 if (this.hp <= 0) {
-                    // نظام السقوط والإصلاح الذاتي (Knockdown & Self-Repair)
-                    if (!this.isKnockedDown && (this.revivesUsed < this.maxRevives)) {
-                        this.isKnockedDown = true;
-                        this.revivesUsed++;
-                        this.reviveTimer = 5000;
-                        this.invulnerableTimer = 5500;
-                        this.hp = 1;
-                        playSound('shield');
-                        triggerShockwave(this.x, this.y, '#ffd700', 280);
-                        spawnFloatingText(this.x, this.y - 50, ' انهيار النواة! جاري الإصلاح الذاتي (5 ثوانٍ)...', '#ff0055');
-                        return false;
-                    } else if (this.isKnockedDown) {
-                        return false; // حصانة أثناء النوك
+                    this.hp = 0;
+                    updateVitalsAndAmmoHUD();
+                    // نظام السقوط والتعطل حصراً في طور PVE التعاوني المتصل بالإنترنت مع وجود زملاء أحياء
+                    const isOnlineCoop = (activeGameMode === 'online_pve' || activeGameMode === 'online_coop') && isMultiplayerMode() && socket && isSocketConnected;
+                    if (isOnlineCoop && hasAliveTeammates()) {
+                        if (!this.isKnockedDown) {
+                            this.isKnockedDown = true;
+                            this.hp = 0;
+                            this.shieldCharges = 0;
+                            this.invulnerableTimer = 0;
+                            try {
+                                socket.emit('pve_player_downed', { x: this.x, y: this.y });
+                            } catch (e) {}
+                            playSound('shield');
+                            createExplosion(this.x, this.y, '#ff0055', 40, 16);
+                            triggerShockwave(this.x, this.y, '#ff0055', 300);
+                            spawnFloatingText(this.x, this.y - 50, '🚨 تعطلت المركبة! بانتظار مساعدة أحد الزملاء...', '#ff0055');
+                        }
+                        return false; // ينتظر الإنعاش طالما هناك زميل حي
                     }
-                    return true; // موت نهائي
+                    // في جميع الحالات الفردية والأوفلاين وPVP وعند موت جميع الزملاء
+                    triggerGameOver();
+                    return true;
                 }
                 return false;
             }
 
             update(delta, effectiveDelta, timeScale, frameFactor) {
+                if (this.hp <= 0 && !isGameOver && !this.isKnockedDown) {
+                    const isOnlineCoop = (activeGameMode === 'online_pve' || activeGameMode === 'online_coop') && isMultiplayerMode() && socket && isSocketConnected;
+                    if (isOnlineCoop && hasAliveTeammates()) {
+                        // لا شيء
+                    } else {
+                        triggerGameOver();
+                    }
+                    return;
+                }
                 if (this.invulnerableTimer > 0) this.invulnerableTimer -= effectiveDelta * timeScale;
                 if (this.bubbleShieldTimer > 0) {
                     this.bubbleShieldTimer -= effectiveDelta * timeScale;
@@ -8654,19 +8732,23 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 }
 
                 if (this.isKnockedDown) {
-                    this.reviveTimer -= effectiveDelta * timeScale;
-                    if (Math.random() < 0.35 * frameFactor) {
-                        spawnParticle(this.x + (Math.random() - 0.5) * 25, this.y + (Math.random() - 0.5) * 25, '#ffd700', 0, -1, 0.08);
+                    const isOnlineCoop = (activeGameMode === 'online_pve' || activeGameMode === 'online_coop') && isMultiplayerMode() && socket && isSocketConnected;
+                    if (!isOnlineCoop || !hasAliveTeammates()) {
+                        spawnFloatingText(this.x, this.y - 50, '☠️ انهيار كامل للفريق (SQUAD WIPE)!', '#ff0055');
+                        triggerGameOver();
+                        return;
                     }
-                    if (this.reviveTimer <= 0) {
-                        this.isKnockedDown = false;
-                        this.hp = this.maxHp;
-                        this.shieldCharges = this.shieldMaxCharges;
-                        playSound('ultimate');
-                        triggerShockwave(this.x, this.y, '#00ff88', 360);
-                        spawnFloatingText(this.x, this.y - 50, ' تم استعادة القلب القتالي 100%! ', '#00ff88');
-                        updateVitalsAndAmmoHUD();
+                    this.vx *= 0.85;
+                    this.vy *= 0.85;
+                    this.x += this.vx * frameFactor;
+                    this.y += this.vy * frameFactor;
+                    this.x = Math.max(this.radius, Math.min(WORLD_W - this.radius, this.x));
+                    this.y = Math.max(this.radius, Math.min(WORLD_H - this.radius, this.y));
+                    if (Math.random() < 0.45 * frameFactor) {
+                        spawnParticle(this.x + (Math.random() - 0.5) * 22, this.y + (Math.random() - 0.5) * 22, '#222222', (Math.random()-0.5)*1.5, -Math.random()*2, 0.05);
+                        spawnParticle(this.x + (Math.random() - 0.5) * 16, this.y + (Math.random() - 0.5) * 16, '#ff4400', (Math.random()-0.5)*2, (Math.random()-0.5)*2, 0.08);
                     }
+                    return; // شلل تام للمركبة المعطلة: لا حركة، لا إطلاق نار، لا مهارات
                 }
                 if (this.dashInvulnerableTimer > 0) this.dashInvulnerableTimer -= effectiveDelta * timeScale;
                 if (this.dashCooldown > 0) this.dashCooldown -= delta * (timeScale > 0.5 ? 1.0 : 0.6);
@@ -8722,16 +8804,16 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 }
 
                 // فحص القرب من الزميل الساقط في PVE لإسعافه
-                if (activeGameMode === 'online_pve' && pveDownedPlayers.size > 0) {
+                if ((activeGameMode === 'online_pve' || activeGameMode === 'online_coop') && pveDownedPlayers.size > 0 && !this.isKnockedDown) {
                     let isNearDowned = false;
                     for (let [downedId, dInfo] of pveDownedPlayers.entries()) {
                         let rp = remotePlayers.get(downedId);
                         let targetX = rp ? rp.x : dInfo.x;
                         let targetY = rp ? rp.y : dInfo.y;
-                        if (distSq(this.x, this.y, targetX, targetY) < 65 * 65) {
+                        if (distSq(this.x, this.y, targetX, targetY) < 75 * 75) {
                             isNearDowned = true;
-                            localReviveProgress += delta / 2500;
-                            if (Math.random() < 0.35) {
+                            localReviveProgress += delta / 2000;
+                            if (Math.random() < 0.4) {
                                 spawnParticle(targetX + (Math.random() - 0.5) * 30, targetY + (Math.random() - 0.5) * 30, '#00ff88', 0, -1, 0.1);
                             }
                             if (localReviveProgress >= 1) {
@@ -9311,19 +9393,35 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     ctx.restore();
                 }
 
-                // رسم حلقة مؤقت الإصلاح عند النوك
+                // رسم حالة المركبة المعطلة والمكسرة (Wrecked / Downed in PVE)
                 if (this.isKnockedDown) {
                     ctx.save();
-                    let revRatio = Math.max(0, 1 - (this.reviveTimer / 5000));
-                    ctx.strokeStyle = '#ffd700';
-                    ctx.lineWidth = 3.5;
+                    // تصدعات الهيكل المكسور
+                    ctx.strokeStyle = '#ff2200';
+                    ctx.lineWidth = 2.2;
                     ctx.beginPath();
-                    ctx.arc(0, 0, this.radius + 16, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * revRatio));
+                    ctx.moveTo(-10, -8); ctx.lineTo(0, 4); ctx.lineTo(8, -4); ctx.lineTo(12, 10);
+                    ctx.moveTo(-6, 10); ctx.lineTo(-2, -4); ctx.lineTo(5, 4);
                     ctx.stroke();
-                    ctx.fillStyle = '#ffd700';
-                    ctx.font = 'bold 10px Chakra Petch';
+
+                    // حلقة نداء الاستغاثة الدائرية المتقطعة النابضة
+                    let pulseDistress = Math.sin(performance.now() * 0.008) * 6;
+                    ctx.strokeStyle = '#ff0055';
+                    ctx.lineWidth = 2.5;
+                    ctx.setLineDash([8, 6]);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.radius + 24 + pulseDistress, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    // نص الاستغاثة
+                    ctx.fillStyle = '#ff0055';
+                    ctx.font = 'bold 11px Chakra Petch, sans-serif';
                     ctx.textAlign = 'center';
-                    ctx.fillText(`REPAIR ${Math.ceil(this.reviveTimer / 1000)}s`, 0, -this.radius - 18);
+                    ctx.fillText('🚨 مركبة معطلة (WRECKED)', 0, -this.radius - 22);
+                    ctx.fillStyle = '#ffaa00';
+                    ctx.font = 'bold 9px sans-serif';
+                    ctx.fillText('بانتظار إنعاش الزميل...', 0, -this.radius - 10);
                     ctx.restore();
                 }
 
@@ -11548,55 +11646,127 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         function triggerGameOver() {
             if (isGameOver) return;
             isGameOver = true;
-            bossHudContainer.style.display = 'none'; dashBtnHud.style.display = 'none'; if (reloadBtnHud) reloadBtnHud.style.display = 'none'; if (superEmpBtnHud) superEmpBtnHud.style.display = 'none'; ultBtnHud.style.display = 'none';
-            if (joystickBase) joystickBase.style.display = 'none';
-            if (joystickAimBase) joystickAimBase.style.display = 'none';
-            bossWarningBanner.style.display = 'none'; hazardWarningBanner.style.display = 'none';
-            resetJoystick();
-            resetAimJoystick();
-            isMouseDown = false;
-            perkModal.classList.add('hidden'); relicModal.classList.add('hidden');
-            if (player) { createExplosion(player.x, player.y, colors.player, 80, 20); triggerShockwave(player.x, player.y, colors.player, 320); }
-            if (gameSettings.shake) screenShakeTime = 500;
+
+            // 1. إظهار شاشة Game Over فوراً بأعلى طبقة ممكنة
+            if (gameOverScreen) {
+                gameOverScreen.classList.remove('hidden');
+                gameOverScreen.style.setProperty('display', 'flex', 'important');
+                gameOverScreen.style.setProperty('opacity', '1', 'important');
+                gameOverScreen.style.setProperty('visibility', 'visible', 'important');
+                gameOverScreen.style.setProperty('pointer-events', 'auto', 'important');
+                gameOverScreen.style.setProperty('z-index', '99999', 'important');
+            }
+
+            // 2. إغلاق وإخفاء كافة النوافذ والطبقات المفتوحة لضمان عدم حجب الشاشة
+            try {
+                document.querySelectorAll('.cyber-modal, .modal-backdrop, .radial-menu-overlay, .tactical-wheel-overlay, .spectator-hud-overlay, .tab-scoreboard-overlay').forEach(m => {
+                    m.classList.add('hidden');
+                    m.style.display = 'none';
+                });
+                if (pauseMenu) { pauseMenu.classList.add('hidden'); pauseMenu.style.display = 'none'; }
+                if (perkModal) { perkModal.classList.add('hidden'); perkModal.style.display = 'none'; }
+                if (relicModal) { relicModal.classList.add('hidden'); relicModal.style.display = 'none'; }
+                if (tacticalMapModal) { tacticalMapModal.classList.add('hidden'); tacticalMapModal.style.display = 'none'; }
+                const respawnModal = document.getElementById('pvp-respawn-modal');
+                if (respawnModal) { respawnModal.classList.add('hidden'); respawnModal.style.display = 'none'; }
+                isModalActive = false;
+                isGamePaused = false;
+
+                if (bossHudContainer) bossHudContainer.style.display = 'none'; 
+                if (dashBtnHud) dashBtnHud.style.display = 'none'; 
+                if (reloadBtnHud) reloadBtnHud.style.display = 'none'; 
+                if (superEmpBtnHud) superEmpBtnHud.style.display = 'none'; 
+                if (ultBtnHud) ultBtnHud.style.display = 'none';
+                if (typeof classSkillBtnHud !== 'undefined' && classSkillBtnHud) classSkillBtnHud.style.display = 'none';
+                if (typeof classSkill2BtnHud !== 'undefined' && classSkill2BtnHud) classSkill2BtnHud.style.display = 'none';
+                if (joystickBase) joystickBase.style.display = 'none';
+                if (joystickAimBase) joystickAimBase.style.display = 'none';
+                const touchContainer = document.getElementById('touch-controls-container');
+                if (touchContainer) touchContainer.style.display = 'none';
+                if (bossWarningBanner) bossWarningBanner.style.display = 'none'; 
+                if (hazardWarningBanner) hazardWarningBanner.style.display = 'none';
+                resetJoystick();
+                resetAimJoystick();
+                isMouseDown = false;
+                if (player) { 
+                    createExplosion(player.x, player.y, colors.player, 80, 20); 
+                    triggerShockwave(player.x, player.y, colors.player, 320); 
+                }
+                if (gameSettings.shake) screenShakeTime = 500;
+            } catch (hudErr) {
+                console.error('[triggerGameOver HUD error]', hudErr);
+            }
             
-            let finalSec = survivalSeconds;
-            uiFinalWave.innerText = (activeGameMode === 'boss_rush') ? `زعيم ${currentWave}` : `الموجة ${currentWave}`;
-            uiFinalScore.innerText = finalSec.toFixed(1); uiFinalXp.innerText = Math.floor(sessionXP); uiTotalMeta.innerText = metaCurrency + sessionCubes; uiFinalCubes.innerText = sessionCubes;
-            document.getElementById('tel-parries').innerText = sessionParries; document.getElementById('tel-grazes').innerText = sessionGrazes; document.getElementById('tel-subkills').innerText = sessionSubKills; document.getElementById('tel-ults').innerText = sessionUlts;
+            // 3. تحديث الإحصائيات وحفظ التقدم
+            try {
+                let finalSec = survivalSeconds;
+                if (uiFinalWave) uiFinalWave.innerText = (activeGameMode === 'boss_rush') ? `زعيم ${currentWave}` : `الموجة ${currentWave}`;
+                if (uiFinalScore) uiFinalScore.innerText = finalSec.toFixed(1); 
+                if (uiFinalXp) uiFinalXp.innerText = Math.floor(sessionXP); 
+                if (uiTotalMeta) uiTotalMeta.innerText = metaCurrency + sessionCubes; 
+                if (uiFinalCubes) uiFinalCubes.innerText = sessionCubes;
+                
+                const pEl = document.getElementById('tel-parries'); if (pEl) pEl.innerText = sessionParries;
+                const gEl = document.getElementById('tel-grazes'); if (gEl) gEl.innerText = sessionGrazes;
+                const sEl = document.getElementById('tel-subkills'); if (sEl) sEl.innerText = sessionSubKills;
+                const uEl = document.getElementById('tel-ults'); if (uEl) uEl.innerText = sessionUlts;
 
-            playerXP += Math.floor(sessionXP);
-            let nextLevelXP = playerLevel * 300;
-            while (playerXP >= nextLevelXP) { playerXP -= nextLevelXP; playerLevel++; metaCurrency += 10; nextLevelXP = playerLevel * 300; }
-            metaCurrency += sessionCubes;
+                playerXP += Math.floor(sessionXP);
+                let nextLevelXP = playerLevel * 300;
+                while (playerXP >= nextLevelXP) { playerXP -= nextLevelXP; playerLevel++; metaCurrency += 10; nextLevelXP = playerLevel * 300; }
+                metaCurrency += sessionCubes;
 
-            checkAchievements(finalSec, sessionKills, metaCurrency, currentWave);
-            checkContracts(finalSec, sessionParries, sessionCubesEnergy);
-            saveGameProgress(); updateArsenalUI();
-            setTimeout(() => { gameOverScreen.classList.remove('hidden'); }, 1000);
+                checkAchievements(finalSec, sessionKills, metaCurrency, currentWave);
+                checkContracts(finalSec, sessionParries, sessionCubesEnergy);
+                saveGameProgress(); 
+                updateArsenalUI();
+            } catch (saveErr) {
+                console.error('[triggerGameOver Save error]', saveErr);
+            }
         }
 
         function restartGame() {
-            if (gameOverScreen) gameOverScreen.classList.add('hidden');
+            if (gameOverScreen) {
+                gameOverScreen.classList.add('hidden');
+                gameOverScreen.style.display = 'none';
+            }
             startGame();
         };
 
         function returnToMainMenu() {
-            gameOverScreen.classList.add('hidden'); pauseMenu.classList.add('hidden'); perkModal.classList.add('hidden'); relicModal.classList.add('hidden');
+            if (gameOverScreen) {
+                gameOverScreen.classList.add('hidden');
+                gameOverScreen.style.display = 'none';
+            }
+            if (pauseMenu) pauseMenu.classList.add('hidden');
+            if (perkModal) perkModal.classList.add('hidden');
+            if (relicModal) relicModal.classList.add('hidden');
             const respawnModal = document.getElementById('pvp-respawn-modal');
             if (respawnModal) respawnModal.classList.add('hidden');
             if (pvpRespawnCountdownTimer) { clearInterval(pvpRespawnCountdownTimer); pvpRespawnCountdownTimer = null; }
             const dock = document.getElementById('online-leaderboard-dock');
             if (dock) dock.style.display = 'none';
             stopPingMeasurement();
+            sandboxGodMode = false;
+            sandboxInfAmmo = false;
+            sandboxNoCooldown = false;
+            sandboxCustomTimeScale = null;
             if (typeof toggleRadialWeaponMenu === 'function') toggleRadialWeaponMenu(false);
             if (typeof toggleTacticalPingWheel === 'function') toggleTacticalPingWheel(false);
 
-            bossHudContainer.style.display = 'none'; dashBtnHud.style.display = 'none'; if (reloadBtnHud) reloadBtnHud.style.display = 'none'; if (superEmpBtnHud) superEmpBtnHud.style.display = 'none'; ultBtnHud.style.display = 'none';
+            if (bossHudContainer) bossHudContainer.style.display = 'none';
+            if (dashBtnHud) dashBtnHud.style.display = 'none';
+            if (reloadBtnHud) reloadBtnHud.style.display = 'none';
+            if (superEmpBtnHud) superEmpBtnHud.style.display = 'none';
+            if (ultBtnHud) ultBtnHud.style.display = 'none';
+            if (typeof classSkillBtnHud !== 'undefined' && classSkillBtnHud) classSkillBtnHud.style.display = 'none';
+            if (typeof classSkill2BtnHud !== 'undefined' && classSkill2BtnHud) classSkill2BtnHud.style.display = 'none';
             if (joystickBase) joystickBase.style.display = 'none';
             if (joystickAimBase) joystickAimBase.style.display = 'none';
             const touchContainer = document.getElementById('touch-controls-container');
             if (touchContainer) touchContainer.style.display = 'none';
-            bossWarningBanner.style.display = 'none'; hazardWarningBanner.style.display = 'none';
+            if (bossWarningBanner) bossWarningBanner.style.display = 'none';
+            if (hazardWarningBanner) hazardWarningBanner.style.display = 'none';
             resetJoystick();
             resetAimJoystick();
             isMouseDown = false;
@@ -11633,8 +11803,21 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         }
 
         function initGame() {
-            gameOverScreen.classList.add('hidden'); pauseMenu.classList.add('hidden'); perkModal.classList.add('hidden'); relicModal.classList.add('hidden');
-            bossWarningBanner.style.display = 'none'; hazardWarningBanner.style.display = 'none'; bossHudContainer.style.display = 'none';
+            if (gameOverScreen) {
+                gameOverScreen.classList.add('hidden');
+                gameOverScreen.style.setProperty('display', 'none', 'important');
+            }
+            if (pauseMenu) pauseMenu.classList.add('hidden');
+            if (perkModal) perkModal.classList.add('hidden');
+            if (relicModal) relicModal.classList.add('hidden');
+            if (typeof remotePlayers !== 'undefined' && remotePlayers) remotePlayers.clear();
+            if (typeof pveDownedPlayers !== 'undefined' && pveDownedPlayers) pveDownedPlayers.clear();
+            if (!isSandboxMode()) {
+                sandboxGodMode = false;
+                sandboxInfAmmo = false;
+                sandboxNoCooldown = false;
+                sandboxCustomTimeScale = null;
+            }
 
             player = new Player(selectedWeapon, selectedClass);
             camX = player.x - width / 2;
@@ -13131,14 +13314,11 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 }
             }
 
-            // توجيه وتدوير جويستك الرماية بانسيابية مع موضع الماوس
+            // توجيه وتدوير جويستك الرماية بانسيابية في السنتر مع اتجاه التصويب
             if (joystickAimThumb && !isAimJoystickActive && hasMouseMoved && player && !isGameOver) {
                 let targetAng = Math.atan2(mouseWorldY - player.y, mouseWorldX - player.x);
-                let thumbDist = isMouseDown ? 28 : 20;
-                let thumbX = Math.cos(targetAng) * thumbDist;
-                let thumbY = Math.sin(targetAng) * thumbDist;
                 joystickAimThumb.style.transition = 'none';
-                joystickAimThumb.style.transform = `translate3d(${thumbX}px, ${thumbY}px, 0) rotate(${targetAng + Math.PI/2}rad)`;
+                joystickAimThumb.style.transform = `translate3d(0px, 0px, 0) rotate(${targetAng + Math.PI/2}rad)`;
             }
 
             gameLoopId = requestAnimationFrame(loop);

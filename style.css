@@ -466,10 +466,9 @@
             bottom: auto !important;
             right: auto !important;
             border-radius: 50% !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             pointer-events: auto !important;
             z-index: 26 !important;
             transform: translate(calc(-50% + var(--rx, 0px)), calc(-50% + var(--ry, 0px))) scale(1);
@@ -487,77 +486,86 @@
             filter: brightness(1.3) !important;
         }
 
-        /* 1. DASH (Mobility Anchor - Left, Angle ~8°) */
+        /* 1. DASH (Mobility Anchor - Angle ~180° Left) */
         #dash-btn-hud {
+            display: flex !important;
             width: 54px !important;
             height: 54px !important;
-            --rx: -102px;
-            --ry: -14px;
+            --rx: -108px;
+            --ry: 0px;
             --btn-color: var(--dash-color, #00f3ff);
         }
 
-        /* 2. SPRINT / Class Active Skill (Angle ~30°) */
+        /* 2. CLASS SKILL (Sprint / Turret / Ram / Recon - Angle ~135° Top-Left) */
         #class-skill-btn-hud {
-            width: 48px !important;
-            height: 48px !important;
-            --rx: -88px;
-            --ry: -52px;
+            display: flex !important;
+            width: 50px !important;
+            height: 50px !important;
+            --rx: -82px;
+            --ry: -68px;
             --btn-color: #00ff88;
         }
 
-        /* 3. RELOAD (Angle ~52°) */
-        #reload-btn-hud {
-            width: 46px !important;
-            height: 46px !important;
-            --rx: -64px;
-            --ry: -82px;
-            --btn-color: #38bdf8;
-        }
-
-        /* 4. SWAP WEAPON (Angle ~74°) */
-        #swap-weapon-btn-hud {
-            width: 46px !important;
-            height: 46px !important;
-            --rx: -28px;
-            --ry: -99px;
-            --btn-color: #00f3ff;
-        }
-
-        /* 5. NOVA / SUPER EMP (Angle ~94° - Top) */
+        /* 3. NOVA / SUPER EMP (Angle ~95° Top) */
         #super-emp-btn-hud, .over-btn {
+            display: flex !important;
             width: 48px !important;
             height: 48px !important;
-            --rx: 7px;
-            --ry: -103px;
+            --rx: -16px;
+            --ry: -106px;
             --btn-color: var(--overcharge-color, #bd00ff);
         }
 
-        /* 6. ULTIMATE (Outer Radial Crown - Angle ~42°) */
+        /* 4. ULTIMATE (Angle ~55° Top-Right) */
         #ult-btn-hud {
+            display: flex !important;
             width: 54px !important;
             height: 54px !important;
-            --rx: -114px;
-            --ry: -104px;
+            --rx: 52px;
+            --ry: -92px;
             --btn-color: var(--ult-color, #ffaa00);
         }
 
-        /* 7. RADIAL ARSENAL MENU (Hidden) */
+        /* 5. RELOAD & SWAP (Hidden by default in smart minimal mode) */
+        #reload-btn-hud,
+        #swap-weapon-btn-hud,
         #radial-trigger-btn-hud {
             display: none !important;
         }
 
-        /* 8. CLASS SKILL 2 / AMMO & SHIELD SUPPLY (Support Class Exclusive) */
+        body.controls-pro-active #reload-btn-hud {
+            display: flex !important;
+            width: 44px !important;
+            height: 44px !important;
+            --rx: -130px;
+            --ry: -48px;
+            --btn-color: #38bdf8;
+        }
+        body.controls-pro-active #swap-weapon-btn-hud {
+            display: flex !important;
+            width: 44px !important;
+            height: 44px !important;
+            --rx: 88px;
+            --ry: -48px;
+            --btn-color: #00f3ff;
+        }
+
+        /* 6. CLASS SKILL 2 / AMMO & SHIELD SUPPLY (Support Class Exclusive) */
         #class-skill2-btn-hud {
+            display: none !important;
             width: 48px !important;
             height: 48px !important;
-            --rx: -146px;
-            --ry: -48px;
+            --rx: -134px;
+            --ry: -52px;
             --btn-color: #ffd700;
             background: radial-gradient(circle at 35% 35%, rgba(255, 215, 0, 0.45), rgba(15, 25, 20, 0.95)) !important;
             border: 2px solid #ffd700 !important;
             border-radius: 50% !important;
             box-shadow: 0 0 18px rgba(255, 215, 0, 0.7), inset 0 0 10px rgba(0, 255, 136, 0.5) !important;
             animation: supplyPulse 2.2s infinite ease-in-out;
+        }
+        body.class-support-active #class-skill2-btn-hud {
+            display: flex !important;
         }
 
         @keyframes supplyPulse {
@@ -571,13 +579,17 @@
             }
         }
 
-        /* 9. SANDBOX (Angle ~98°, Outer Orbit) */
+        /* 7. SANDBOX (ONLY in Sandbox Mode!) */
         #sandbox-btn-hud {
-            width: 44px !important;
-            height: 44px !important;
-            --rx: 20px;
-            --ry: -150px;
+            display: none !important;
+            width: 46px !important;
+            height: 46px !important;
+            --rx: 88px;
+            --ry: -45px;
             --btn-color: #00ff88;
+        }
+        body.sandbox-mode-active #sandbox-btn-hud {
+            display: flex !important;
         }
 
         .stealth-indicator-tag {
@@ -670,11 +682,11 @@
             position: absolute;
             width: 46px;
             height: 46px;
-            background: radial-gradient(circle, rgba(255, 42, 95, 0.95) 0%, rgba(255, 145, 0, 0.45) 80%);
-            border: 2px solid #ff2a5f;
+            background: radial-gradient(circle at 35% 35%, rgba(255, 60, 110, 1) 0%, rgba(255, 42, 95, 0.95) 45%, rgba(200, 15, 60, 0.8) 85%);
+            border: 2.5px solid #ff2a5f;
             border-radius: 50%;
             pointer-events: none;
-            box-shadow: 0 0 20px rgba(255, 42, 95, 0.85);
+            box-shadow: 0 0 22px rgba(255, 42, 95, 0.9), inset 0 0 10px rgba(255, 215, 0, 0.4);
             transform: translate3d(0px, 0px, 0);
             transition: transform 0.04s cubic-bezier(0.1, 0.9, 0.2, 1);
             will-change: transform;
@@ -685,12 +697,15 @@
         #joystick-aim-thumb::after {
             content: '▲';
             position: absolute;
-            top: 2px;
+            top: 50%;
             left: 50%;
-            transform: translateX(-50%);
-            font-size: 10px;
+            transform: translate(-50%, -50%);
+            font-size: 14px;
+            line-height: 1;
+            font-weight: 900;
             color: #ffffff;
-            text-shadow: 0 0 6px #ff0055, 0 0 12px #ffd700;
+            text-shadow: 0 0 8px #ff0055, 0 0 14px #ffd700;
+            filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.8));
         }
 
         @media (min-width: 850px) and (min-height: 480px) {
@@ -984,6 +999,37 @@
             to { opacity: 1; transform: scale(1); }
         }
         .overlay-screen.hidden { opacity: 0; pointer-events: none; display: none !important; }
+
+        /* Dedicated high-priority Game Over Screen styling */
+        #game-over-screen {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            z-index: 99999 !important;
+            background: radial-gradient(circle at 50% 30%, rgba(18, 5, 12, 0.97) 0%, rgba(4, 2, 8, 0.99) 100%) !important;
+            backdrop-filter: blur(20px) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-y: auto;
+            pointer-events: auto;
+        }
+        #game-over-screen.hidden {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            opacity: 0 !important;
+        }
+        #game-over-screen:not(.hidden) {
+            display: flex !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
         
         .screen-title { 
             font-family: 'Chakra Petch', 'Rajdhani', sans-serif;
@@ -6449,9 +6495,7 @@ html[lang="en"] .shop-preview-info {
     }
 
     .overlay-screen.hidden,
-    .overlay-screen[style*="display: none"],
-    #main-menu.hidden,
-    #main-menu[style*="display: none"] {
+    #main-menu.hidden {
         display: none !important;
         visibility: hidden !important;
         pointer-events: none !important;
@@ -7233,13 +7277,9 @@ html[lang="en"] .shop-preview-info {
     }
 
     .cyber-modal.hidden,
-    .cyber-modal[style*="display: none"],
     .modal-backdrop.hidden,
-    .modal-backdrop[style*="display: none"],
     #mode-select-modal.hidden,
-    #mode-select-modal[style*="display: none"],
     .overlay-screen.hidden,
-    .overlay-screen[style*="display: none"],
     .radial-menu-overlay.hidden,
     .tactical-wheel-overlay.hidden,
     #radial-weapon-menu.hidden,
@@ -7672,9 +7712,32 @@ html[lang="en"] .shop-preview-info {
 
     /* Game Over Screen */
     #game-over-screen {
-        padding: 8px !important;
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        padding: 12px 8px !important;
         justify-content: center !important;
+        align-items: center !important;
         overflow-y: auto !important;
+        z-index: 999999 !important;
+        background: radial-gradient(circle at 50% 30%, rgba(18, 5, 12, 0.98) 0%, rgba(4, 2, 8, 0.99) 100%) !important;
+    }
+    #game-over-screen.hidden {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        opacity: 0 !important;
+    }
+    #game-over-screen:not(.hidden) {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+    }
+    #game-over-screen .screen-subtitle {
+        display: inline-flex !important;
     }
 
     .telemetry-box {
@@ -7852,10 +7915,6 @@ html[lang="en"] .shop-preview-info {
     #joystick-aim-thumb {
         width: 50px !important;
         height: 50px !important;
-        position: absolute !important;
-        left: 50% !important;
-        top: 50% !important;
-        transform: translate(-50%, -50%) !important;
     }
 
     /* Radial Abilities Cluster on Mobile - Responsive & Orientation Handling */
@@ -7971,58 +8030,71 @@ html[lang="en"] .shop-preview-info {
 
     /* Scaled Radial semi-circle in Portrait to prevent screen overflow */
     #dash-btn-hud {
+        display: flex !important;
         width: 48px !important;
         height: 48px !important;
-        --rx: -90px;
-        --ry: -12px;
+        --rx: -96px;
+        --ry: 0px;
     }
     #class-skill-btn-hud {
-        width: 42px !important;
-        height: 42px !important;
-        --rx: -78px;
-        --ry: -46px;
-    }
-    #reload-btn-hud {
-        width: 40px !important;
-        height: 40px !important;
-        --rx: -56px;
-        --ry: -72px;
-    }
-    #swap-weapon-btn-hud {
-        width: 40px !important;
-        height: 40px !important;
-        --rx: -24px;
-        --ry: -88px;
+        display: flex !important;
+        width: 44px !important;
+        height: 44px !important;
+        --rx: -74px;
+        --ry: -60px;
     }
     #super-emp-btn-hud, .over-btn {
+        display: flex !important;
         width: 42px !important;
         height: 42px !important;
-        --rx: 6px;
-        --ry: -92px;
+        --rx: -14px;
+        --ry: -94px;
     }
     #ult-btn-hud {
+        display: flex !important;
         width: 48px !important;
         height: 48px !important;
-        --rx: -100px;
-        --ry: -92px;
+        --rx: 46px;
+        --ry: -82px;
     }
+    #reload-btn-hud,
+    #swap-weapon-btn-hud,
     #radial-trigger-btn-hud {
-        width: 38px !important;
-        height: 38px !important;
-        --rx: -38px;
-        --ry: -126px;
+        display: none !important;
     }
-    #class-skill2-btn-hud {
+    body.controls-pro-active #reload-btn-hud {
+        display: flex !important;
         width: 38px !important;
         height: 38px !important;
-        --rx: -128px;
+        --rx: -116px;
         --ry: -42px;
     }
-    #sandbox-btn-hud {
+    body.controls-pro-active #swap-weapon-btn-hud {
+        display: flex !important;
         width: 38px !important;
         height: 38px !important;
-        --rx: 16px;
-        --ry: -130px;
+        --rx: 78px;
+        --ry: -42px;
+    }
+    #class-skill2-btn-hud {
+        display: none !important;
+        width: 42px !important;
+        height: 42px !important;
+        --rx: -118px;
+        --ry: -48px;
+    }
+    body.class-support-active #class-skill2-btn-hud {
+        display: flex !important;
+    }
+    #sandbox-btn-hud {
+        display: none !important;
+        width: 40px !important;
+        height: 40px !important;
+        --rx: 78px;
+        --ry: -40px;
+    }
+    body.sandbox-mode-active #sandbox-btn-hud {
+        display: flex !important;
     }
 
     .hud-action-btn .btn-text {
