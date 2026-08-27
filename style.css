@@ -6303,7 +6303,7 @@ html[lang="en"] .shop-preview-info {
         height: 100vh !important;
         height: 100dvh !important;
         box-sizing: border-box !important;
-        display: flex !important;
+        display: flex;
         flex-direction: column !important;
         justify-content: flex-start !important;
         align-items: center !important;
@@ -6317,6 +6317,16 @@ html[lang="en"] .shop-preview-info {
         padding-right: max(8px, env(safe-area-inset-right, 8px)) !important;
         scrollbar-width: thin !important;
         scrollbar-color: rgba(0, 243, 255, 0.3) transparent !important;
+    }
+
+    .overlay-screen.hidden,
+    .overlay-screen[style*="display: none"],
+    #main-menu.hidden,
+    #main-menu[style*="display: none"] {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        opacity: 0 !important;
     }
 
     /* Ultra-Slim Mobile Header & Top Bar */
