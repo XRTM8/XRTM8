@@ -529,56 +529,179 @@ class BotPlayer {
         this.aiTargetAngle = this.facingAngle;
         this.aiSpeed = 4.2 + Math.random() * 2.2;
         this.aiDashCooldown = Date.now() + 4000 + Math.random() * 6000;
+        this.aiHealPulseCooldown = Date.now() + 5000 + Math.random() * 5000;
+        this.revivingTargetId = null;
+        this.revivingProgressMs = 0;
     }
 
     update(room, dt) {
         if (this.isDead) return;
         const now = Date.now();
+        const dtMs = (dt || 0.028) * 1000;
 
-        // Dynamic tactical roaming & target acquisition
-        if (now > this.aiChangeTargetTime) {
-            this.aiChangeTargetTime = now + 1600 + Math.random() * 2400;
-            
-            let target = null;
-            let minDist = 1800;
-
-            for (const other of room.players.values()) {
-                if (other.id !== this.id && !other.isDead) {
-                    const dist = Math.hypot(other.x - this.x, other.y - this.y);
-                    if (dist < minDist) {
-                        minDist = dist;
-                        target = other;
-                    }
+        // 1. Check for Downed Teammates to Revive (PvE & Boss Raid)
+        let downedAlly = null;
+        if (room.mode === 'online_coop' || room.mode === 'online_boss_raid') {
+            for (const ally of room.players.values()) {
+                if (ally.id !== this.id && ally.isDowned && !ally.isDead) {
+                    downedAlly = ally;
+                    break;
                 }
-            }
-
-            if (target && (room.mode === 'online_pvp' || (room.mode === 'online_coop' && target.isDowned))) {
-                const angToTarget = Math.atan2(target.y - this.y, target.x - this.x);
-                if (minDist > 320) {
-                    this.aiTargetAngle = angToTarget + (Math.random() - 0.5) * 0.4;
-                } else {
-                    this.aiTargetAngle = angToTarget + Math.PI / 2 * (Math.random() > 0.5 ? 1 : -1);
-                }
-                this.facingAngle = angToTarget;
-            } else if (room.bossState && room.mode === 'online_boss_raid') {
-                const angToBoss = Math.atan2(room.bossState.y - this.y, room.bossState.x - this.x);
-                const distToBoss = Math.hypot(room.bossState.x - this.x, room.bossState.y - this.y);
-                if (distToBoss > 650) {
-                    this.aiTargetAngle = angToBoss + (Math.random() - 0.5) * 0.5;
-                } else {
-                    this.aiTargetAngle = angToBoss + Math.PI / 2;
-                }
-                this.facingAngle = angToBoss;
-            } else {
-                if (this.x < 1500 || this.x > 6500 || this.y < 1500 || this.y > 6500) {
-                    this.aiTargetAngle = Math.atan2(4000 - this.y, 4000 - this.x);
-                } else {
-                    this.aiTargetAngle += (Math.random() - 0.5) * 1.4;
-                }
-                this.facingAngle = this.aiTargetAngle;
             }
         }
 
+        // 2. Active Teammate Reviving & Healing Logic
+        if (downedAlly) {
+            const distToDowned = Math.hypot(downedAlly.x - this.x, downedAlly.y - this.y);
+            const angToDowned = Math.atan2(downedAlly.y - this.y, downedAlly.x - this.x);
+            this.facingAngle = angToDowned;
+
+            if (distToDowned > 90) {
+                // Move towards downed teammate
+                this.aiTargetAngle = angToDowned;
+                this.aiSpeed = 5.2;
+                this.revivingTargetId = null;
+                this.revivingProgressMs = 0;
+            } else {
+                // In revive range: halt, channel revive, and guard
+                this.aiSpeed = 0;
+                this.vx = 0;
+                this.vy = 0;
+                this.overchargeActive = true;
+
+                if (this.revivingTargetId === downedAlly.id) {
+                    this.revivingProgressMs += dtMs;
+                } else {
+                    this.revivingTargetId = downedAlly.id;
+                    this.revivingProgressMs = 0;
+                }
+
+                // Revive completion after channeling 5000ms
+                if (this.revivingProgressMs >= PVE_REVIVE_DURATION_MS) {
+                    const cStats = CHASSIS_COMBAT_STATS[downedAlly.chassis] || CHASSIS_COMBAT_STATS.assault;
+                    downedAlly.hp = cStats.hp;
+                    downedAlly.health = cStats.hp;
+                    downedAlly.maxHp = cStats.hp;
+                    downedAlly.maxHealth = cStats.hp;
+                    downedAlly.shield = cStats.shield;
+                    downedAlly.maxShield = cStats.shield;
+                    downedAlly.isDead = false;
+                    downedAlly.isDowned = false;
+                    downedAlly.downedAt = 0;
+                    downedAlly.vx = 0;
+                    downedAlly.vy = 0;
+                    this.revives = (this.revives || 0) + 1;
+                    this.revivingTargetId = null;
+                    this.revivingProgressMs = 0;
+                    this.overchargeActive = false;
+
+                    io.to(room.id).emit('pve_revive_success', {
+                        revivedId: downedAlly.id,
+                        reviverId: this.id,
+                        reviverName: this.username,
+                        targetName: downedAlly.username,
+                        hp: downedAlly.hp,
+                        health: downedAlly.health,
+                        maxHp: downedAlly.maxHp,
+                        maxHealth: downedAlly.maxHealth,
+                        shield: downedAlly.shield,
+                        maxShield: downedAlly.maxShield,
+                        invulnerableMs: 3000,
+                        isDead: false,
+                        isDowned: false
+                    });
+                }
+            }
+        } else {
+            this.revivingTargetId = null;
+            this.revivingProgressMs = 0;
+            this.overchargeActive = false;
+
+            // 3. Support Nanite Healing Pulse for low-health allies
+            if ((this.chassis === 'support' || this.chassis === 'engineer') && now > this.aiHealPulseCooldown) {
+                let lowAllyFound = false;
+                for (const ally of room.players.values()) {
+                    if (ally.id !== this.id && !ally.isDead && !ally.isDowned) {
+                        const dist = Math.hypot(ally.x - this.x, ally.y - this.y);
+                        const hpPct = (ally.hp || ally.health || 100) / (ally.maxHp || ally.maxHealth || 100);
+                        if (dist < 600 && hpPct < 0.75) {
+                            lowAllyFound = true;
+                            // Restore HP and Shield
+                            ally.hp = Math.min(ally.maxHp || ally.maxHealth || 100, (ally.hp || ally.health || 0) + 25);
+                            ally.health = ally.hp;
+                            ally.shield = Math.min(ally.maxShield || 3, (ally.shield || 0) + 1);
+                        }
+                    }
+                }
+                if (lowAllyFound) {
+                    this.aiHealPulseCooldown = now + 9000 + Math.random() * 4000;
+                    io.to(room.id).emit('support_heal_pulse', {
+                        x: this.x,
+                        y: this.y,
+                        sourceId: this.id,
+                        sourceName: this.username,
+                        healAmount: 25
+                    });
+                }
+            }
+
+            // 4. Dynamic Tactical Roaming, Combat & Targeting
+            if (now > this.aiChangeTargetTime) {
+                this.aiChangeTargetTime = now + 1600 + Math.random() * 2200;
+                
+                let target = null;
+                let minDist = 1800;
+
+                for (const other of room.players.values()) {
+                    if (other.id !== this.id && !other.isDead && !other.isDowned) {
+                        const dist = Math.hypot(other.x - this.x, other.y - this.y);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            target = other;
+                        }
+                    }
+                }
+
+                if (target && room.mode === 'online_pvp') {
+                    // Lead-trajectory prediction in PvP
+                    const leadX = target.x + (target.vx || 0) * 12;
+                    const leadY = target.y + (target.vy || 0) * 12;
+                    const angToTarget = Math.atan2(leadY - this.y, leadX - this.x);
+                    
+                    if (minDist > 380) {
+                        this.aiTargetAngle = angToTarget + (Math.random() - 0.5) * 0.35;
+                        this.aiSpeed = 4.8;
+                    } else {
+                        // Tactical circling strafe
+                        this.aiTargetAngle = angToTarget + Math.PI / 2 * (Math.random() > 0.5 ? 1 : -1);
+                        this.aiSpeed = 4.0;
+                    }
+                    this.facingAngle = angToTarget;
+                } else if (room.bossState && room.mode === 'online_boss_raid') {
+                    const angToBoss = Math.atan2(room.bossState.y - this.y, room.bossState.x - this.x);
+                    const distToBoss = Math.hypot(room.bossState.x - this.x, room.bossState.y - this.y);
+                    if (distToBoss > 650) {
+                        this.aiTargetAngle = angToBoss + (Math.random() - 0.5) * 0.45;
+                        this.aiSpeed = 4.6;
+                    } else {
+                        this.aiTargetAngle = angToBoss + Math.PI / 2;
+                        this.aiSpeed = 3.8;
+                    }
+                    this.facingAngle = angToBoss;
+                } else {
+                    // Wingman behavior: roam smoothly and stay within active sector
+                    if (this.x < 1500 || this.x > 6500 || this.y < 1500 || this.y > 6500) {
+                        this.aiTargetAngle = Math.atan2(4000 - this.y, 4000 - this.x);
+                    } else {
+                        this.aiTargetAngle += (Math.random() - 0.5) * 1.3;
+                    }
+                    this.aiSpeed = 4.0;
+                    this.facingAngle = this.aiTargetAngle;
+                }
+            }
+        }
+
+        // 5. Movement Integration
         const moveVx = Math.cos(this.aiTargetAngle) * this.aiSpeed;
         const moveVy = Math.sin(this.aiTargetAngle) * this.aiSpeed;
         this.vx = moveVx;
@@ -586,7 +709,7 @@ class BotPlayer {
         this.x = Math.max(800, Math.min(7200, this.x + this.vx));
         this.y = Math.max(800, Math.min(7200, this.y + this.vy));
 
-        // Occasional tactical evasion dash
+        // 6. Occasional Tactical Evasion Dash
         if (now > this.aiDashCooldown) {
             this.aiDashCooldown = now + 6000 + Math.random() * 8000;
             this.isDashing = true;
@@ -656,15 +779,35 @@ function getClientIp(socket) {
 }
 
 function broadcastOnlineCount() {
-    const totalConnected = io.engine.clientsCount || activeSockets.size;
-    const pveCount = gameRooms.get('online_pve').players.size;
-    const pvpCount = gameRooms.get('online_pvp').players.size;
-    const raidCount = gameRooms.get('online_boss_raid').players.size;
+    const pveRoom = gameRooms.get('online_pve');
+    const pvpRoom = gameRooms.get('online_pvp');
+    const raidRoom = gameRooms.get('online_boss_raid');
+    const roamRoom = gameRooms.get('online_free_roam');
+
+    const pveCount = pveRoom ? pveRoom.players.size : 0;
+    const pvpCount = pvpRoom ? pvpRoom.players.size : 0;
+    const raidCount = raidRoom ? raidRoom.players.size : 0;
+    const roamCount = roamRoom ? roamRoom.players.size : 0;
+
+    let totalAgents = 0;
+    for (const room of gameRooms.values()) {
+        totalAgents += room.players.size;
+    }
+
+    let lobbyCount = 0;
+    for (const meta of activeSockets.values()) {
+        if (!meta.currentRoomId || meta.mode === 'lobby') {
+            lobbyCount++;
+        }
+    }
+    totalAgents = Math.max(totalAgents + lobbyCount, activeSockets.size);
+
     io.emit('server_presence', {
-        total: totalConnected,
+        total: totalAgents,
         pve: pveCount,
         pvp: pvpCount,
-        raid: raidCount
+        raid: raidCount,
+        roam: roamCount
     });
 }
 

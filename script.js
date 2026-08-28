@@ -1589,19 +1589,45 @@ setInterval(() => {
     }
 }, 2500);
 
-// Spectator Mode helpers
+// ===================================================================
+// LIVE SPECTATOR CAMERA & ALLY NAVIGATION SYSTEM
+// ===================================================================
+function getSpectatedTarget() {
+    const list = getAliveTeammates();
+    if (!list || list.length === 0) return null;
+    if (spectatorTargetIndex >= list.length) spectatorTargetIndex = 0;
+    if (spectatorTargetIndex < 0) spectatorTargetIndex = list.length - 1;
+    return list[spectatorTargetIndex];
+}
+
 function spectatorCycleNext() {
     const list = getAliveTeammates();
     if (list.length === 0) return;
     spectatorTargetIndex = (spectatorTargetIndex + 1) % list.length;
-    updateSpectatorHUD(list[spectatorTargetIndex]);
+    const target = list[spectatorTargetIndex];
+    updateSpectatorHUD(target);
+    if (typeof playSound === 'function') playSound('ui_hover');
+    if (target && target.x && target.y) {
+        let viewW = width / (cameraZoom || 1.0);
+        let viewH = height / (cameraZoom || 1.0);
+        camX = Math.max(0, Math.min(WORLD_W - viewW, target.x - viewW / 2));
+        camY = Math.max(0, Math.min(WORLD_H - viewH, target.y - viewH / 2));
+    }
 };
 
 function spectatorCyclePrev() {
     const list = getAliveTeammates();
     if (list.length === 0) return;
     spectatorTargetIndex = (spectatorTargetIndex - 1 + list.length) % list.length;
-    updateSpectatorHUD(list[spectatorTargetIndex]);
+    const target = list[spectatorTargetIndex];
+    updateSpectatorHUD(target);
+    if (typeof playSound === 'function') playSound('ui_hover');
+    if (target && target.x && target.y) {
+        let viewW = width / (cameraZoom || 1.0);
+        let viewH = height / (cameraZoom || 1.0);
+        camX = Math.max(0, Math.min(WORLD_W - viewW, target.x - viewW / 2));
+        camY = Math.max(0, Math.min(WORLD_H - viewH, target.y - viewH / 2));
+    }
 };
 
 function updateSpectatorHUD(targetPlayer) {
@@ -1610,7 +1636,13 @@ function updateSpectatorHUD(targetPlayer) {
     if (!overlay || !targetPlayer) return;
     overlay.classList.remove('hidden');
     overlay.style.display = 'flex';
-    if (nameEl) nameEl.innerText = targetPlayer.username || 'Agent';
+    if (nameEl) {
+        const hp = Math.max(0, Math.round(targetPlayer.health ?? targetPlayer.hp ?? 100));
+        const maxHp = Math.max(1, Math.round(targetPlayer.maxHealth ?? targetPlayer.maxHp ?? 100));
+        const chassis = (targetPlayer.chassis || 'assault').toUpperCase();
+        const kills = targetPlayer.kills || 0;
+        nameEl.innerHTML = `<span style="color:#00f3ff; font-weight:900;">${targetPlayer.username || 'Agent'}</span> <span style="color:#ffd700; font-size:0.8rem; margin: 0 4px;">[${chassis}]</span> <span style="color:#00ff88; font-size:0.8rem;">HP: ${hp}/${maxHp}</span> <span style="color:#ffaa00; font-size:0.8rem; margin-right:4px;">⚔️ ${kills}</span>`;
+    }
 }
 
 
@@ -5217,9 +5249,11 @@ socket.on('disconnect', () => {
                     const totalVal = document.getElementById('online-count-val');
                     const pveVal = document.getElementById('pve-count-val');
                     const pvpVal = document.getElementById('pvp-count-val');
+                    const raidVal = document.getElementById('raid-count-val');
                     if (totalVal) totalVal.innerText = data.total || 1;
                     if (pveVal) pveVal.innerText = data.pve || 0;
                     if (pvpVal) pvpVal.innerText = data.pvp || 0;
+                    if (raidVal) raidVal.innerText = data.raid || 0;
 
                     // Update admin telemetry if open
                     const admTotal = document.getElementById('adm-stat-total');
@@ -7121,6 +7155,18 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 if (!mainMenu || mainMenu.style.display === 'none') {
                     e.preventDefault();
                     togglePause();
+                    return;
+                }
+            }
+            if (isSpectating) {
+                if (e.code === 'ArrowLeft' || e.code === 'KeyA') {
+                    e.preventDefault();
+                    spectatorCyclePrev();
+                    return;
+                }
+                if (e.code === 'ArrowRight' || e.code === 'KeyD') {
+                    e.preventDefault();
+                    spectatorCycleNext();
                     return;
                 }
             }
@@ -13610,13 +13656,28 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 let viewH = height / cameraZoom;
 
                 if (player) {
+                    let targetX = player.x;
+                    let targetY = player.y;
+                    let targetFacing = player.facingAngle;
+
+                    // If in spectator mode, smoothly follow spectated ally
+                    if (isSpectating) {
+                        const spectated = getSpectatedTarget();
+                        if (spectated && typeof spectated.x === 'number' && typeof spectated.y === 'number') {
+                            targetX = spectated.x;
+                            targetY = spectated.y;
+                            targetFacing = spectated.facingAngle || targetFacing;
+                            updateSpectatorHUD(spectated);
+                        }
+                    }
+
                     // تتبع فائق النعومة للكاميرا مع استشراف ديناميكي لاتجاه التصويب
                     let lookAheadDist = isMobile ? 35 : 60;
-                    let lookDirX = Math.cos(player.facingAngle) * lookAheadDist;
-                    let lookDirY = Math.sin(player.facingAngle) * lookAheadDist;
+                    let lookDirX = Math.cos(targetFacing) * lookAheadDist;
+                    let lookDirY = Math.sin(targetFacing) * lookAheadDist;
 
-                    let targetCamX = Math.max(0, Math.min(WORLD_W - viewW, player.x + lookDirX - viewW / 2));
-                    let targetCamY = Math.max(0, Math.min(WORLD_H - viewH, player.y + lookDirY - viewH / 2));
+                    let targetCamX = Math.max(0, Math.min(WORLD_W - viewW, targetX + lookDirX - viewW / 2));
+                    let targetCamY = Math.max(0, Math.min(WORLD_H - viewH, targetY + lookDirY - viewH / 2));
 
                     let camSmoothFactor = 1 - Math.pow(0.80, frameFactor);
                     camX = lerp(camX, targetCamX, camSmoothFactor);

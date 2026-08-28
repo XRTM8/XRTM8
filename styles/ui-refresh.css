@@ -1004,3 +1004,78 @@ select:focus-visible {
     border-color: #ffd700 !important;
     box-shadow: 0 0 20px rgba(255, 215, 0, 0.3) !important;
 }
+
+/* ===================================================================
+   ENHANCED LIVE SPECTATOR HUD & ALLY TRACKING DOCK
+   =================================================================== */
+.spectator-hud-overlay {
+    position: fixed !important;
+    bottom: max(20px, env(safe-area-inset-bottom)) !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background: linear-gradient(165deg, rgba(8, 16, 28, 0.95), rgba(4, 8, 16, 0.98)) !important;
+    border: 1.5px solid rgba(0, 243, 255, 0.5) !important;
+    box-shadow: 0 0 35px rgba(0, 243, 255, 0.25), 0 16px 40px rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+    border-radius: 16px !important;
+    padding: 12px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 8px !important;
+    z-index: 10000 !important;
+    width: min(92vw, 480px) !important;
+    box-sizing: border-box !important;
+    animation: cyberModalFadeIn 0.22s ease !important;
+}
+
+.spectator-banner {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+    text-align: center !important;
+}
+
+.spectator-target-label {
+    color: #ffffff !important;
+    font-size: 0.95rem !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+}
+
+.spectator-controls-dock {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    width: 100% !important;
+    flex-wrap: wrap !important;
+}
+
+.spectator-nav-btn {
+    background: rgba(0, 243, 255, 0.12) !important;
+    border: 1.5px solid rgba(0, 243, 255, 0.45) !important;
+    color: #00f3ff !important;
+    border-radius: 10px !important;
+    padding: 7px 16px !important;
+    font-size: 0.88rem !important;
+    font-weight: 900 !important;
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+    transition: transform 0.16s ease, background 0.16s ease !important;
+}
+
+.spectator-nav-btn:hover {
+    background: rgba(0, 243, 255, 0.28) !important;
+    transform: scale(1.05) !important;
+}
+
+.spectator-nav-btn:active {
+    transform: scale(0.95) !important;
+}
