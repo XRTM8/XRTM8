@@ -260,9 +260,10 @@ function getCanvasTouchCoords(clientX, clientY) {
     };
 }
 
-// Seamless cross-browser fullscreen toggler for mobile & desktop
+// Seamless cross-browser fullscreen toggler for mobile, iOS & desktop
 function toggleFullScreen() {
     try {
+        if (typeof playSound === 'function') playSound('ui_click');
         const doc = window.document;
         const docEl = doc.documentElement;
         const requestFullScreen = docEl.requestFullscreen || 
@@ -274,11 +275,18 @@ function toggleFullScreen() {
                                  doc.webkitExitFullscreen || 
                                  doc.msExitFullscreen;
 
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
         if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
             if (requestFullScreen) {
                 requestFullScreen.call(docEl).catch(err => {
                     console.warn('Fullscreen request bypassed/rejected:', err);
                 });
+            } else if (isIOS) {
+                const isAr = (typeof currentLanguage !== 'undefined' && currentLanguage === 'ar');
+                if (typeof spawnFloatingText === 'function') {
+                    spawnFloatingText(width / 2, height / 2 - 40, isAr ? '💡 على آيفون: اضغط [مشاركة] ثم [إضافة للشاشة الرئيسية] لملء الشاشة!' : '💡 iOS: Tap Share then "Add to Home Screen" for Fullscreen App!', '#00f3ff', 3500);
+                }
             }
         } else {
             if (cancelFullScreen) {
@@ -291,6 +299,7 @@ function toggleFullScreen() {
         console.warn('Fullscreen toggle failed:', e);
     }
 }
+if (typeof window !== 'undefined') window.toggleFullScreen = toggleFullScreen;
 
 // Professional screen rotation and fullscreen engine for mobile
 function forceRotateAndFullscreen() {
@@ -348,13 +357,27 @@ function safeNormalize(dx, dy) {
 }
 
 function resumeAudioCtx() {
-    if (audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume().catch(() => {});
+    if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) audioCtx = new AudioContextClass();
+    }
+    if (audioCtx) {
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume().catch(() => {});
+        }
+        try {
+            const buffer = audioCtx.createBuffer(1, 1, 22050);
+            const source = audioCtx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(audioCtx.destination);
+            source.start(0);
+        } catch (_) {}
     }
 }
 window.addEventListener('click', resumeAudioCtx, { passive: true });
 window.addEventListener('keydown', resumeAudioCtx, { passive: true });
 window.addEventListener('touchstart', resumeAudioCtx, { passive: true });
+window.addEventListener('touchend', resumeAudioCtx, { passive: true });
 
         const WORLD_W = 8000, WORLD_H = 8000;
         const lerp = (start, end, amt) => (1 - amt) * start + amt * end;
@@ -402,7 +425,11 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 
 function triggerPwaInstall() {
-    if (!deferredPwaPrompt) return;
+    if (typeof playSound === 'function') playSound('ui_click');
+    if (!deferredPwaPrompt) {
+        alert('لتثبيت اللعبة كتطبيق (PWA):\n• على أندرويد/كروم: اضغط على خيارات المتصفح (⋮) ثم "تثبيت التطبيق" أو "إضافة للشاشة الرئيسية".\n• على آيفون/سفاري: اضغط زر المشاركة ثم "إضافة إلى الصفحة الرئيسية".');
+        return;
+    }
     deferredPwaPrompt.prompt();
     deferredPwaPrompt.userChoice.then((choiceResult) => {
         if (choiceResult.outcome === 'accepted') {
@@ -660,14 +687,57 @@ let dailyLoginData = {
 
 try {
     const savedDaily = safeStorage.getItem('chrono_daily_rewards');
-    if (savedDaily) dailyLoginData = JSON.parse(savedDaily);
+    if (savedDaily) {
+        const parsed = JSON.parse(savedDaily);
+        if (parsed && typeof parsed === 'object') {
+            dailyLoginData = Object.assign(dailyLoginData, parsed);
+        }
+    }
 } catch (e) {}
+
+if (!Array.isArray(dailyLoginData.claimedDays)) dailyLoginData.claimedDays = [];
+dailyLoginData.streakCount = Math.max(1, Math.min(7, parseInt(dailyLoginData.streakCount, 10) || 1));
+
+// ===================================================================
+// CYBER MODAL UTILITIES (GUARANTEED VISIBILITY & EVENT HANDLING)
+// ===================================================================
+function showCyberModal(modalId) {
+    const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
+    if (!modal) return null;
+    modal.classList.remove('hidden');
+    modal.removeAttribute('inert');
+    modal.setAttribute('aria-hidden', 'false');
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('visibility', 'visible', 'important');
+    modal.style.setProperty('opacity', '1', 'important');
+    modal.style.setProperty('pointer-events', 'auto', 'important');
+    modal.style.setProperty('z-index', '50000', 'important');
+    return modal;
+}
+
+function hideCyberModal(modalId) {
+    const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
+    if (!modal) return null;
+    modal.classList.add('hidden');
+    modal.setAttribute('inert', '');
+    modal.setAttribute('aria-hidden', 'true');
+    modal.style.setProperty('display', 'none', 'important');
+    modal.style.setProperty('visibility', 'hidden', 'important');
+    modal.style.setProperty('opacity', '0', 'important');
+    modal.style.setProperty('pointer-events', 'none', 'important');
+    return modal;
+}
+if (typeof window !== 'undefined') {
+    window.showCyberModal = showCyberModal;
+    window.hideCyberModal = hideCyberModal;
+}
 
 function getTodayString() {
     return new Date().toISOString().split('T')[0];
 }
 
 function openDailyRewardsModal() {
+    if (typeof playSound === 'function') playSound('tab');
     const modal = document.getElementById('daily-rewards-modal');
     const grid = document.getElementById('daily-rewards-grid');
     const streakCountTag = document.getElementById('daily-streak-count');
@@ -707,16 +777,11 @@ function openDailyRewardsModal() {
     });
 
     grid.innerHTML = html;
-    modal.classList.remove('hidden');
-    modal.style.display = 'flex';
+    showCyberModal(modal);
 };
 
 function closeDailyRewardsModal() {
-    const modal = document.getElementById('daily-rewards-modal');
-    if (modal) {
-        modal.classList.add('hidden');
-        modal.style.display = 'none';
-    }
+    hideCyberModal('daily-rewards-modal');
 };
 
 function claimDailyReward() {
@@ -832,7 +897,7 @@ const I18N_DICTIONARY = {
         perksTitle: ' منظومة البيركات التلقائية (Auto-Progression Perks)',
         perksDesc: 'تتطور البيركات المجهزة تلقائياً داخل المعركة مع كل موجة ينجو منها العميل:',
         missionsTitle: ' سجل المهمات والعقود التكتيكية الموحد',
-        missionsDesc: 'أكمل التحديات القتالية والعقود لكسب مكعبات الكريستال ونقاط الخبرة (XP):',
+        missionsDesc: 'أكمل التحديات القتالية والعقود لكسب الائتمان الذهبي (CR) ونقاط الخبرة (XP):',
         achievementsTitle: 'PTS الإنجازات التكتيكية الدائمة',
         contractsTitle: ' العقود والمهمات القتالية',
         settingsTitle: ' مركز الإعدادات وتخصيص التحكم والرسوميات',
@@ -891,8 +956,8 @@ const I18N_DICTIONARY = {
         highestWave: 'أعلى موجة وصلت لها:',
         survivalTime: 'زمن الصمود الكلي:',
         xpEarned: 'الخبرة المكتسبة (XP):',
-        totalCubes: 'الرصيد الكلي من الكريستال:',
-        roundCubes: 'المكعبات المجمعة في الجولة:',
+        totalCubes: 'الرصيد الذهبي الكلي (CR):',
+        roundCubes: 'الائتمان الذهبي المجمع بالجولة (CR):',
         telemetryTitle: ' التحليل القتالي للجولة (Telemetry)',
         telParries: 'عمليات الصد الفوري (Parry):',
         telGrazes: 'المراوغات الملاصقة (Graze):',
@@ -1084,8 +1149,8 @@ const I18N_DICTIONARY = {
         highestWave: 'Highest Wave Reached:',
         survivalTime: 'Total Survival Time:',
         xpEarned: 'XP Earned:',
-        totalCubes: 'Total Meta-Cubes Balance:',
-        roundCubes: 'Cubes Collected in Round:',
+        totalCubes: 'Total Gold Credits (CR):',
+        roundCubes: 'Credits Earned in Round (CR):',
         telemetryTitle: ' Combat Telemetry Analysis',
         telParries: 'Active Parries:',
         telGrazes: 'Graze Adrenaline Surges:',
@@ -1683,17 +1748,17 @@ function isSandboxMode() {
             survivor: { title: "ناجي الزمن", desc: "اصمد لمدة 60 ثانية في جولة واحدة", unlocked: false, reward: 20 },
             apex_predator: { title: "المفترس الأكبر", desc: "اقضِ على 50 عدواً في جولة واحدة", unlocked: false, reward: 25 },
             boss_slayer: { title: "قاهر العمالقة", desc: "اهزم زعيماً كونياً واحداً على الأقل", unlocked: false, reward: 40 },
-            millionaire: { title: "خازن الكريستال", desc: "اجمع 100 مكعب طاقة", unlocked: false, reward: 30 },
+            millionaire: { title: "خازن الذهب والائتمان", desc: "اجمع 100 رصيد ذهبي (CR)", unlocked: false, reward: 30 },
             warlord: { title: "سيد النزاع", desc: "حقق 10 قتلات في ساحة الـ PVP", unlocked: false, reward: 50 },
             c_survival: { title: "عقد البقاء", desc: "اصمد 120 ثانية دون أن ينهار درعك", unlocked: false, reward: 15 },
             c_parry: { title: "عقد الصد المثالي", desc: "قم بـ 8 صدود مثالية في جولة واحدة", unlocked: false, reward: 20 },
-            c_energy: { title: "عقد طاقة النبض", desc: "اجمع 5 مكعبات طاقة في جولة واحدة", unlocked: false, reward: 10 }
+            c_energy: { title: "عقد حاصد الذهب", desc: "اجمع 5 عملات ذهبية في جولة واحدة", unlocked: false, reward: 10 }
         };
 
         let contracts = JSON.parse(safeStorage.getItem('chrono_contracts' + SAVE_VERSION)) || {
             c_survive: { title: "عقد البقاء", desc: "اصمد لمدة 45 ثانية في جولة واحدة", unlocked: false, reward: 15 },
             c_parry: { title: "عقد الصد الفوري", desc: "نفذ 3 عمليات Parry في جولة واحدة", unlocked: false, reward: 20 },
-            c_energy: { title: "عقد طاقة النبض", desc: "اجمع 5 مكعبات طاقة في جولة واحدة", unlocked: false, reward: 10 }
+            c_energy: { title: "عقد حاصد الذهب", desc: "اجمع 5 عملات ذهبية في جولة واحدة", unlocked: false, reward: 10 }
         };
 
         // ====================================================================
@@ -3597,6 +3662,9 @@ function isSandboxMode() {
                     safeStorage.setItem('chrono_skins' + SAVE_VERSION, JSON.stringify(Array.from(unlockedCosmeticSkins)));
                     safeStorage.setItem('chrono_unlocked_cosmetics' + SAVE_VERSION, JSON.stringify(Array.from(unlockedCosmeticSkins)));
                 }
+                if (typeof syncCloudProgress === 'function') {
+                    syncCloudProgress();
+                }
             } catch(e) {}
         }
 
@@ -4070,36 +4138,50 @@ function processGoogleAuth(googleId, email, name, picture) {
             picture: picture,
             level: playerLevel || 1,
             credits: metaCurrency || 0,
-            xp: currentXP || 0,
+            xp: playerXP || 0,
+            trophies: playerTrophies || 0,
+            highest_wave: highestWaveRecord || 1,
             deviceToken: getOrInitDeviceToken()
         });
     }
 }
 
 function triggerGoogleSignIn() {
-    // If Google Identity Services library is loaded, prompt One-Tap / Popup
+    if (typeof playSound === 'function') playSound('ui_click');
+    const msgEl = document.getElementById('cloud-auth-msg');
+    if (msgEl) { msgEl.style.color = '#00f3ff'; msgEl.innerText = 'جاري الاتصال بخدمة Google Cloud...'; }
+
+    // If Google Identity Services library is loaded with valid domain auth
+    let promptedGsi = false;
     if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
         try {
             google.accounts.id.initialize({
-                client_id: '1085295123456-google-apps.googleusercontent.com', // Standard GSI Client ID
+                client_id: '1085295123456-google-apps.googleusercontent.com',
                 callback: window.handleGoogleCredentialResponse,
                 auto_select: false
             });
-            google.accounts.id.prompt();
-            return;
+            google.accounts.id.prompt((notification) => {
+                if (notification && (notification.isNotDisplayed() || notification.isSkippedMoment())) {
+                    console.log('GSI prompt dismissed, using direct Google Connect dialog.');
+                }
+            });
+            promptedGsi = true;
         } catch (err) {
             console.log('Google Identity prompt falling back to direct auth modal:', err);
         }
     }
 
-    // Direct Google Connect Dialog (Instant One-Click Google Linking for Web App)
-    const promptEmail = prompt(' أدخل بريدك الإلكتروني في Google للربط والمزامنة السحابية فوراً:', (linkedGoogleAccount ? linkedGoogleAccount.email : 'agent@gmail.com'));
+    // Direct Instant Google Connect Dialog for Web Apps
+    const defaultEmail = (linkedGoogleAccount && linkedGoogleAccount.email) ? linkedGoogleAccount.email : ((tacticalUsername || 'agent') + '@gmail.com');
+    const promptEmail = prompt(' أدخل بريدك الإلكتروني في Google لربط ومزامنة الحساب سحابياً فوراً:', defaultEmail);
     if (promptEmail && promptEmail.includes('@')) {
         const cleanName = promptEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_').substring(0, 18);
         const demoGoogleId = 'g_' + Math.abs(promptEmail.split('').reduce((a, b) => { a = ((a << 5) - a) + b.charCodeAt(0); return a & a; }, 0));
         const defaultAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${cleanName}`;
 
         processGoogleAuth(demoGoogleId, promptEmail, cleanName, defaultAvatar);
+    } else if (promptEmail !== null) {
+        if (msgEl) { msgEl.style.color = '#ff0055'; msgEl.innerText = 'يرجى إدخال بريد Google صالح يحتوي على @'; }
     }
 };
 
@@ -4146,8 +4228,40 @@ function updateGoogleUI() {
             if (trophies >= 3500) return { id: 'grandmaster', name: isAr ? 'إمبراطور الساحة (Grandmaster)' : 'Grandmaster Apex God', badge: '', color: '#ffd700', nextTier: null, nextTrophies: 3500 };
             if (trophies >= 2000) return { id: 'diamond', name: isAr ? 'دياموند سايبر (Diamond)' : 'Diamond Cyberlord', badge: '', color: '#00f3ff', nextTier: isAr ? 'الغراند ماستر' : 'Grandmaster', nextTrophies: 3500 };
             if (trophies >= 1000) return { id: 'gold', name: isAr ? 'ذهبي نخبوي (Gold)' : 'Gold Apex Vanguard', badge: '', color: '#ffaa00', nextTier: isAr ? 'الدياموند' : 'Diamond', nextTrophies: 2000 };
-            if (trophies >= 500) return { id: 'silver', name: isAr ? 'مهاجم فضي (Silver)' : 'Silver Striker', badge: '', color: '#e0e0e0', nextTier: isAr ? 'الذهبي' : 'Gold', nextTrophies: 1000 };
-            return { id: 'bronze', name: isAr ? 'عميل برونزي (Bronze)' : 'Bronze Agent', badge: '', color: '#cd7f32', nextTier: isAr ? 'الفضي' : 'Silver', nextTrophies: 500 };
+            if (trophies >= 500) return { id: 'silver', name: isAr ? 'مهاجم فضي (Silver)' : 'Silver Striker', badge: '🥈', color: '#e0e0e0', nextTier: isAr ? 'الذهبي' : 'Gold', nextTrophies: 1000 };
+            return { id: 'bronze', name: isAr ? 'عميل برونزي (Bronze)' : 'Bronze Agent', badge: '🥉', color: '#cd7f32', nextTier: isAr ? 'الفضي' : 'Silver', nextTrophies: 500 };
+        }
+
+        let sessionTrophiesGained = 0;
+
+        function addTrophies(amount, reason = '') {
+            amount = Math.max(0, parseInt(amount, 10) || 0);
+            if (amount <= 0) return;
+
+            const oldTier = getRankTierClient(playerTrophies);
+            playerTrophies += amount;
+            sessionTrophiesGained += amount;
+            safeStorage.setItem('chrono_player_trophies', playerTrophies);
+            const newTier = getRankTierClient(playerTrophies);
+
+            // Check rank promotion celebration
+            if (newTier.id !== oldTier.id && playerTrophies >= (oldTier.nextTrophies || 0)) {
+                if (typeof playSound === 'function') playSound('ultimate');
+                const isAr = (typeof currentLanguage !== 'undefined' && currentLanguage === 'ar');
+                if (typeof spawnFloatingText === 'function') {
+                    spawnFloatingText(width / 2, height / 2 - 80, isAr ? `🏆 ترقية رانك جديدة: ${newTier.name}!` : `🏆 RANK PROMOTION: ${newTier.name}!`, newTier.color, 3500);
+                }
+            } else {
+                if (typeof playSound === 'function') playSound('gold');
+            }
+
+            if (player && typeof spawnFloatingText === 'function') {
+                spawnFloatingText(player.x, player.y - 50, `+${amount} PTS ${reason ? '(' + reason + ')' : ''}`, '#ffd700', 2000);
+            }
+
+            updatePlayerRankCardUI();
+            if (typeof saveGameProgress === 'function') saveGameProgress();
+            if (typeof syncCloudProgress === 'function') syncCloudProgress();
         }
 
         function updatePlayerRankCardUI() {
@@ -4192,11 +4306,7 @@ function updateGoogleUI() {
 
         function openRankLeaderboardModal() {
             if (typeof playSound === 'function') playSound('tab');
-            const modal = document.getElementById('rank-leaderboard-modal');
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.style.display = 'flex';
-            }
+            showCyberModal('rank-leaderboard-modal');
             renderLocalRankLeaderboard();
             if (socket && isSocketConnected) {
                 socket.emit('get_rank_leaderboard');
@@ -4204,11 +4314,7 @@ function updateGoogleUI() {
         };
 
         function closeRankLeaderboardModal() {
-            const modal = document.getElementById('rank-leaderboard-modal');
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.style.display = 'none';
-            }
+            hideCyberModal('rank-leaderboard-modal');
         };
 
         function renderLocalRankLeaderboard() {
@@ -4458,7 +4564,7 @@ function updateGoogleUI() {
                 energyCubes.push(new EnergyCube(player.x + offX, player.y + offY));
             }
             playSound('gold');
-            spawnFloatingText(player.x, player.y - 45, `💎 +${count} مكعبات طاقة`, '#00f3ff');
+            spawnFloatingText(player.x, player.y - 45, `🪙 +${count} رصيد ذهبي (CR)`, '#ffd700');
         };
 
         function sandboxDropGoldenCubes(count = 5) {
@@ -4468,7 +4574,7 @@ function updateGoogleUI() {
                 goldenCubes.push(new GoldenCube(player.x + offX, player.y + offY));
             }
             playSound('relic');
-            spawnFloatingText(player.x, player.y - 45, `👑 +${count} مكعبات ذهبية`, '#ffd700');
+            spawnFloatingText(player.x, player.y - 45, `🪙 +${count} شحنات ذهب فائقة`, '#ffd700');
         };
 
         function sandboxMaxUpgradeMeta() {
@@ -4990,26 +5096,33 @@ function updateGoogleUI() {
 
                         // Sync profile state locally
                         if (data.profile.credits !== undefined) {
-                            metaCurrency = Math.max(metaCurrency, data.profile.credits);
-                            saveGameProgress();
+                            metaCurrency = Math.max(metaCurrency, Number(data.profile.credits) || 0);
                         }
                         if (data.profile.level !== undefined) {
-                            playerLevel = Math.max(playerLevel, data.profile.level);
+                            playerLevel = Math.max(playerLevel, Number(data.profile.level) || 1);
                         }
                         if (data.profile.xp !== undefined) {
-                            currentXP = data.profile.xp;
+                            playerXP = Math.max(playerXP, Number(data.profile.xp) || 0);
                         }
                         if (data.profile.trophies !== undefined) {
-                            playerTrophies = data.profile.trophies;
-                            updatePlayerRankCardUI();
+                            playerTrophies = Math.max(playerTrophies, Number(data.profile.trophies) || 0);
+                            safeStorage.setItem('chrono_player_trophies', playerTrophies);
+                        }
+                        if (data.profile.highest_wave !== undefined) {
+                            highestWaveRecord = Math.max(highestWaveRecord, Number(data.profile.highest_wave) || 1);
                         }
                         if (data.profile.username) {
                             tacticalUsername = data.profile.username;
                             const input = document.getElementById('player-username-input');
                             if (input) input.value = tacticalUsername;
+                            safeStorage.setItem('chrono_tactical_username' + SAVE_VERSION, tacticalUsername);
                         }
 
+                        saveGameProgress();
                         updateGoogleUI();
+                        updatePlayerRankCardUI();
+                        updateArsenalUI();
+                        updateSettingsUI();
                         playSound('gold');
                         spawnFloatingText(width / 2, height / 2, '[OK] تمت المزامنة السحابية عبر Google!', '#00ff88');
                     } else {
@@ -5785,6 +5898,7 @@ socket.on('disconnect', () => {
         // CLOUD ACCOUNTS & CROSS-DEVICE SYNC LOGIC
         // ====================================================================
         function openCloudAccountModal() {
+            if (typeof playSound === 'function') playSound('tab');
             const modal = document.getElementById('cloud-account-modal');
             const msg = document.getElementById('cloud-auth-msg');
             const userInput = document.getElementById('cloud-username-input');
@@ -5792,18 +5906,12 @@ socket.on('disconnect', () => {
             if (msg) msg.innerText = '';
             if (userInput) userInput.value = tacticalUsername || 'Apex_Agent';
             if (pinInput) pinInput.value = '';
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.style.display = 'flex';
-            }
+            updateGoogleUI();
+            showCyberModal('cloud-account-modal');
         };
 
         function closeCloudAccountModal() {
-            const modal = document.getElementById('cloud-account-modal');
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.style.display = 'none';
-            }
+            hideCyberModal('cloud-account-modal');
         };
 
         function submitCloudAuth() {
@@ -5855,8 +5963,19 @@ socket.on('disconnect', () => {
                     credits: metaCurrency,
                     level: playerLevel,
                     xp: playerXP,
+                    trophies: playerTrophies,
                     highest_wave: highestWaveRecord,
                     unlocked_skins: Array.from(unlockedCosmeticSkins)
+                });
+                socket.emit('submit_match_record', {
+                    username: tacticalUsername,
+                    score: score || 0,
+                    wave: highestWaveRecord || 1,
+                    kills: sessionKills || 0,
+                    pvpKills: 0,
+                    trophies: playerTrophies || 0,
+                    credits: metaCurrency || 0,
+                    level: playerLevel || 1
                 });
             }
         }
@@ -5865,23 +5984,16 @@ socket.on('disconnect', () => {
         // ADMIN CONTROL PANEL & AUTHENTICATION LOGIC (Passkey: 145329ma)
         // ====================================================================
         function openAdminLoginModal() {
-            const modal = document.getElementById('admin-login-modal');
+            if (typeof playSound === 'function') playSound('tab');
             const msg = document.getElementById('admin-login-msg');
             const passInput = document.getElementById('admin-pass-input');
             if (msg) msg.innerText = '';
             if (passInput) passInput.value = '';
-            if (modal) {
-                modal.classList.remove('hidden');
-                modal.style.display = 'flex';
-            }
+            showCyberModal('admin-login-modal');
         };
 
         function closeAdminLoginModal() {
-            const modal = document.getElementById('admin-login-modal');
-            if (modal) {
-                modal.classList.add('hidden');
-                modal.style.display = 'none';
-            }
+            hideCyberModal('admin-login-modal');
         };
 
         function submitAdminLogin() {
@@ -7860,7 +7972,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     chrono: { name: 'واحة التمدد الزمني', color: '#00f3ff', icon: '', desc: 'إبطاء رصاص الأعداء + مضاعفة النقاط 3x' },
                     berserk: { name: 'واحة القوة النارية', color: '#ff0055', icon: '', desc: 'ضرر خارق 3x لجميع الأسلحة' },
                     cryo: { name: 'حقل الصفر المطلق', color: '#00d4ff', icon: '', desc: 'تجميد وإبطاء الأعداء 75% + ضرر مضاعف' },
-                    vault: { name: 'واحة الكريستال والطاقة', color: '#ffd700', icon: 'CR', desc: 'توليد مكعبات ذهبية وطاقة وفيرة' }
+                    vault: { name: 'واحة الائتمان والذهب', color: '#ffd700', icon: 'CR', desc: 'حقل تعدين وتوليد العملات الذهبية الفائقة' }
                 };
             }
 
@@ -7928,7 +8040,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                             metaCurrency += 20;
                             saveGameProgress();
                             for (let k = 0; k < 6; k++) goldenCubes.push(new GoldenCube(this.x + (Math.random() - 0.5) * 120, this.y + (Math.random() - 0.5) * 120));
-                            spawnFloatingText(player.x, player.y - 65, 'CR غنيمة الخزنة: +20 مكعب كريستال ذهبي!', '#ffd700');
+                            spawnFloatingText(player.x, player.y - 65, '🪙 غنيمة الخزنة: +20 رصيد ذهبي (CR)!', '#ffd700');
                         }
                         updateVitalsAndAmmoHUD();
                     }
@@ -8014,17 +8126,225 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         }
 
         class Portal {
-            constructor(x, y) { this.x = x; this.y = y; this.size = 48; this.angle = 0; }
-            update(frameFactor) { this.angle += 0.035 * frameFactor * timeScale; }
-            checkCollision(px, py) { return distSq(px, py, this.x, this.y) < (this.size * 0.85)**2; }
-            draw() {
-                if (this.x < camX - 100 || this.x > camX + width + 100 || this.y < camY - 100 || this.y > camY + height + 100) return;
-                ctx.save(); ctx.translate(this.x, this.y); ctx.save(); ctx.rotate(this.angle); ctx.beginPath(); ctx.rect(-this.size/2, -this.size/2, this.size, this.size); ctx.strokeStyle = colors.portal; ctx.lineWidth = 3.5; ctx.stroke(); ctx.restore();
-                for (let i = 0; i < 4; i++) {
-                    let runeAngle = -this.angle + (i * Math.PI / 2), rx = Math.cos(runeAngle) * (this.size * 0.72), ry = Math.sin(runeAngle) * (this.size * 0.72);
-                    ctx.beginPath(); ctx.arc(rx, ry, 4, 0, Math.PI * 2); ctx.fillStyle = '#00f3ff'; ctx.fill();
+            constructor(x, y, gateId = '01') {
+                this.x = x;
+                this.y = y;
+                this.gateId = gateId;
+                this.size = 148; // Large, impressive AAA scale for tactical corner portals
+                this.angle = 0;
+                this.innerAngle = 0;
+                this.vortexAngle = 0;
+                this.pulse = 0;
+                this.charge = 0; // Proximity charge level (0 to 1)
+                this.sparks = [];
+            }
+
+            update(frameFactor) {
+                // Check proximity to player to accelerate effects
+                let distToPlayer = player ? Math.hypot(player.x - this.x, player.y - this.y) : 9999;
+                let targetCharge = distToPlayer < 380 ? (1 - distToPlayer / 380) : 0;
+                this.charge += (targetCharge - this.charge) * 0.1 * frameFactor;
+
+                let speedMult = 1 + this.charge * 2.2;
+                this.angle += 0.022 * frameFactor * timeScale * speedMult;
+                this.innerAngle -= 0.04 * frameFactor * timeScale * speedMult;
+                this.vortexAngle += 0.075 * frameFactor * timeScale * speedMult;
+                this.pulse = (this.pulse + 0.045 * frameFactor * timeScale) % (Math.PI * 2);
+
+                // Manage internal electric spark arcs
+                if (Math.random() < 0.25 * (1 + this.charge * 2)) {
+                    let a = Math.random() * Math.PI * 2;
+                    let r1 = this.size * 0.65;
+                    let r2 = this.size * (0.15 + Math.random() * 0.2);
+                    this.sparks.push({
+                        x1: Math.cos(a) * r1,
+                        y1: Math.sin(a) * r1,
+                        x2: Math.cos(a + (Math.random() - 0.5) * 0.8) * r2,
+                        y2: Math.sin(a + (Math.random() - 0.5) * 0.8) * r2,
+                        life: 1.0,
+                        decay: 0.12 + Math.random() * 0.08,
+                        color: Math.random() > 0.4 ? '#00f3ff' : '#bd00ff'
+                    });
                 }
-                ctx.beginPath(); ctx.arc(0, 0, Math.max(0.1, 12 + Math.sin(performance.now() * 0.012) * 3), 0, Math.PI * 2); ctx.fillStyle = '#ffffff'; ctx.fill(); ctx.restore();
+                for (let i = this.sparks.length - 1; i >= 0; i--) {
+                    this.sparks[i].life -= this.sparks[i].decay * frameFactor;
+                    if (this.sparks[i].life <= 0) this.sparks.splice(i, 1);
+                }
+            }
+
+            checkCollision(px, py) {
+                return distSq(px, py, this.x, this.y) < (this.size * 0.54) ** 2;
+            }
+
+            draw() {
+                if (this.x < camX - 220 || this.x > camX + width + 220 || this.y < camY - 220 || this.y > camY + height + 220) return;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+
+                const pulseScale = 1 + Math.sin(this.pulse) * 0.07 + this.charge * 0.12;
+                const now = performance.now();
+
+                // 1. Quantum Singularity Gravity Well / Ambient Accretion Glow
+                let outerGrad = ctx.createRadialGradient(0, 0, 8, 0, 0, this.size * 1.05 * pulseScale);
+                outerGrad.addColorStop(0, 'rgba(189, 0, 255, 0.6)');
+                outerGrad.addColorStop(0.35, 'rgba(0, 243, 255, 0.35)');
+                outerGrad.addColorStop(0.7, 'rgba(0, 243, 255, 0.12)');
+                outerGrad.addColorStop(1, 'transparent');
+                ctx.fillStyle = outerGrad;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size * 1.05 * pulseScale, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 2. Corner Laser Anchor Beams pointing to the Arena boundaries
+                let cornerDirX = this.x < WORLD_W / 2 ? -1 : 1;
+                let cornerDirY = this.y < WORLD_H / 2 ? -1 : 1;
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0, 243, 255, 0.45)';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([6, 6]);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(cornerDirX * 180, 0);
+                ctx.moveTo(0, 0);
+                ctx.lineTo(0, cornerDirY * 180);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.restore();
+
+                // 3. Segmented Tachyon Chrono Ring (Outer Rotating Aperture Ring)
+                ctx.save();
+                ctx.rotate(this.angle);
+                ctx.strokeStyle = 'rgba(0, 243, 255, 0.85)';
+                ctx.lineWidth = 3.5;
+                ctx.shadowColor = '#00f3ff';
+                ctx.shadowBlur = 12;
+                for (let seg = 0; seg < 4; seg++) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, this.size * 0.62 * pulseScale, seg * (Math.PI / 2) + 0.14, (seg + 1) * (Math.PI / 2) - 0.14);
+                    ctx.stroke();
+                }
+                ctx.shadowBlur = 0;
+
+                // Precision Tick Marks & Chevron Brackets on the outer rim
+                const rOuter = this.size * 0.62 * pulseScale;
+                for (let t = 0; t < 16; t++) {
+                    let a = (t * Math.PI * 2) / 16;
+                    let len = (t % 4 === 0) ? 9 : 5;
+                    let cosA = Math.cos(a), sinA = Math.sin(a);
+                    ctx.beginPath();
+                    ctx.moveTo(cosA * (rOuter - len), sinA * (rOuter - len));
+                    ctx.lineTo(cosA * (rOuter + len), sinA * (rOuter + len));
+                    ctx.strokeStyle = (t % 4 === 0) ? '#ffffff' : 'rgba(0, 243, 255, 0.6)';
+                    ctx.lineWidth = (t % 4 === 0) ? 2.5 : 1.5;
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                // 4. Middle Counter-Rotating Ultraviolet Cyber Hexagon
+                ctx.save();
+                ctx.rotate(this.innerAngle);
+                ctx.strokeStyle = colors.portal || '#bd00ff';
+                ctx.lineWidth = 4;
+                ctx.shadowColor = '#bd00ff';
+                ctx.shadowBlur = 20;
+                ctx.beginPath();
+                for (let h = 0; h < 6; h++) {
+                    let ha = (h * Math.PI) / 3;
+                    let hx = Math.cos(ha) * (this.size * 0.44 * pulseScale);
+                    let hy = Math.sin(ha) * (this.size * 0.44 * pulseScale);
+                    if (h === 0) ctx.moveTo(hx, hy);
+                    else ctx.lineTo(hx, hy);
+                }
+                ctx.closePath();
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+                ctx.restore();
+
+                // 5. Swirling Gravitational Spiral Arms (Vortex Suction Accretion)
+                ctx.save();
+                ctx.rotate(this.vortexAngle);
+                for (let arm = 0; arm < 3; arm++) {
+                    ctx.beginPath();
+                    let baseArmAngle = arm * ((Math.PI * 2) / 3);
+                    for (let step = 0; step <= 25; step++) {
+                        let tVal = step / 25;
+                        let rad = (1 - tVal) * (this.size * 0.5) + tVal * 12;
+                        let theta = baseArmAngle + tVal * 2.8;
+                        let sx = Math.cos(theta) * rad;
+                        let sy = Math.sin(theta) * rad;
+                        if (step === 0) ctx.moveTo(sx, sy);
+                        else ctx.lineTo(sx, sy);
+                    }
+                    ctx.strokeStyle = arm === 0 ? 'rgba(0, 243, 255, 0.85)' : (arm === 1 ? 'rgba(189, 0, 255, 0.85)' : 'rgba(255, 255, 255, 0.9)');
+                    ctx.lineWidth = 2.5;
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                // 6. Dynamic Plasma Arc Discharges
+                for (let spk of this.sparks) {
+                    ctx.beginPath();
+                    ctx.moveTo(spk.x1, spk.y1);
+                    let midX = (spk.x1 + spk.x2) / 2 + (Math.random() - 0.5) * 16;
+                    let midY = (spk.y1 + spk.y2) / 2 + (Math.random() - 0.5) * 16;
+                    ctx.lineTo(midX, midY);
+                    ctx.lineTo(spk.x2, spk.y2);
+                    ctx.strokeStyle = spk.color;
+                    ctx.lineWidth = 2 * spk.life;
+                    ctx.stroke();
+                }
+
+                // 7. Orbiting Quantum Hyper-Nodes (8 Nodes)
+                for (let i = 0; i < 8; i++) {
+                    let runeAngle = this.angle * (i % 2 === 0 ? 1.6 : -1.6) + (i * Math.PI / 4);
+                    let radiusDist = this.size * (0.68 + (i % 2 === 0 ? 0.07 : 0));
+                    let rx = Math.cos(runeAngle) * radiusDist;
+                    let ry = Math.sin(runeAngle) * radiusDist;
+
+                    ctx.beginPath();
+                    ctx.arc(rx, ry, (i % 2 === 0 ? 6 : 4), 0, Math.PI * 2);
+                    ctx.fillStyle = (i % 2 === 0) ? '#00f3ff' : '#bd00ff';
+                    ctx.shadowColor = ctx.fillStyle;
+                    ctx.shadowBlur = 14;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+
+                // 8. Event Horizon Singularity (Hyper-White / Cyan Core)
+                let coreRadius = 26 + Math.sin(now * 0.01) * 6 + this.charge * 8;
+                let coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius);
+                coreGrad.addColorStop(0, '#ffffff');
+                coreGrad.addColorStop(0.3, '#00f3ff');
+                coreGrad.addColorStop(0.7, '#bd00ff');
+                coreGrad.addColorStop(1, 'rgba(189, 0, 255, 0)');
+                ctx.fillStyle = coreGrad;
+                ctx.beginPath();
+                ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 9. Directional Vector Guide (Points diagonally into the arena)
+                let targetAngle = Math.atan2(WORLD_H / 2 - this.y, WORLD_W / 2 - this.x);
+                ctx.save();
+                ctx.rotate(targetAngle);
+                ctx.fillStyle = '#00f3ff';
+                ctx.beginPath();
+                ctx.moveTo(coreRadius + 14, 0);
+                ctx.lineTo(coreRadius + 4, -6);
+                ctx.lineTo(coreRadius + 4, 6);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+
+                // 10. Holographic Tactical Label & Status
+                ctx.font = 'bold 9px "Share Tech Mono", monospace';
+                ctx.fillStyle = '#00f3ff';
+                ctx.textAlign = 'center';
+                ctx.fillText(`WARP-GATE [${this.gateId}]`, 0, -this.size * 0.76);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+                ctx.font = '700 8px "Share Tech Mono", monospace';
+                ctx.fillText('DIAGONAL TRANSIT // READY', 0, this.size * 0.82);
+
+                ctx.restore();
             }
         }
 
@@ -10040,24 +10360,59 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         }
 
         class EnergyCube {
-            constructor(x, y) { this.x = Math.max(20, Math.min(WORLD_W - 20, x)); this.y = Math.max(20, Math.min(WORLD_H - 20, y)); this.size = 15; this.lifeTimer = 11000; this.angle = Math.random() * Math.PI; }
+            constructor(x, y) { 
+                this.x = Math.max(20, Math.min(WORLD_W - 20, x)); 
+                this.y = Math.max(20, Math.min(WORLD_H - 20, y)); 
+                this.size = 14; 
+                this.lifeTimer = 11000; 
+                this.angle = Math.random() * Math.PI; 
+            }
             update(delta, frameFactor) { 
-                this.lifeTimer -= delta; this.angle += 0.05 * frameFactor * timeScale; 
+                this.lifeTimer -= delta; 
+                this.angle += 0.05 * frameFactor * timeScale; 
                 let pullRadius = 200 * (player ? player.magnetBonus || 1.0 : 1.0);
                 if (selectedAttachment === 'magnet') pullRadius *= 1.45;
                 if (combo >= 15) pullRadius *= 1.35;
                 if (player) {
                     let dToPlayer = dist(this.x, this.y, player.x, player.y);
-                    if (dToPlayer < pullRadius) { this.x += ((player.x - this.x) / (dToPlayer || 1)) * 5.0 * frameFactor * timeScale; this.y += ((player.y - this.y) / (dToPlayer || 1)) * 5.0 * frameFactor * timeScale; }
+                    if (dToPlayer < pullRadius) { 
+                        this.x += ((player.x - this.x) / (dToPlayer || 1)) * 5.2 * frameFactor * timeScale; 
+                        this.y += ((player.y - this.y) / (dToPlayer || 1)) * 5.2 * frameFactor * timeScale; 
+                    }
                 }
             }
             draw() {
                 if (this.lifeTimer <= 0 || this.x < camX - 50 || this.x > camX + width + 50 || this.y < camY - 50 || this.y > camY + height + 50) return;
-                ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle);
+                ctx.save(); 
+                ctx.translate(this.x, this.y); 
                 const alpha = this.lifeTimer < 3000 ? Math.sin(performance.now() * 0.01) * 0.5 + 0.5 : 1;
-                ctx.beginPath(); ctx.moveTo(0, -this.size); ctx.lineTo(this.size, 0); ctx.lineTo(0, this.size); ctx.lineTo(-this.size, 0); ctx.closePath();
-                ctx.fillStyle = `rgba(0, 255, 136, ${alpha * 0.3})`; ctx.fill(); ctx.strokeStyle = `rgba(0, 255, 136, ${alpha})`; ctx.lineWidth = 2.2; ctx.stroke();
-                ctx.beginPath(); ctx.arc(0, 0, 4.5, 0, Math.PI * 2); ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`; ctx.fill(); ctx.restore();
+
+                // Golden Cyber Glow Aura
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size * 1.15, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 215, 0, ${alpha * 0.22})`;
+                ctx.fill();
+
+                ctx.rotate(this.angle);
+                // Golden Diamond Frame
+                ctx.beginPath(); 
+                ctx.moveTo(0, -this.size); 
+                ctx.lineTo(this.size, 0); 
+                ctx.lineTo(0, this.size); 
+                ctx.lineTo(-this.size, 0); 
+                ctx.closePath();
+                ctx.fillStyle = `rgba(255, 215, 0, ${alpha * 0.85})`; 
+                ctx.fill(); 
+                ctx.strokeStyle = '#ffffff'; 
+                ctx.lineWidth = 1.8; 
+                ctx.stroke();
+
+                // Inner Bright White-Gold Core
+                ctx.beginPath(); 
+                ctx.arc(0, 0, 4.0, 0, Math.PI * 2); 
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`; 
+                ctx.fill(); 
+                ctx.restore();
             }
         }
 
@@ -12084,6 +12439,12 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             isWaveIntermission = false;
             hazardLaserZones = []; blackHoleSingularity = null; arenaLaserWalls = []; temporalRifts = [];
 
+            // Award trophies on wave survival progression
+            if (currentWave > 1 && activeGameMode !== 'online_pvp') {
+                let wavePts = 15 + ((currentWave - 1) % 5 === 0 ? 35 : 0);
+                addTrophies(wavePts, 'WAVE ' + (currentWave - 1) + ' SURVIVED');
+            }
+
             // Ensure there are always active tactical oases across the map
             tacticalZones = tacticalZones.filter(z => z && !z.isDead);
             if (tacticalZones.length < 2) spawnMultipleTacticalOases(3);
@@ -12174,6 +12535,10 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 if (cubesEl) cubesEl.innerText = metaCurrency + sessionCubes;
                 const roundCubesEl = document.getElementById('final-cubes-val');
                 if (roundCubesEl) roundCubesEl.innerText = sessionCubes || 0;
+                const tropEl = document.getElementById('final-trophies-val');
+                if (tropEl) tropEl.innerText = `${playerTrophies} PTS`;
+                const roundTropEl = document.getElementById('session-trophies-val');
+                if (roundTropEl) roundTropEl.innerText = sessionTrophiesGained || 0;
 
                 const pEl = document.getElementById('tel-parries'); if (pEl) pEl.innerText = sessionParries || 0;
                 const gEl = document.getElementById('tel-grazes'); if (gEl) gEl.innerText = sessionGrazes || 0;
@@ -12225,8 +12590,12 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                                 <div><div style="font-size:0.68rem;color:#94a3b8;">الخبرة (XP)</div><strong style="font-size:1rem;color:#38bdf8;">+${xpVal}</strong></div>
                             </div>
                             <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:8px 10px;display:flex;align-items:center;gap:8px;text-align:right;">
-                                <span style="font-size:1.3rem;">💎</span>
-                                <div><div style="font-size:0.68rem;color:#94a3b8;">الكريستال</div><strong style="font-size:1rem;color:#e879f9;">${totalCubes}</strong> <small style="font-size:0.62rem;color:#00ff88;">(+${sessionCubes})</small></div>
+                                <span style="font-size:1.3rem;">🪙</span>
+                                <div><div style="font-size:0.68rem;color:#94a3b8;">الرصيد الذهبي (CR)</div><strong style="font-size:1rem;color:#ffd700;">${totalCubes} CR</strong> <small style="font-size:0.62rem;color:#00ff88;">(+${sessionCubes})</small></div>
+                            </div>
+                            <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:8px 10px;display:flex;align-items:center;gap:8px;text-align:right;grid-column: span 2;">
+                                <span style="font-size:1.3rem;">🏆</span>
+                                <div><div style="font-size:0.68rem;color:#94a3b8;">الكؤوس والرتبة</div><strong style="font-size:1rem;color:#ffd700;">${playerTrophies} PTS</strong> <small style="font-size:0.62rem;color:#00ff88;">(+${sessionTrophiesGained || 0} بالجولة)</small></div>
                             </div>
                         </div>
 
@@ -12508,12 +12877,12 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             playerMines = []; teslaRenderArcs = []; arenaLaserWalls = []; temporalRifts = []; shockwaves = [];
             smokeClouds = []; playerTurrets = [];
             portals = [
-                new Portal(450, 450),
-                new Portal(WORLD_W - 450, 450),
-                new Portal(WORLD_W - 450, WORLD_H - 450),
-                new Portal(450, WORLD_H - 450)
+                new Portal(190, 190, 'NW-01'),
+                new Portal(WORLD_W - 190, 190, 'NE-02'),
+                new Portal(WORLD_W - 190, WORLD_H - 190, 'SE-03'),
+                new Portal(190, WORLD_H - 190, 'SW-04')
             ];
-            score = 0; survivalSeconds = 0; sessionCubes = 0; sessionXP = 0; sessionKills = 0; sessionParries = 0; sessionGrazes = 0; sessionSubKills = 0; sessionUlts = 0; sessionCubesEnergy = 0; combo = 1; comboTimer = 0; difficulty = 1.0;
+            score = 0; survivalSeconds = 0; sessionCubes = 0; sessionXP = 0; sessionKills = 0; sessionParries = 0; sessionGrazes = 0; sessionSubKills = 0; sessionUlts = 0; sessionCubesEnergy = 0; sessionTrophiesGained = 0; combo = 1; comboTimer = 0; difficulty = 1.0;
             spawnTimer = 0; bountyTimer = 0; currentBounty = null;
             isGameOver = false; isGamePaused = false; isModalActive = false; isMoving = false; timeScale = 0.25; hitStopDuration = 0;
             resetJoystick();
@@ -12768,13 +13137,17 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             // Portals
             for (let p of portals) {
                 if (p) {
-                    c.fillStyle = colors.portal;
+                    c.save();
+                    c.fillStyle = '#00f3ff';
+                    c.shadowColor = '#00f3ff';
+                    c.shadowBlur = 6;
                     c.beginPath();
-                    c.arc(p.x * scale, p.y * scale, 4.5, 0, Math.PI * 2);
+                    c.arc(p.x * scale, p.y * scale, 5.5, 0, Math.PI * 2);
                     c.fill();
                     c.strokeStyle = '#ffffff';
-                    c.lineWidth = 1;
+                    c.lineWidth = 1.5;
                     c.stroke();
+                    c.restore();
                 }
             }
 
@@ -12912,25 +13285,47 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         }
 
         function drawTacticalMinimap() {
-            const mapSize = 92, pad = 14, rx = width - mapSize - pad, ry = pad;
-            const cx = rx + mapSize / 2, cy = ry + mapSize / 2, r = mapSize / 2;
+            const isMobileScreen = width < 820 || (typeof isMobile !== 'undefined' && isMobile);
+            const mapSize = isMobileScreen ? 84 : 96;
+            const padX = isMobileScreen ? 12 : 16;
+            const padY = isMobileScreen ? 12 : 16;
+            const rx = width - mapSize - padX;
+            const ry = padY;
+            const cx = rx + mapSize / 2;
+            const cy = ry + mapSize / 2;
+            const r = mapSize / 2;
 
             ctx.save();
-            // Glassmorphic Radar Container
-            ctx.fillStyle = 'rgba(6, 10, 18, 0.85)';
-            ctx.strokeStyle = 'rgba(0, 243, 255, 0.45)';
-            ctx.lineWidth = 1.5;
+
+            // 1. High-Density Opaque HUD Chassis Bezel (100% Opaque to prevent background bleed)
+            ctx.fillStyle = '#040813';
+            ctx.beginPath();
+            ctx.arc(cx, cy, r + 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Outer Neon Border & Shadow Ring
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.85)';
+            ctx.lineWidth = 2.0;
             ctx.beginPath();
             ctx.arc(cx, cy, r, 0, Math.PI * 2);
-            ctx.fill();
             ctx.stroke();
 
+            // 2. Inner Radar Field Clipping Mask
+            ctx.save();
+            ctx.beginPath();
+            ctx.arc(cx, cy, r - 1.5, 0, Math.PI * 2);
+            ctx.clip();
+
+            // Radar Dark Cyber Grid Background
+            ctx.fillStyle = '#060d1a';
+            ctx.fillRect(rx, ry, mapSize, mapSize);
+
             // Concentric Range Rings
-            ctx.strokeStyle = 'rgba(0, 243, 255, 0.15)';
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.16)';
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.arc(cx, cy, r * 0.65, 0, Math.PI * 2);
-            ctx.arc(cx, cy, r * 0.35, 0, Math.PI * 2);
+            ctx.arc(cx, cy, r * 0.70, 0, Math.PI * 2);
+            ctx.arc(cx, cy, r * 0.38, 0, Math.PI * 2);
             ctx.stroke();
 
             // Crosshair Grids
@@ -12940,49 +13335,51 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r);
             ctx.stroke();
 
-            // Rotating Radar Sweep Line
+            // Rotating Sonar Sweep Line
             let sweepAngle = (performance.now() * 0.0022) % (Math.PI * 2);
-            let sweepGrad = ctx.createRadialGradient(cx, cy, 5, cx, cy, r);
-            sweepGrad.addColorStop(0, 'rgba(0, 243, 255, 0.35)');
+            let sweepGrad = ctx.createRadialGradient(cx, cy, 3, cx, cy, r);
+            sweepGrad.addColorStop(0, 'rgba(0, 243, 255, 0.38)');
+            sweepGrad.addColorStop(0.8, 'rgba(0, 243, 255, 0.06)');
             sweepGrad.addColorStop(1, 'rgba(0, 243, 255, 0)');
             ctx.save();
             ctx.beginPath();
             ctx.moveTo(cx, cy);
-            ctx.arc(cx, cy, r, sweepAngle - 0.4, sweepAngle);
+            ctx.arc(cx, cy, r, sweepAngle - 0.40, sweepAngle);
             ctx.closePath();
             ctx.fillStyle = sweepGrad;
             ctx.fill();
             ctx.restore();
 
-            // Markers Scale
+            // Markers Map Scaling
             const scale = mapSize / WORLD_W;
 
-            // Corner Quantum Pylons
-            for (let pylon of CORNER_PYLONS) {
-                let px = rx + pylon.x * scale;
-                let py = ry + pylon.y * scale;
-                ctx.fillStyle = '#bd00ff';
-                ctx.beginPath();
-                ctx.arc(px, py, 2.4, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            // Portals
+            // 4 Corner Quantum Gates (Portals)
             for (let p of portals) {
                 if (p) {
-                    ctx.fillStyle = colors.portal;
+                    let px = rx + p.x * scale, py = ry + p.y * scale;
+                    ctx.fillStyle = 'rgba(0, 243, 255, 0.3)';
+                    ctx.beginPath(); ctx.arc(px, py, 4.0, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = '#00f3ff';
+                    ctx.beginPath(); ctx.arc(px, py, 2.4, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1; ctx.stroke();
+                }
+            }
+
+            // Golden Currency Drops (CR)
+            for (let gc of goldenCubes) {
+                if (gc) {
+                    ctx.fillStyle = '#ffd700';
                     ctx.beginPath();
-                    ctx.arc(rx + p.x * scale, ry + p.y * scale, 2.6, 0, Math.PI * 2);
+                    ctx.arc(rx + gc.x * scale, ry + gc.y * scale, 2.2, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
 
-            // Golden Cubes
-            for (let gc of goldenCubes) {
-                if (gc) {
-                    ctx.fillStyle = colors.gold;
+            for (let ec of energyCubes) {
+                if (ec) {
+                    ctx.fillStyle = '#ffd700';
                     ctx.beginPath();
-                    ctx.arc(rx + gc.x * scale, ry + gc.y * scale, 2.2, 0, Math.PI * 2);
+                    ctx.arc(rx + ec.x * scale, ry + ec.y * scale, 1.6, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
@@ -12990,10 +13387,11 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             // Tactical Supply Oases
             for (let z of tacticalZones) {
                 if (z && !z.isDead) {
-                    let cfg = z.configs[z.type] || { color: '#00ff88' };
+                    let cfg = z.configs[z.type] || { color: '#ffd700' };
+                    let zx = rx + z.x * scale, zy = ry + z.y * scale;
                     ctx.fillStyle = cfg.color;
                     ctx.beginPath();
-                    ctx.arc(rx + z.x * scale, ry + z.y * scale, 3.8, 0, Math.PI * 2);
+                    ctx.arc(zx, zy, 3.2, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.strokeStyle = '#ffffff';
                     ctx.lineWidth = 1;
@@ -13001,26 +13399,41 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 }
             }
 
-            // Enemies (Tactical Radar Visibility: Hidden unless Boss, close to player, or Sniper Recon is active!)
+            // Enemies (Tactical Radar Visibility)
             for (let e of enemies) {
                 if (e && !e.isDead) {
                     let isVisibleOnRadar = (
                         isReconActive || 
                         e.type === 'boss' || 
-                        (player && distSq(player.x, player.y, e.x, e.y) < 320**2)
+                        (player && distSq(player.x, player.y, e.x, e.y) < 380**2)
                     );
                     if (!isVisibleOnRadar) continue;
 
-                    let eCol = e.type === 'boss' ? colors.enemyBoss : (e.isElite ? colors.enemyElite : (e.color || colors.enemySniper));
-                    ctx.fillStyle = eCol;
-                    ctx.beginPath();
-                    ctx.arc(rx + e.x * scale, ry + e.y * scale, e.type === 'boss' ? 4.2 : (isReconActive ? 2.4 : 1.8), 0, Math.PI * 2);
-                    ctx.fill();
-
-                    if (isReconActive) {
-                        ctx.strokeStyle = '#ff0055';
-                        ctx.lineWidth = 0.8;
+                    let ex = rx + e.x * scale, ey = ry + e.y * scale;
+                    if (e.type === 'boss') {
+                        // Flashing Boss Hazard Diamond
+                        let pulse = Math.sin(performance.now() * 0.008) * 0.5 + 1.0;
+                        ctx.fillStyle = '#ff0055';
+                        ctx.beginPath();
+                        ctx.moveTo(ex, ey - 4.5 * pulse);
+                        ctx.lineTo(ex + 4.5 * pulse, ey);
+                        ctx.lineTo(ex, ey + 4.5 * pulse);
+                        ctx.lineTo(ex - 4.5 * pulse, ey);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1;
                         ctx.stroke();
+                    } else if (e.isElite) {
+                        ctx.fillStyle = '#ffd700';
+                        ctx.beginPath();
+                        ctx.arc(ex, ey, 2.4, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        ctx.fillStyle = e.color || '#ff2a5f';
+                        ctx.beginPath();
+                        ctx.arc(ex, ey, 1.8, 0, Math.PI * 2);
+                        ctx.fill();
                     }
                 }
             }
@@ -13031,28 +13444,60 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     if (rp && !rp.isDead) {
                         ctx.fillStyle = (activeGameMode === 'online_pvp') ? '#ff00ea' : '#00ff88';
                         ctx.beginPath();
-                        ctx.arc(rx + rp.x * scale, ry + rp.y * scale, 2.8, 0, Math.PI * 2);
+                        ctx.arc(rx + rp.x * scale, ry + rp.y * scale, 2.6, 0, Math.PI * 2);
                         ctx.fill();
                     }
                 }
             }
 
-            // Local Player Blip with Facing Pointer
+            // Local Player Blip with Tactical Chevron Arrow & Vision Frustum
             if (player) {
                 let px = rx + player.x * scale, py = ry + player.y * scale;
-                ctx.fillStyle = '#00f3ff';
-                ctx.beginPath();
-                ctx.arc(px, py, 3.2, 0, Math.PI * 2);
-                ctx.fill();
-                // Direction indicator
                 let fa = player.facingAngle;
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 1.5;
+
+                // Subtle Vision Frustum Cone
+                ctx.fillStyle = 'rgba(0, 243, 255, 0.14)';
                 ctx.beginPath();
                 ctx.moveTo(px, py);
-                ctx.lineTo(px + Math.cos(fa) * 7, py + Math.sin(fa) * 7);
+                ctx.arc(px, py, 14, fa - 0.45, fa + 0.45);
+                ctx.closePath();
+                ctx.fill();
+
+                // Player Arrowhead / Chevron
+                ctx.save();
+                ctx.translate(px, py);
+                ctx.rotate(fa + Math.PI / 2);
+                ctx.beginPath();
+                ctx.moveTo(0, -4.5);
+                ctx.lineTo(3.5, 3.5);
+                ctx.lineTo(0, 1.8);
+                ctx.lineTo(-3.5, 3.5);
+                ctx.closePath();
+                ctx.fillStyle = '#00f3ff';
+                ctx.fill();
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1;
                 ctx.stroke();
+                ctx.restore();
             }
+
+            ctx.restore(); // End Radar Clipping Mask
+
+            // 3. Bezel Decorative Accents: Radial Tick Marks
+            ctx.strokeStyle = 'rgba(0, 243, 255, 0.50)';
+            ctx.lineWidth = 1.2;
+            for (let i = 0; i < 4; i++) {
+                let ang = (i * Math.PI) / 2;
+                let x1 = cx + Math.cos(ang) * (r - 4), y1 = cy + Math.sin(ang) * (r - 4);
+                let x2 = cx + Math.cos(ang) * (r + 1), y2 = cy + Math.sin(ang) * (r + 1);
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            }
+
+            // Cardinal North Badge
+            ctx.fillStyle = '#00f3ff';
+            ctx.font = '900 9px "Share Tech Mono", monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('N', cx, ry + 10);
 
             ctx.restore();
         }
@@ -13380,22 +13825,22 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                         let destIdx = (i + 2) % portals.length;
                         let destPortal = portals[destIdx];
                         if (destPortal) {
-                            createExplosion(player.x, player.y, colors.portal, 28, 14);
-                            triggerShockwave(player.x, player.y, colors.portal, 160);
+                            createExplosion(player.x, player.y, colors.portal, 40, 20);
+                            triggerShockwave(player.x, player.y, colors.portal, 240);
                             playSound('portal');
 
                             let outAngle = Math.atan2(WORLD_H / 2 - destPortal.y, WORLD_W / 2 - destPortal.x);
-                            player.x = destPortal.x + Math.cos(outAngle) * 55;
-                            player.y = destPortal.y + Math.sin(outAngle) * 55;
-                            player.vx = Math.cos(outAngle) * 9;
-                            player.vy = Math.sin(outAngle) * 9;
+                            player.x = destPortal.x + Math.cos(outAngle) * 105;
+                            player.y = destPortal.y + Math.sin(outAngle) * 105;
+                            player.vx = Math.cos(outAngle) * 12;
+                            player.vy = Math.sin(outAngle) * 12;
                             player.portalCooldown = 1500;
                             player.invulnerableTimer = 800;
 
-                            createExplosion(player.x, player.y, colors.portal, 28, 14);
-                            triggerShockwave(player.x, player.y, colors.portal, 180);
+                            createExplosion(player.x, player.y, colors.portal, 45, 22);
+                            triggerShockwave(player.x, player.y, colors.portal, 260);
                             spawnFloatingText(player.x, player.y - 45, ' انتقال كمي فوري!', colors.portal);
-                            if (gameSettings.shake) screenShakeTime = 220;
+                            if (gameSettings.shake) screenShakeTime = 250;
                         }
                     }
                 }
@@ -13709,19 +14154,22 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             for (let i = energyCubes.length - 1; i >= 0; i--) {
                 let c = energyCubes[i]; if (!c) { energyCubes.splice(i, 1); continue; }
                 c.update(effectiveDelta, frameFactor); if (c.lifeTimer <= 0) { energyCubes.splice(i, 1); continue; }
-                if (!isGameOver && player && distSq(player.x, player.y, c.x, c.y) < (player.radius + c.size)**2) {
+                if (!isGameOver && player && distSq(player.x, player.y, c.x, c.y) < (player.radius + c.size + 4)**2) {
                     player.addEnergy(25); player.addUltEnergy(15); sessionCubes++; sessionXP += 10; sessionCubesEnergy++;
                     checkAchievements(survivalSeconds, sessionKills, metaCurrency + sessionCubes, currentWave); checkContracts(survivalSeconds, sessionParries, sessionCubesEnergy);
-                    playSound('gold'); createExplosion(c.x, c.y, colors.energy, 10, 5); energyCubes.splice(i, 1);
+                    playSound('gold'); createExplosion(c.x, c.y, colors.gold, 14, 7);
+                    if (typeof spawnFloatingText === 'function') spawnFloatingText(c.x, c.y - 20, '+1 CR', '#ffd700', 800);
+                    energyCubes.splice(i, 1);
                 }
             }
 
             for (let i = goldenCubes.length - 1; i >= 0; i--) {
                 let gc = goldenCubes[i]; if (!gc) { goldenCubes.splice(i, 1); continue; }
                 gc.update(effectiveDelta, frameFactor); if (gc.lifeTimer <= 0) { goldenCubes.splice(i, 1); continue; }
-                if (!isGameOver && player && distSq(player.x, player.y, gc.x, gc.y) < (player.radius + gc.size)**2) {
-                    playSound('gold'); createExplosion(gc.x, gc.y, colors.gold, 30, 15); sessionCubes += 3; sessionXP += 50; sessionCubesEnergy += 2; player.addUltEnergy(30);
+                if (!isGameOver && player && distSq(player.x, player.y, gc.x, gc.y) < (player.radius + gc.size + 6)**2) {
+                    playSound('gold'); createExplosion(gc.x, gc.y, colors.gold, 32, 16); sessionCubes += 5; sessionXP += 50; sessionCubesEnergy += 5; player.addUltEnergy(30);
                     checkAchievements(survivalSeconds, sessionKills, metaCurrency + sessionCubes, currentWave); checkContracts(survivalSeconds, sessionParries, sessionCubesEnergy);
+                    if (typeof spawnFloatingText === 'function') spawnFloatingText(gc.x, gc.y - 25, '+5 CR', '#ffd700', 1200);
                     for (let e of enemies) { if (e && !e.isDead) e.stunTimer = 4000; }
                     goldenCubes.splice(i, 1);
                 }
@@ -14059,8 +14507,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
 
                 ctx.fillStyle = '#38bdf8';
                 ctx.fillText(`⚡ الخبرة: +${Math.floor(sessionXP || 0)} XP`, width / 2 - 80, statY + 35);
-                ctx.fillStyle = '#e879f9';
-                ctx.fillText(`💎 الكريستال: ${metaCurrency + sessionCubes} (+${sessionCubes})`, width / 2 + 80, statY + 35);
+                ctx.fillStyle = '#ffd700';
+                ctx.fillText(`🪙 الذهب: ${metaCurrency + sessionCubes} CR (+${sessionCubes})`, width / 2 + 80, statY + 35);
 
                 const btnW = Math.min(cardW - 36, 360);
                 const btnH = 44;
@@ -14135,16 +14583,57 @@ switchTab('play');
         }, 50);
 
 
+// Initialize and bind all top bar and header buttons reliably across PC and Mobile/iOS
+function initHeaderActionButtons() {
+    const bindBtn = (id, fn) => {
+        const btn = typeof id === 'string' ? document.getElementById(id) : id;
+        if (btn) {
+            btn.setAttribute('type', 'button');
+            btn.style.setProperty('pointer-events', 'auto', 'important');
+            btn.style.setProperty('cursor', 'pointer', 'important');
+            btn.style.setProperty('touch-action', 'manipulation', 'important');
+            
+            const handleEvent = (e) => {
+                if (e) {
+                    try { e.preventDefault(); } catch(_) {}
+                    try { e.stopPropagation(); } catch(_) {}
+                }
+                fn();
+            };
+            btn.onclick = handleEvent;
+            btn.addEventListener('touchend', handleEvent, { passive: false });
+        }
+    };
+    bindBtn('fullscreen-toggle-btn', toggleFullScreen);
+    bindBtn('pwa-install-btn', triggerPwaInstall);
+    bindBtn('daily-rewards-btn', openDailyRewardsModal);
+    bindBtn('lang-toggle-btn', toggleLanguage);
+    bindBtn('rank-leaderboard-btn', openRankLeaderboardModal);
+    bindBtn('player-rank-card', openRankLeaderboardModal);
+    bindBtn('cloud-account-btn', openCloudAccountModal);
+    bindBtn('admin-trigger-btn', openAdminLoginModal);
+    bindBtn('admin-access-btn', openAdminLoginModal);
+}
+initHeaderActionButtons();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHeaderActionButtons, { once: true });
+}
+
 // Wire up automatic UI audio feedback on all buttons and tabs
-document.addEventListener('DOMContentLoaded', () => {
+const setupAudioFeedback = () => {
     document.querySelectorAll('button, .mode-card, .tab-btn').forEach(el => {
         el.addEventListener('mouseenter', () => playSound('ui_hover'), { passive: true });
         el.addEventListener('click', () => playSound('ui_click'), { passive: true });
     });
-});
-
+};
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupAudioFeedback, { once: true });
+} else {
+    setupAudioFeedback();
+}
 
 // Explicit global window bindings for all interactive and modal functions
+if (typeof window !== 'undefined') window.toggleFullScreen = toggleFullScreen;
 if (typeof window !== 'undefined') window.getSvgIcon = getSvgIcon;
 if (typeof window !== 'undefined') window.forceRotateAndFullscreen = forceRotateAndFullscreen;
 if (typeof window !== 'undefined') window.triggerPwaInstall = triggerPwaInstall;
@@ -14219,6 +14708,8 @@ if (typeof window !== 'undefined') window.restartGame = restartGame;
 if (typeof window !== 'undefined') window.returnToMainMenu = returnToMainMenu;
 if (typeof window !== 'undefined') window.quitToMainMenu = quitToMainMenu;
 if (typeof window !== 'undefined') window.executeManualPvpRespawn = executeManualPvpRespawn;
+if (typeof window !== 'undefined') window.executePlayerReload = function() { if (player && typeof player.reload === 'function') player.reload(); };
+if (typeof window !== 'undefined') window.addTrophies = addTrophies;
 
 // A tiny public bridge lets the independent death watchdog keep working even if
 // a normal animation frame fails elsewhere in the large game engine.

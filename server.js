@@ -89,6 +89,10 @@ app.get('/', (req, res) => {
     res.sendFile(path.resolve(__dirname, 'index.html'));
 });
 
+app.get('/favicon.ico', (req, res) => {
+    res.status(204).end();
+});
+
 app.get('/api/leaderboard', async (req, res) => {
     try {
         const topPlayers = await dbAll(`
@@ -1339,10 +1343,11 @@ io.on('connection', async (socket) => {
         try {
             const existing = await dbGet('SELECT * FROM players WHERE username = ? COLLATE NOCASE', [username]);
             if (existing) {
+                const clientTrophies = Math.max(0, parseInt(data.trophies, 10) || 0);
                 const newWave = Math.max(existing.highest_wave || 1, wave);
                 const newKills = (existing.total_kills || 0) + kills;
                 const newPvpKills = (existing.pvp_kills || 0) + pvpKills;
-                const newTrophies = Math.max(existing.trophies || 0, Math.floor(score / 50) + (newWave * 10));
+                const newTrophies = Math.max(existing.trophies || 0, clientTrophies, Math.floor(score / 50) + (newWave * 10));
                 const newCredits = (existing.credits || 0) + credits;
                 const newLevel = Math.max(existing.level || 1, level);
 
@@ -1420,13 +1425,14 @@ io.on('connection', async (socket) => {
             const credits = parseInt(data.credits, 10) || 0;
             const level = parseInt(data.level, 10) || 1;
             const xp = parseInt(data.xp, 10) || 0;
+            const trophies = parseInt(data.trophies, 10) || 0;
             const wave = parseInt(data.highest_wave, 10) || 1;
 
             await dbRun(`
                 UPDATE players
-                SET credits = MAX(credits, ?), level = MAX(level, ?), xp = ?, highest_wave = MAX(highest_wave, ?), last_seen = CURRENT_TIMESTAMP
+                SET credits = MAX(credits, ?), level = MAX(level, ?), xp = ?, trophies = MAX(trophies, ?), highest_wave = MAX(highest_wave, ?), last_seen = CURRENT_TIMESTAMP
                 WHERE username = ? COLLATE NOCASE
-            `, [credits, level, xp, wave, username]);
+            `, [credits, level, xp, trophies, wave, username]);
 
             socket.emit('cloud_sync_ack', { success: true });
         } catch (e) {}
@@ -1447,46 +1453,64 @@ io.on('connection', async (socket) => {
 
         const googleId = sanitizeText(data.googleId, 50);
         const email = sanitizeText(data.email || '', 80);
-        const name = sanitizeUsername(data.name || 'Agent_Google');
+        let name = sanitizeUsername(data.name || 'Agent_Google');
         const avatarUrl = sanitizeText(data.picture || '', 300);
         const deviceToken = data.deviceToken || null;
+        const incomingCredits = Math.max(0, parseInt(data.credits, 10) || 0);
+        const incomingLevel = Math.max(1, parseInt(data.level, 10) || 1);
+        const incomingXp = Math.max(0, parseInt(data.xp, 10) || 0);
 
         try {
-            // Check if player exists by google_id or email
+            // Check if player exists by google_id, email, or username
             let playerRow = null;
             if (useJsonDb) {
-                playerRow = jsonDbState.players.find(p => p.google_id === googleId || (email && p.email === email));
+                playerRow = jsonDbState.players.find(p => p.google_id === googleId || (email && p.email === email) || p.username.toLowerCase() === name.toLowerCase());
             } else if (db) {
-                playerRow = await dbGet('SELECT * FROM players WHERE google_id = ? OR (email != "" AND email = ?) LIMIT 1', [googleId, email]);
+                playerRow = await dbGet('SELECT * FROM players WHERE google_id = ? OR (email != "" AND email = ?) OR username = ? COLLATE NOCASE LIMIT 1', [googleId, email, name]);
             }
 
             if (playerRow) {
-                // Update Google metadata & last seen
+                const mergedCredits = Math.max(Number(playerRow.credits) || 0, incomingCredits);
+                const mergedLevel = Math.max(Number(playerRow.level) || 1, incomingLevel);
+                const mergedXp = Math.max(Number(playerRow.xp) || 0, incomingXp);
+
+                // Update Google metadata, merge progress & last seen
                 if (useJsonDb) {
                     playerRow.google_id = googleId;
-                    playerRow.email = email;
-                    playerRow.avatar_url = avatarUrl;
+                    if (email) playerRow.email = email;
+                    if (avatarUrl) playerRow.avatar_url = avatarUrl;
+                    playerRow.credits = mergedCredits;
+                    playerRow.level = mergedLevel;
+                    playerRow.xp = mergedXp;
                     playerRow.last_seen = new Date().toISOString();
                     saveJsonDb();
                 } else if (db) {
-                    await dbRun('UPDATE players SET google_id = ?, email = ?, avatar_url = ?, last_seen = CURRENT_TIMESTAMP WHERE id = ?', [
-                        googleId, email, avatarUrl, playerRow.id
+                    await dbRun('UPDATE players SET google_id = ?, email = COALESCE(NULLIF(?, ""), email), avatar_url = COALESCE(NULLIF(?, ""), avatar_url), credits = ?, level = ?, xp = ?, last_seen = CURRENT_TIMESTAMP WHERE id = ?', [
+                        googleId, email, avatarUrl, mergedCredits, mergedLevel, mergedXp, playerRow.id
                     ]);
                     playerRow = await dbGet('SELECT * FROM players WHERE id = ?', [playerRow.id]);
                 }
 
-                console.log(`[NET] [Google Auth] استرجاع ومزامنة حساب العميل عبر Google: ${playerRow.username} (${email})`);
+                console.log(`[NET] [Google Auth] استرجاع ومزامنة حساب العميل عبر Google: ${playerRow.username} (${email || googleId})`);
                 socket.emit('google_auth_result', {
                     success: true,
                     isExisting: true,
-                    message: `[OK] مرحباً بك مجدداً أيها العميل ${playerRow.username}! تمت المزامنة عبر حساب Google.`,
+                    message: `[OK] مرحباً بك مجدداً أيها العميل ${playerRow.username}! تمت المزامنة السحابية بنجاح.`,
                     profile: playerRow
                 });
             } else {
-                // Create new Google-linked profile
-                const initLevel = Math.max(1, parseInt(data.level, 10) || 1);
-                const initCredits = Math.max(0, parseInt(data.credits, 10) || 0);
-                const initXp = Math.max(0, parseInt(data.xp, 10) || 0);
+                // Ensure unique name for new profile
+                if (db) {
+                    const existingName = await dbGet('SELECT id FROM players WHERE username = ? COLLATE NOCASE', [name]);
+                    if (existingName) {
+                        name = name.substring(0, 14) + '_' + Math.floor(100 + Math.random() * 900);
+                    }
+                } else if (useJsonDb) {
+                    const existingName = jsonDbState.players.find(p => p.username.toLowerCase() === name.toLowerCase());
+                    if (existingName) {
+                        name = name.substring(0, 14) + '_' + Math.floor(100 + Math.random() * 900);
+                    }
+                }
 
                 let newPlayerObj = null;
                 if (useJsonDb) {
@@ -1498,9 +1522,9 @@ io.on('connection', async (socket) => {
                         avatar_url: avatarUrl,
                         pin: '0000',
                         owner_token: deviceToken,
-                        credits: initCredits,
-                        level: initLevel,
-                        xp: initXp,
+                        credits: incomingCredits,
+                        level: incomingLevel,
+                        xp: incomingXp,
                         trophies: 0,
                         highest_wave: 1,
                         total_kills: 0,
@@ -1520,12 +1544,12 @@ io.on('connection', async (socket) => {
                     await dbRun(`
                         INSERT INTO players (username, google_id, email, avatar_url, pin, owner_token, credits, level, xp, highest_wave, total_kills, unlocked_skins, last_ip, last_seen)
                         VALUES (?, ?, ?, ?, '0000', ?, ?, ?, ?, 1, 0, '["default"]', ?, CURRENT_TIMESTAMP)
-                    `, [name, googleId, email, avatarUrl, deviceToken, initCredits, initLevel, initXp, clientIp]);
+                    `, [name, googleId, email, avatarUrl, deviceToken, incomingCredits, incomingLevel, incomingXp, clientIp]);
 
                     newPlayerObj = await dbGet('SELECT * FROM players WHERE google_id = ? LIMIT 1', [googleId]);
                 }
 
-                console.log(`[NET] [Google Auth] إنشاء حساب سحابي جديد مربوط بـ Google للعميل: ${name} (${email})`);
+                console.log(`[NET] [Google Auth] إنشاء حساب سحابي جديد مربوط بـ Google للعميل: ${name} (${email || googleId})`);
                 socket.emit('google_auth_result', {
                     success: true,
                     isExisting: false,

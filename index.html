@@ -7,9 +7,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@600;700;800;900&family=Cairo:wght@600;700;800;900&family=Changa:wght@700;800;900&family=Chakra+Petch:wght@700;900&family=Rajdhani:wght@700;900&family=Share+Tech+Mono&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=121">
-    <link rel="stylesheet" href="styles/ui-refresh.css?v=15">
+    <link rel="stylesheet" href="style.css?v=129">
+    <link rel="stylesheet" href="styles/ui-refresh.css?v=129">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpolygon points='12 2 2 22 12 18 22 22 12 2' fill='%2300f3ff' stroke='%2300f3ff' stroke-width='2'/%3E%3C/svg%3E">
     <meta name="theme-color" content="#00f3ff">
+    <!-- Apple iOS / Safari WebKit PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Chrono Drift">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='128' fill='%23050811'/%3E%3Cpolygon points='256 64 64 448 256 360 448 448 256 64' fill='%2300f3ff' stroke='%23ffffff' stroke-width='16'/%3E%3C/svg%3E">
     <script>
         // Load PWA manifest and Google Identity services safely on HTTP/HTTPS environments
         if (window.location.protocol.startsWith('http')) {
@@ -340,7 +348,7 @@
             <span class="btn-sub" id="class-skill2-btn-sub">C</span>
         </div>
 
-        <div id="reload-btn-hud" class="hud-action-btn reload-btn-element" style="display: none;" title="Reload (R)" onclick="if(player) player.reload();">
+        <div id="reload-btn-hud" class="hud-action-btn reload-btn-element" style="display: none;" title="Reload (R)" onclick="executePlayerReload()">
             <span class="btn-text" data-i18n="hudReload">RELOAD</span>
             <span class="btn-sub" id="reload-btn-sub">R</span>
         </div>
@@ -486,8 +494,8 @@
         </div>
     </div>
 
-    <div id="hazard-warning-banner" data-i18n="hazardWarning"> تحذير: نشاط بيئي غير مستقر في الساحة </div>
-    <div id="boss-warning-banner" data-i18n="bossWarning"> تحذير: اقتراب الزعيم </div>
+    <div id="hazard-warning-banner" class="hidden" style="display: none;" data-i18n="hazardWarning"> تحذير: نشاط بيئي غير مستقر في الساحة </div>
+    <div id="boss-warning-banner" class="hidden" style="display: none;" data-i18n="bossWarning"> تحذير: اقتراب الزعيم </div>
     
     <!-- طبقة التحكم باللمس المخصصة للأجهزة المحمولة والهواتف (Mobile Touch Controls Overlay) -->
     <div id="touch-controls-container" class="touch-controls-overlay">
@@ -511,29 +519,29 @@
             </div>
             <div class="header-actions-group">
                 <!-- زر ملء الشاشة الفوري للهواتف والأجهزة المحمولة -->
-                <button id="fullscreen-toggle-btn" class="admin-trigger-btn btn-fullscreen-glow" onclick="toggleFullScreen()" title="ملء الشاشة (Fullscreen)">
+                <button type="button" id="fullscreen-toggle-btn" class="admin-trigger-btn btn-fullscreen-glow" onclick="toggleFullScreen()" title="ملء الشاشة (Fullscreen)">
                     <svg class="c-icon"><use href="#icon-fullscreen"></use></svg> <span class="btn-text-tag" data-i18n="btnFullscreen">شاشة كاملة</span>
                 </button>
                 <!-- زر تثبيت اللعبة كتطبيق أصلي (PWA) -->
-                <button id="pwa-install-btn" class="admin-trigger-btn btn-pwa-glow" style="display: none;" onclick="triggerPwaInstall()" title=" تثبيت اللعبة كتطبيق (Install App)">
+                <button type="button" id="pwa-install-btn" class="admin-trigger-btn btn-pwa-glow" style="display: none;" onclick="triggerPwaInstall()" title=" تثبيت اللعبة كتطبيق (Install App)">
                     <svg class="c-icon"><use href="#icon-download"></use></svg> <span class="btn-text-tag" data-i18n="pwaInstallBtn">تثبيت</span>
                 </button>
                 <!-- زر المكافآت اليومية -->
-                <button id="daily-rewards-btn" class="admin-trigger-btn btn-daily-glow" onclick="openDailyRewardsModal()" title=" المكافآت اليومية (Daily Login Rewards)">
+                <button type="button" id="daily-rewards-btn" class="admin-trigger-btn btn-daily-glow" onclick="openDailyRewardsModal()" title=" المكافآت اليومية (Daily Login Rewards)">
                     <svg class="c-icon"><use href="#icon-gift"></use></svg> <span class="btn-text-tag" data-i18n="dailyBtn">مكافآت</span>
                 </button>
                 <!-- زر تبديل اللغة الفوري -->
-                <button id="lang-toggle-btn" class="admin-trigger-btn btn-lang-glow" onclick="toggleLanguage()" title=" Switch Language / تبديل اللغة">
+                <button type="button" id="lang-toggle-btn" class="admin-trigger-btn btn-lang-glow" onclick="toggleLanguage()" title=" Switch Language / تبديل اللغة">
                     <svg class="c-icon"><use href="#icon-globe"></use></svg> <span class="btn-text-tag" id="lang-badge-txt">EN</span>
                 </button>
-                <button id="rank-leaderboard-btn" class="admin-trigger-btn btn-rank-glow" onclick="openRankLeaderboardModal()" title=" ليدربورد الرانك العالمي (Rank Leaderboard)">
+                <button type="button" id="rank-leaderboard-btn" class="admin-trigger-btn btn-rank-glow" onclick="openRankLeaderboardModal()" title=" ليدربورد الرانك العالمي (Rank Leaderboard)">
                     <svg class="c-icon"><use href="#icon-trophy"></use></svg> <span class="btn-text-tag" data-i18n="btnRank">الرانك</span>
                 </button>
-                <button id="cloud-account-btn" class="admin-trigger-btn" onclick="openCloudAccountModal()" title=" حساب سحابي ومزامنة (Cloud Sync)">
+                <button type="button" id="cloud-account-btn" class="admin-trigger-btn" onclick="openCloudAccountModal()" title=" حساب سحابي ومزامنة (Cloud Sync)">
                     <svg class="c-icon"><use href="#icon-cloud"></use></svg> <span class="btn-text-tag" data-i18n="btnAccount">الحساب</span>
                 </button>
-                <button id="admin-trigger-btn" class="admin-trigger-btn" onclick="openAdminLoginModal()" title=" Cybernetic Admin Access">
-                    <svg class="c-icon"><use href="#icon-shield"></use></svg>
+                <button type="button" id="admin-access-btn" class="admin-trigger-btn" onclick="openAdminLoginModal()" title=" Cybernetic Admin Access">
+                    <svg class="c-icon"><use href="#icon-shield"></use></svg> <span class="btn-text-tag" data-i18n="btnAdmin">الأدمن</span>
                 </button>
             </div>
         </div>
@@ -754,7 +762,7 @@
             <div class="cyber-modal-content weapon-picker-dialog">
                 <div class="cyber-modal-header">
                     <div class="cyber-modal-title" data-i18n="weaponPickerTitle"> ترسانة الأسلحة الأساسية (Choose Primary Weapon)</div>
-                    <button class="cyber-modal-close" onclick="closeWeaponSelectorModal()"></button>
+                    <button class="cyber-modal-close" onclick="closeWeaponSelectorModal()">✕</button>
                 </div>
                 <div class="selection-grid" id="weapon-picker-grid">
                     <!-- يتم تعبئتها ديناميكياً بالأسلحة وإحصائياتها -->
@@ -804,7 +812,7 @@
 
         <div id="tab-missions" class="tab-content">
             <div style="color: var(--energy-color); font-weight: 900; font-size: 1.05rem; margin-bottom: 8px; text-align: center;" data-i18n="missionsTitle"> سجل المهمات والعقود التكتيكية الموحد</div>
-            <div style="color: #8899a6; font-size: 0.82rem; margin-bottom: 12px; text-align: center;" data-i18n="missionsDesc">أكمل التحديات القتالية والعقود لكسب مكعبات الكريستال ونقاط الخبرة (XP):</div>
+            <div style="color: #8899a6; font-size: 0.82rem; margin-bottom: 12px; text-align: center;" data-i18n="missionsDesc">أكمل التحديات القتالية والعقود لكسب الائتمان الذهبي (CR) ونقاط الخبرة (XP):</div>
             
             <div class="missions-unified-grid">
                 <div class="mission-section-col">
@@ -928,7 +936,7 @@
                     <svg class="c-icon c-icon-cyan"><use href="#icon-zap"></use></svg>
                     <h3 data-i18n="modeSelectModalTitle"> مصفوفة أطوار المعركة التكتيكية (Game Modes)</h3>
                 </div>
-                <button class="modal-close-btn" onclick="closeModeSelectModal()"></button>
+                <button class="modal-close-btn" onclick="closeModeSelectModal()">✕</button>
             </div>
             <div class="modal-body mode-select-body">
                 <div class="mode-select-section-title"> الأطوار الفردية السريعة (Solo & Survival)</div>
@@ -1033,7 +1041,7 @@
                     <svg class="c-icon c-icon-cyan" id="perk-modal-icon"><use href="#icon-zap"></use></svg>
                     <h3 id="perk-modal-title">تفاصيل البيرك التكتيكي</h3>
                 </div>
-                <button class="modal-close-btn" onclick="closePerkDetailModal()"></button>
+                <button class="modal-close-btn" onclick="closePerkDetailModal()">✕</button>
             </div>
             <div class="modal-body" id="perk-modal-body-content">
                 <!-- يتم تعبئة المستويات والتفاصيل ديناميكياً -->
@@ -1050,7 +1058,7 @@
         <div class="cyber-modal-card custom-room-card">
             <div class="modal-header">
                 <h3 data-i18n="customRoomHeader"> الغرف المخصصة وسيرفرات الفرق (Custom Lobbies)</h3>
-                <button class="modal-close-btn" onclick="closeCustomRoomModal()"></button>
+                <button class="modal-close-btn" onclick="closeCustomRoomModal()">✕</button>
             </div>
             <div class="modal-body">
                 <div class="custom-room-tabs">
@@ -1510,11 +1518,19 @@
                 </div>
             </div>
             <div class="go-stat-card cubes-card">
-                <div class="go-stat-icon">💎</div>
+                <div class="go-stat-icon">🪙</div>
                 <div class="go-stat-meta">
-                    <span class="go-stat-label" data-i18n="totalCubes">الكريستال</span>
-                    <strong class="go-stat-value purple" id="total-meta-cubes-val">0</strong>
-                    <small class="go-stat-sub">(+<span id="final-cubes-val">0</span> بالجولة)</small>
+                    <span class="go-stat-label" data-i18n="totalCubes">الرصيد الذهبي</span>
+                    <strong class="go-stat-value gold" id="total-meta-cubes-val">0 CR</strong>
+                    <small class="go-stat-sub">(+<span id="final-cubes-val">0</span> CR بالجولة)</small>
+                </div>
+            </div>
+            <div class="go-stat-card trophy-card">
+                <div class="go-stat-icon">🏆</div>
+                <div class="go-stat-meta">
+                    <span class="go-stat-label" data-i18n="rankThTrophies">الكؤوس</span>
+                    <strong class="go-stat-value gold" id="final-trophies-val">0 PTS</strong>
+                    <small class="go-stat-sub">(+<span id="session-trophies-val">0</span> بالجولة)</small>
                 </div>
             </div>
         </div>
@@ -1566,12 +1582,12 @@
         <div class="cyber-modal-card">
             <div class="modal-header">
                 <h3 data-i18n="cloudModalTitle"> الحساب السحابي والمزامنة (Cloud Profile)</h3>
-                <button class="modal-close-btn" onclick="closeCloudAccountModal()"></button>
+                <button class="modal-close-btn" onclick="closeCloudAccountModal()">✕</button>
             </div>
             <div class="modal-body">
                 <!-- قسم الربط بحساب Google -->
                 <div class="google-auth-container">
-                    <button class="btn-google-auth" onclick="triggerGoogleSignIn()" title="ربط وحفظ التقدم مع حساب Google">
+                    <button class="btn-google-auth" id="btn-google-auth-action" onclick="triggerGoogleSignIn()" title="ربط وحفظ التقدم مع حساب Google">
                         <svg class="google-svg-icon" viewBox="0 0 48 48">
                             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
                             <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -1588,7 +1604,7 @@
                             <div class="google-user-email" id="google-user-email">user@gmail.com</div>
                             <div class="google-sync-badge"><svg class="c-icon c-icon-green"><use href="#icon-check"></use></svg> تم الربط والمزامنة السحابية</div>
                         </div>
-                        <button class="google-unlink-btn" onclick="unlinkGoogleAccount()" title="إلغاء الربط"></button>
+                        <button class="google-unlink-btn" onclick="unlinkGoogleAccount()" title="إلغاء الربط">إلغاء الربط ✕</button>
                     </div>
 
                     <div class="google-auth-divider">
@@ -1619,7 +1635,7 @@
         <div class="cyber-modal-card">
             <div class="modal-header">
                 <h3> وصول القيادة الإدارية (Apex Admin Matrix)</h3>
-                <button class="modal-close-btn" onclick="closeAdminLoginModal()"></button>
+                <button class="modal-close-btn" onclick="closeAdminLoginModal()">✕</button>
             </div>
             <div class="modal-body">
                 <p style="font-size: 0.85rem; color: #8899a6; margin-bottom: 12px;">أدخل الرمز السري للتحكم بالخادم واللاعبين:</p>
@@ -1754,7 +1770,7 @@
                     <svg class="c-icon c-icon-gold"><use href="#icon-trophy"></use></svg>
                     <h3 data-i18n="rankModalTitle">دوري أبطال الساحة (Apex Global League)</h3>
                 </div>
-                <button class="modal-close-btn" onclick="closeRankLeaderboardModal()"></button>
+                <button class="modal-close-btn" onclick="closeRankLeaderboardModal()">✕</button>
             </div>
             
             <div class="modal-body" style="padding: 12px 16px;">
@@ -1835,6 +1851,12 @@
                 كافأت جولة اليوم: <strong style="color: #ffd700;">+25 كأس </strong> • <strong style="color: #00ff88;">+150 كريديت </strong>
             </div>
 
+            <div class="modal-footer" style="padding: 10px 16px; display: flex; justify-content: center;">
+                <button class="btn-primary" onclick="closeMatchPodiumModal()" style="padding: 8px 28px;">✔️ متابعة اللعب</button>
+            </div>
+        </div>
+    </div>
+
     <!-- نافذة لوحة تحكم طور الساند بوكس الحقيقي (True Sandbox Control Center) -->
     <div id="sandbox-control-modal" class="cyber-modal hidden" onclick="if(event.target===this) closeSandboxControlModal()">
         <div class="cyber-modal-card sandbox-modal-card">
@@ -1843,7 +1865,7 @@
                     <svg class="c-icon c-icon-green"><use href="#icon-orbit"></use></svg>
                     <h3 style="color:#00ff88;">🛠️ مركز تحكم الساند بوكس الحقيقي (Sandbox Master Panel)</h3>
                 </div>
-                <button class="modal-close-btn" onclick="closeSandboxControlModal()"></button>
+                <button class="modal-close-btn" onclick="closeSandboxControlModal()">✕</button>
             </div>
             
             <div class="modal-body sandbox-modal-body">
@@ -1996,11 +2018,11 @@
     </div>
 
     <script src="socket.io.min.js"></script>
-    <script src="js/game-state.js?v=15"></script>
-    <script src="js/multiplayer.js?v=15"></script>
-    <script src="js/ui.js?v=15"></script>
-    <script src="script.js?v=121"></script>
-    <script src="js/death-watchdog.js?v=12"></script>
-    <script src="js/mobile-controls.js?v=15"></script>
+    <script src="js/game-state.js?v=129"></script>
+    <script src="js/multiplayer.js?v=129"></script>
+    <script src="js/ui.js?v=129"></script>
+    <script src="script.js?v=129"></script>
+    <script src="js/death-watchdog.js?v=129"></script>
+    <script src="js/mobile-controls.js?v=129"></script>
 </body>
 </html>
