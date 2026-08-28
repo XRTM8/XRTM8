@@ -499,13 +499,10 @@ select:focus-visible {
 }
 
 .hud-action-btn {
-    min-width: 58px !important;
-    min-height: 58px !important;
-    border-radius: 16px !important;
-    border-color: rgba(142, 207, 255, 0.24) !important;
-    background: rgba(4, 13, 23, 0.7) !important;
+    border-radius: 50% !important;
+    border-color: rgba(142, 207, 255, 0.35) !important;
     backdrop-filter: blur(10px) !important;
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35) !important;
 }
 
 @media (pointer: coarse) {
@@ -625,17 +622,22 @@ select:focus-visible {
 
 @media (orientation: portrait) and (pointer: coarse) {
     #joystick-base {
-        left: max(16px, env(safe-area-inset-left)) !important;
-        bottom: max(90px, calc(env(safe-area-inset-bottom) + 74px)) !important;
+        left: max(14px, env(safe-area-inset-left, 14px)) !important;
+        bottom: max(14px, env(safe-area-inset-bottom, 14px)) !important;
     }
 
     #joystick-aim-base {
-        right: max(16px, env(safe-area-inset-right)) !important;
-        bottom: max(90px, calc(env(safe-area-inset-bottom) + 74px)) !important;
+        right: max(14px, env(safe-area-inset-right, 14px)) !important;
+        bottom: max(14px, env(safe-area-inset-bottom, 14px)) !important;
+    }
+
+    #hud-abilities-cluster {
+        right: max(14px, env(safe-area-inset-right, 14px)) !important;
+        bottom: max(14px, env(safe-area-inset-bottom, 14px)) !important;
     }
 
     .hud-bottom-center {
-        bottom: max(14px, env(safe-area-inset-bottom)) !important;
+        bottom: max(10px, env(safe-area-inset-bottom, 10px)) !important;
     }
 
     .portrait-orientation-warning {
@@ -667,8 +669,7 @@ select:focus-visible {
     }
 
     .hud-action-btn {
-        min-width: 50px !important;
-        min-height: 50px !important;
+        border-radius: 50% !important;
     }
 
     .game-over-card,

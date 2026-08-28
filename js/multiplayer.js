@@ -22,6 +22,10 @@
         const health = finiteNumber(raw.health ?? raw.hp, finiteNumber(existing.health ?? existing.hp, 100));
         const maxHealth = Math.max(1, finiteNumber(raw.maxHealth ?? raw.maxHp, finiteNumber(existing.maxHealth ?? existing.maxHp, 100)));
 
+        const now = Date.now();
+        const serverTs = finiteNumber(raw.serverTs, now);
+        const ping = Math.max(5, Math.min(999, finiteNumber(raw.ping, finiteNumber(existing.ping, 25))));
+
         return {
             ...existing,
             ...raw,
@@ -34,6 +38,8 @@
             y: finiteNumber(existing.y, y),
             targetX: x,
             targetY: y,
+            prevTargetX: finiteNumber(existing.targetX, x),
+            prevTargetY: finiteNumber(existing.targetY, y),
             facingAngle: finiteNumber(existing.facingAngle, finiteNumber(raw.facingAngle ?? raw.angle, 0)),
             targetFacingAngle: finiteNumber(raw.facingAngle ?? raw.angle, finiteNumber(existing.targetFacingAngle, 0)),
             vx: finiteNumber(raw.vx, finiteNumber(existing.vx, 0)),
@@ -48,8 +54,30 @@
             kills: Math.max(0, finiteNumber(raw.kills, finiteNumber(existing.kills, 0))),
             deaths: Math.max(0, finiteNumber(raw.deaths, finiteNumber(existing.deaths, 0))),
             isDead: Boolean(raw.isDead),
-            lastSeenAt: Date.now()
+            isDowned: Boolean(raw.isDowned),
+            ping,
+            serverTs,
+            lastServerTs: serverTs,
+            lastSeenAt: now
         };
+    }
+
+    function predictRemotePlayerPosition(rp, currentTime = Date.now(), maxExtrapolateMs = 300) {
+        if (!rp) return { x: 4000, y: 4000 };
+        const elapsedSec = Math.max(0, Math.min(maxExtrapolateMs, (currentTime - (rp.lastServerTs || currentTime)))) / 1000;
+        const vx = rp.vx || 0;
+        const vy = rp.vy || 0;
+        return {
+            x: (rp.targetX ?? rp.x ?? 4000) + (vx * elapsedSec),
+            y: (rp.targetY ?? rp.y ?? 4000) + (vy * elapsedSec)
+        };
+    }
+
+    function shortestAngleDiff(targetAngle, currentAngle) {
+        let diff = (targetAngle - currentAngle) % (Math.PI * 2);
+        if (diff < -Math.PI) diff += Math.PI * 2;
+        if (diff > Math.PI) diff -= Math.PI * 2;
+        return diff;
     }
 
     function createPlayerUpdate(player, options) {
@@ -78,5 +106,5 @@
         };
     }
 
-    return Object.freeze({ normalizePlayer, createPlayerUpdate });
+    return Object.freeze({ normalizePlayer, createPlayerUpdate, predictRemotePlayerPosition, shortestAngleDiff });
 });

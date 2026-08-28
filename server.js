@@ -1649,23 +1649,55 @@ socket.on('admin_auth', (authData) => {
 });
 
 // ====================================================================
-// 7. UNIFIED HIGH-PERFORMANCE 20HZ TICK LOOP
+// 7. UNIFIED HIGH-PERFORMANCE 35HZ REAL-TIME NETCODE 2.0 TICK LOOP
 // ====================================================================
 setInterval(() => {
+    const now = Date.now();
     for (const room of gameRooms.values()) {
         if (room.players.size > 0) {
             updateRoomAnomalies(room);
-            const snapshot = Array.from(room.players.values());
-            io.to(room.id).emit('room_tick_sync', snapshot);
+            const snapshot = Array.from(room.players.values()).map(p => ({
+                id: p.id,
+                username: p.username,
+                x: p.x,
+                y: p.y,
+                vx: p.vx || 0,
+                vy: p.vy || 0,
+                facingAngle: p.facingAngle || 0,
+                hp: p.hp,
+                health: p.health,
+                maxHp: p.maxHp,
+                maxHealth: p.maxHealth,
+                shield: p.shield,
+                maxShield: p.maxShield,
+                chassis: p.chassis,
+                weapon: p.weapon,
+                skin: p.skin,
+                isDashing: p.isDashing,
+                sprintActive: p.sprintActive,
+                overchargeActive: p.overchargeActive,
+                isFiringUlt: p.isFiringUlt,
+                isDead: p.isDead,
+                isDowned: p.isDowned,
+                score: p.score,
+                kills: p.kills,
+                ping: activeSockets.get(p.id)?.ping || 20,
+                serverTs: now
+            }));
+            io.to(room.id).emit('room_tick_sync', {
+                serverTs: now,
+                players: snapshot,
+                bossState: room.bossState
+            });
         }
     }
-}, 50); // 20Hz clean tick rate
+}, 28); // ~35.7Hz high-frequency tick rate
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`
 ============================================================
  CHRONO DRIFT (الانجراف الزمني) SERVER RUNNING ON PORT ${PORT}
-[SYS] WebGL Client & Authoritative Engine Active (20Hz Tick)
+[SYS] WebGL Client & Netcode 2.0 Engine Active (35Hz Tick)
 [DB] Persistent profile store: chronodrift_db.json
 [SEC] Anti-Cheat, XSS Shields, Custom Lobbies & Anomalies Ready
 ============================================================

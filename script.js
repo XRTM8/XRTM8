@@ -2632,7 +2632,7 @@ function isSandboxMode() {
         let screenShakeTime = 0, hitStopDuration = 0;
         let camX = 0, camY = 0, cameraZoom = 1.0;
         let currentWave = 1, enemiesInWaveTotal = 0, enemiesLeftToSpawn = 0;
-        let isWaveIntermission = false, isBossWave = false;
+        let isWaveIntermission = false, isBossWave = false, isEliteWave = false;
         let acquiredPerks = {}, acquiredRelics = [], activeSynergies = new Set();
         let hazardLaserZones = [], blackHoleSingularity = null;
 
@@ -2859,6 +2859,51 @@ function isSandboxMode() {
             });
         }
 
+        function playNoiseBurst(buffer, filterType, freqStart, freqEnd, gainVal, duration, q = 1) {
+            if (!buffer || !audioCtx || audioCtx.state !== 'running') return;
+            try {
+                const now = audioCtx.currentTime;
+                const masterOut = masterLimiter || audioCtx.destination;
+                const src = audioCtx.createBufferSource();
+                src.buffer = buffer;
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = filterType;
+                filter.frequency.setValueAtTime(freqStart, now);
+                if (freqEnd !== freqStart) filter.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), now + duration);
+                filter.Q.setValueAtTime(q, now);
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(gainVal, now);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+                src.connect(filter); filter.connect(gain); gain.connect(masterOut);
+                src.start(now); src.stop(now + duration + 0.01);
+            } catch(e) {}
+        }
+
+        function playTonal(waveType, freqStart, freqEnd, gainVal, duration, filterFreq = null) {
+            if (!audioCtx || audioCtx.state !== 'running') return;
+            try {
+                const now = audioCtx.currentTime;
+                const masterOut = masterLimiter || audioCtx.destination;
+                const osc = audioCtx.createOscillator();
+                osc.type = waveType;
+                osc.frequency.setValueAtTime(freqStart, now);
+                if (freqEnd !== freqStart) osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), now + duration);
+                const gain = audioCtx.createGain();
+                gain.gain.setValueAtTime(gainVal, now);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+                if (filterFreq) {
+                    const flt = audioCtx.createBiquadFilter();
+                    flt.type = 'lowpass';
+                    flt.frequency.setValueAtTime(filterFreq, now);
+                    osc.connect(flt); flt.connect(gain);
+                } else {
+                    osc.connect(gain);
+                }
+                gain.connect(masterOut);
+                osc.start(now); osc.stop(now + duration + 0.01);
+            } catch(e) {}
+        }
+
         function playSoundV2(type, param) {
             if (!canPlaySound(type, (type === "hit" || type === "shoot") ? 30 : 50)) return;
             if (!gameSettings || !gameSettings.sound || !audioCtx || audioCtx.state !== 'running') return;
@@ -2866,49 +2911,6 @@ function isSandboxMode() {
             try {
                 const now = audioCtx.currentTime;
                 const masterOut = masterLimiter || audioCtx.destination;
-
-                // Helper: Play filtered noise burst from pre-allocated buffer
-                const playNoiseBurst = (buffer, filterType, freqStart, freqEnd, gainVal, duration, q = 1) => {
-                    if (!buffer) return;
-                    try {
-                        const src = audioCtx.createBufferSource();
-                        src.buffer = buffer;
-                        const filter = audioCtx.createBiquadFilter();
-                        filter.type = filterType;
-                        filter.frequency.setValueAtTime(freqStart, now);
-                        if (freqEnd !== freqStart) filter.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), now + duration);
-                        filter.Q.setValueAtTime(q, now);
-                        const gain = audioCtx.createGain();
-                        gain.gain.setValueAtTime(gainVal, now);
-                        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-                        src.connect(filter); filter.connect(gain); gain.connect(masterOut);
-                        src.start(now); src.stop(now + duration + 0.01);
-                    } catch(e) {}
-                };
-
-                // Helper: Play tonal transient with pitch envelope
-                const playTonal = (waveType, freqStart, freqEnd, gainVal, duration, filterFreq = null) => {
-                    try {
-                        const osc = audioCtx.createOscillator();
-                        osc.type = waveType;
-                        osc.frequency.setValueAtTime(freqStart, now);
-                        if (freqEnd !== freqStart) osc.frequency.exponentialRampToValueAtTime(Math.max(20, freqEnd), now + duration);
-                        const gain = audioCtx.createGain();
-                        gain.gain.setValueAtTime(gainVal, now);
-                        gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-                        
-                        if (filterFreq) {
-                            const flt = audioCtx.createBiquadFilter();
-                            flt.type = 'lowpass';
-                            flt.frequency.setValueAtTime(filterFreq, now);
-                            osc.connect(flt); flt.connect(gain);
-                        } else {
-                            osc.connect(gain);
-                        }
-                        gain.connect(masterOut);
-                        osc.start(now); osc.stop(now + duration + 0.01);
-                    } catch(e) {}
-                };
 
                 // ==================== 1. REALISTIC WEAPON FIRING ====================
                 if (type === 'shoot_pistol') {
@@ -5095,16 +5097,19 @@ socket.on('disconnect', () => {
                     }
                 });
 
-                socket.on('room_tick_sync', (playersList) => {
-                    if (!playersList) return;
+                socket.on('room_tick_sync', (data) => {
+                    if (!data) return;
+                    const playersList = Array.isArray(data) ? data : (data.players || []);
+                    const serverTs = (data && data.serverTs) ? data.serverTs : Date.now();
                     const presentRemoteIds = new Set();
                     playersList.forEach(p => {
                         if (p.id === socket.id) return;
                         presentRemoteIds.add(p.id);
                         let existing = remotePlayers.get(p.id);
+                        const rawWithTs = { ...p, serverTs: p.serverTs || serverTs };
                         const normalized = window.ChronoMultiplayer
-                            ? window.ChronoMultiplayer.normalizePlayer(p, existing)
-                            : { ...existing, ...p, targetX: p.x, targetY: p.y, targetFacingAngle: p.facingAngle || 0, radius: 18 };
+                            ? window.ChronoMultiplayer.normalizePlayer(rawWithTs, existing)
+                            : { ...existing, ...rawWithTs, targetX: p.x, targetY: p.y, targetFacingAngle: p.facingAngle || 0, radius: 18, lastServerTs: serverTs };
                         remotePlayers.set(p.id, normalized);
                     });
                     remotePlayers.forEach((_, id) => {
@@ -6170,20 +6175,30 @@ function drawActiveTimeAnomalies(ctx, camX, camY) {
 function drawAndInterpolateRemotePlayers(frameFactor) {
             if (remotePlayers.size === 0) return;
 
+            const nowTime = Date.now();
             remotePlayers.forEach((rp, id) => {
                 if (!rp || rp.isDead) return;
-                // Smooth coordinates interpolation with dead reckoning
-                const dtFactor = Math.min(1.0, 0.32 * frameFactor);
-                rp.x = lerp(rp.x ?? rp.targetX, rp.targetX, dtFactor);
-                rp.y = lerp(rp.y ?? rp.targetY, rp.targetY, dtFactor);
 
-                // Shortest-distance circular angular interpolation
+                // Netcode 2.0: Dead Reckoning Extrapolation based on real-time velocity vector and ping
+                const elapsedSec = Math.max(0, Math.min(0.28, (nowTime - (rp.lastServerTs || nowTime)) / 1000));
+                const vx = rp.vx || 0;
+                const vy = rp.vy || 0;
+                const predictedTargetX = (rp.targetX ?? rp.x) + (vx * elapsedSec);
+                const predictedTargetY = (rp.targetY ?? rp.y) + (vy * elapsedSec);
+
+                // Adaptive convergence: high speed on snap changes, silky smooth on linear flight
+                const distToTarget = Math.hypot(predictedTargetX - (rp.x ?? predictedTargetX), predictedTargetY - (rp.y ?? predictedTargetY));
+                const dtFactor = Math.min(1.0, (distToTarget > 120 ? 0.75 : 0.45) * frameFactor);
+                rp.x = lerp(rp.x ?? predictedTargetX, predictedTargetX, dtFactor);
+                rp.y = lerp(rp.y ?? predictedTargetY, predictedTargetY, dtFactor);
+
+                // Shortest-distance circular angular slerp
                 const curAngle = rp.facingAngle !== undefined ? rp.facingAngle : (rp.targetFacingAngle || 0);
                 const targetA = rp.targetFacingAngle !== undefined ? rp.targetFacingAngle : curAngle;
-                let diff = targetA - curAngle;
-                while (diff < -Math.PI) diff += Math.PI * 2;
-                while (diff > Math.PI) diff -= Math.PI * 2;
-                rp.facingAngle = curAngle + diff * Math.min(1.0, 0.42 * frameFactor);
+                let diff = (targetA - curAngle) % (Math.PI * 2);
+                if (diff < -Math.PI) diff += Math.PI * 2;
+                if (diff > Math.PI) diff -= Math.PI * 2;
+                rp.facingAngle = curAngle + diff * Math.min(1.0, 0.55 * frameFactor);
 
                 if (rp.x < camX - 120 || rp.x > camX + width + 120 || rp.y < camY - 120 || rp.y > camY + height + 120) return;
 
@@ -10495,6 +10510,46 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             ];
         }
 
+        function getEnemyArabicName(type, isElite = false, isOverclocked = false) {
+            const prefix = isOverclocked ? 'أوفركلوك ' : (isElite ? 'نخبة ' : '');
+            const baseNames = {
+                'neon_shooter': 'صائد النيون',
+                'sniper': 'قناص المدار',
+                'dasher': 'المندفع التكتيكي',
+                'burst': 'حاصد الزخات',
+                'mine': 'اللغم الانشطاري',
+                'splitter': 'المنقسم الكمومي',
+                'micro_splitter': 'الشظية النانوية',
+                'phantom': 'الشبح المتسلل',
+                'orbiter': 'الحارس المداري',
+                'juggernaut': 'الدرع الجبار',
+                'drone': 'طائرة الإسناد',
+                'architect': 'مهندس الحصون',
+                'turret': 'البرج الدفاعي',
+                'flanker': 'المناور الجانبي',
+                'mirror': 'المرآة العاكسة',
+                'swarm_queen': 'ملكة السرب',
+                'micro_swarm': 'اليرقة النانوية',
+                'leech': 'ماص الطاقة',
+                'chronomancer': 'ساحر الزمكان',
+                'tether': 'المقيد البلازمي',
+                'artillery': 'مدفعية النواة',
+                'hacker': 'مخترق الأنظمة',
+                'volatile': 'المتفجر المنصهر',
+                'cyber_vanguard': 'طليعة السايبر',
+                'plasma_mortar': 'هاون البلازما',
+                'tesla_coil': 'ملف تسلا الصاعق',
+                'cryo_drifter': 'حائم الصقيع',
+                'void_stalker': 'متعقب الفراغ',
+                'nanite_colony': 'مستعمرة النانو',
+                'warp_behemoth': 'عملاق القفز',
+                'singularity_node': 'عقدة التفرد',
+                'photon_assassin': 'مغتال الفوتون',
+                'omega_sentinel': 'حارس الأوميغا'
+            };
+            return prefix + (baseNames[type] || 'طائرة معادية');
+        }
+
         function getBossName(tier) {
             const names = [
                 'المكعب العملاق (The Giant Cube)',
@@ -10532,6 +10587,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         class Enemy {
             constructor(type, bossTier = 1, isElite = false, customX = null, customY = null) {
                 this.type = type; this.bossTier = bossTier; this.isElite = isElite; this.isOverclocked = (currentWave >= 15 && this.isElite);
+                this.name = (type === 'boss') ? getBossName(bossTier) : getEnemyArabicName(type, isElite, this.isOverclocked);
                 this.stunTimer = 0; this.hitFlashTimer = 0; this.isDead = false; 
                 this.bossPhase2Triggered = false; this.bossPhase3Triggered = false;
                 this.weakpointAngle = 0; this.staggerMeter = 0; this.maxStagger = 20; this.isStaggered = false; this.staggerTimer = 0;
@@ -10541,7 +10597,6 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
 
                 if (type === 'boss') {
                     this.radius = 48 + Math.min(14, bossTier * 2);
-                    this.name = getBossName(bossTier);
                     this.maxHealth = getBossHealth(bossTier);
                     this.health = this.maxHealth;
                     this.maxStagger = 20 + Math.min(30, bossTier * 5);
@@ -10659,10 +10714,10 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
 
                 if (this.type === 'neon_shooter') {
                     this.color = this.isOverclocked ? '#ff00aa' : (this.isElite ? colors.enemyElite : colors.enemyPistol); 
-                    this.speed = 1.45 * diffMultiplier; this.shootInterval = Math.max(500, 1200 - (currentWave * 45)); this.bulletSpeed = 8.5;
+                    this.speed = 1.45 * diffMultiplier; this.shootInterval = Math.max(450, 1100 - (currentWave * 45)); this.bulletSpeed = 13.5;
                 } else if (this.type === 'sniper') {
                     this.color = this.isOverclocked ? '#ff00aa' : (this.isElite ? colors.enemyElite : colors.enemySniper); 
-                    this.speed = 1.25 * diffMultiplier; this.shootInterval = Math.max(800, 1600 - (currentWave * 50)); this.bulletSpeed = 14.5; 
+                    this.speed = 1.25 * diffMultiplier; this.shootInterval = Math.max(700, 1500 - (currentWave * 50)); this.bulletSpeed = 21.0; 
                 } else if (this.type === 'dasher') {
                     this.name = this.isOverclocked ? 'أوفركلوك المندفع' : (this.isElite ? 'نخبة المندفع' : 'مندفع');
                     this.color = this.isOverclocked ? '#ff00aa' : (this.isElite ? colors.enemyElite : colors.enemyDasher); 
@@ -10670,49 +10725,49 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 } else if (this.type === 'burst') {
                     this.name = this.isOverclocked ? 'أوفركلوك الزخات' : (this.isElite ? 'نخبة الزخات' : 'زخات');
                     this.color = this.isOverclocked ? '#ff00aa' : (this.isElite ? colors.enemyElite : colors.enemyBurst); 
-                    this.speed = 1.35 * diffMultiplier; this.shootInterval = Math.max(650, 1600 - (currentWave * 50)); this.bulletSpeed = 7.8;
+                    this.speed = 1.35 * diffMultiplier; this.shootInterval = Math.max(550, 1400 - (currentWave * 50)); this.bulletSpeed = 12.0;
                 } else if (this.type === 'mine') {
                     this.color = '#ff5500'; this.speed = 0.95 * diffMultiplier; this.shootInterval = 999999;
                 } else if (this.type === 'splitter') {
-                    this.color = colors.enemySplitter; this.speed = 1.2 * diffMultiplier; this.shootInterval = Math.max(850, 1750 - (currentWave * 40)); this.bulletSpeed = 7.2;
+                    this.color = colors.enemySplitter; this.speed = 1.2 * diffMultiplier; this.shootInterval = Math.max(750, 1600 - (currentWave * 40)); this.bulletSpeed = 11.0;
                 } else if (this.type === 'micro_splitter') {
                     this.color = '#7dd3fc'; this.speed = 2.6 * diffMultiplier; this.shootInterval = 999999;
                 } else if (this.type === 'phantom') {
-                    this.color = colors.enemyPhantom; this.speed = 1.6 * diffMultiplier; this.shootInterval = Math.max(750, 1450 - (currentWave * 40)); this.bulletSpeed = 8.5;
+                    this.color = colors.enemyPhantom; this.speed = 1.6 * diffMultiplier; this.shootInterval = Math.max(650, 1350 - (currentWave * 40)); this.bulletSpeed = 13.0;
                 } else if (this.type === 'orbiter') {
-                    this.color = colors.enemyOrbiter; this.speed = 1.7 * diffMultiplier; this.shootInterval = Math.max(650, 1350 - (currentWave * 35)); this.bulletSpeed = 7.8;
+                    this.color = colors.enemyOrbiter; this.speed = 1.7 * diffMultiplier; this.shootInterval = Math.max(550, 1250 - (currentWave * 35)); this.bulletSpeed = 12.0;
                 } else if (this.type === 'juggernaut') {
-                    this.color = colors.enemyJuggernaut; this.speed = 0.85 * diffMultiplier; this.shootInterval = Math.max(950, 2000 - (currentWave * 55)); this.bulletSpeed = 6.5;
+                    this.color = colors.enemyJuggernaut; this.speed = 0.85 * diffMultiplier; this.shootInterval = Math.max(850, 1850 - (currentWave * 55)); this.bulletSpeed = 10.5;
                 } else if (this.type === 'boss') {
                     this.color = getBossColor(this.bossTier);
                     this.speed = (1.75 + Math.min(0.95, this.bossTier * 0.12)) * diffMultiplier;
-                    this.shootInterval = Math.max(450, 950 - (this.bossTier * 50));
-                    this.bulletSpeed = (8.5 + Math.min(3.5, this.bossTier * 0.4)) * diffMultiplier;
+                    this.shootInterval = Math.max(400, 900 - (this.bossTier * 50));
+                    this.bulletSpeed = (13.0 + Math.min(5.0, this.bossTier * 0.6)) * diffMultiplier;
                 } else if (this.type === 'drone') {
                     this.color = colors.enemyDrone; this.speed = 2.2 * diffMultiplier; this.shootInterval = 999999;
                 } else if (this.type === 'architect') {
-                    this.color = colors.enemyArchitect; this.speed = 0.75 * diffMultiplier; this.shootInterval = Math.max(3000, 4800 - (currentWave * 100)); this.bulletSpeed = 0;
+                    this.color = colors.enemyArchitect; this.speed = 0.75 * diffMultiplier; this.shootInterval = Math.max(2800, 4400 - (currentWave * 100)); this.bulletSpeed = 0;
                 } else if (this.type === 'turret') {
-                    this.color = colors.enemyTurret; this.speed = 0; this.shootInterval = 1200; this.bulletSpeed = 8.8;
+                    this.color = colors.enemyTurret; this.speed = 0; this.shootInterval = 1100; this.bulletSpeed = 14.0;
                 } else if (this.type === 'flanker') {
-                    this.color = colors.enemyFlanker; this.speed = 2.0 * diffMultiplier; this.shootInterval = Math.max(700, 1400 - (currentWave * 50)); this.bulletSpeed = 8.2;
+                    this.color = colors.enemyFlanker; this.speed = 2.0 * diffMultiplier; this.shootInterval = Math.max(600, 1300 - (currentWave * 50)); this.bulletSpeed = 13.0;
                     this.flankDir = Math.random() < 0.5 ? 1 : -1; 
                 } else if (this.type === 'mirror') {
-                    this.color = colors.enemyMirror; this.speed = 1.15 * diffMultiplier; this.shootInterval = Math.max(900, 1750 - (currentWave * 40)); this.bulletSpeed = 7.5;
+                    this.color = colors.enemyMirror; this.speed = 1.15 * diffMultiplier; this.shootInterval = Math.max(800, 1600 - (currentWave * 40)); this.bulletSpeed = 12.5;
                 } else if (this.type === 'swarm_queen') {
-                    this.color = colors.enemySwarmQueen; this.speed = 0.55 * diffMultiplier; this.shootInterval = Math.max(2400, 4200 - (currentWave * 100)); this.bulletSpeed = 0;
+                    this.color = colors.enemySwarmQueen; this.speed = 0.55 * diffMultiplier; this.shootInterval = Math.max(2200, 3800 - (currentWave * 100)); this.bulletSpeed = 0;
                 } else if (this.type === 'micro_swarm') {
                     this.color = colors.enemyMicroSwarm; this.speed = 2.8 * diffMultiplier; this.shootInterval = 999999;
                 } else if (this.type === 'leech') {
                     this.color = colors.enemyLeech; this.speed = 2.6 * diffMultiplier; this.shootInterval = 999999; this.bulletSpeed = 0;
                 } else if (this.type === 'chronomancer') {
-                    this.color = colors.enemyChronomancer; this.speed = 1.0 * diffMultiplier; this.shootInterval = Math.max(2600, 4200 - (currentWave * 60)); this.bulletSpeed = 7.5;
+                    this.color = colors.enemyChronomancer; this.speed = 1.0 * diffMultiplier; this.shootInterval = Math.max(2400, 3800 - (currentWave * 60)); this.bulletSpeed = 12.0;
                 } else if (this.type === 'tether') {
-                    this.color = colors.enemyTether; this.speed = 1.25 * diffMultiplier; this.shootInterval = Math.max(1800, 3000 - (currentWave * 50)); this.bulletSpeed = 0;
+                    this.color = colors.enemyTether; this.speed = 1.25 * diffMultiplier; this.shootInterval = Math.max(1600, 2800 - (currentWave * 50)); this.bulletSpeed = 0;
                 } else if (this.type === 'artillery') {
-                    this.color = colors.enemyArtillery; this.speed = 0.6 * diffMultiplier; this.shootInterval = Math.max(2800, 4200 - (currentWave * 60)); this.bulletSpeed = 9.2;
+                    this.color = colors.enemyArtillery; this.speed = 0.6 * diffMultiplier; this.shootInterval = Math.max(2500, 3800 - (currentWave * 60)); this.bulletSpeed = 14.5;
                 } else if (this.type === 'hacker') {
-                    this.color = colors.enemyHacker; this.speed = 1.45 * diffMultiplier; this.shootInterval = Math.max(1600, 3000 - (currentWave * 50)); this.bulletSpeed = 9.0;
+                    this.color = colors.enemyHacker; this.speed = 1.45 * diffMultiplier; this.shootInterval = Math.max(1400, 2700 - (currentWave * 50)); this.bulletSpeed = 14.5;
                 } else if (this.type === 'volatile') {
                     this.name = this.isOverclocked ? 'أوفركلوك المنصهر' : (this.isElite ? 'نخبة المنصهر' : 'المنصهر');
                     this.color = this.isOverclocked ? '#ff00aa' : (this.isElite ? colors.enemyElite : colors.enemyVolatile);
@@ -10720,38 +10775,38 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     this.fuseTimer = 0; this.isIgnited = false;
                 // --- 20 NEW ENEMY SETUP PARAMS ---
                 } else if (this.type === 'cyber_vanguard') {
-                    this.color = '#38bdf8'; this.speed = 1.35 * diffMultiplier; this.shootInterval = Math.max(900, 1600 - (currentWave * 40)); this.bulletSpeed = 8.5;
+                    this.color = '#38bdf8'; this.speed = 1.35 * diffMultiplier; this.shootInterval = Math.max(800, 1500 - (currentWave * 40)); this.bulletSpeed = 13.5;
                 } else if (this.type === 'plasma_mortar') {
-                    this.color = '#f97316'; this.speed = 0.8 * diffMultiplier; this.shootInterval = Math.max(2200, 3600 - (currentWave * 60)); this.bulletSpeed = 7.0;
+                    this.color = '#f97316'; this.speed = 0.8 * diffMultiplier; this.shootInterval = Math.max(2000, 3400 - (currentWave * 60)); this.bulletSpeed = 12.0;
                 } else if (this.type === 'tesla_coil') {
                     this.color = '#eab308'; this.speed = 1.1 * diffMultiplier; this.shootInterval = 1800; this.bulletSpeed = 0;
                 } else if (this.type === 'cryo_drifter') {
-                    this.color = '#06b6d4'; this.speed = 1.8 * diffMultiplier; this.shootInterval = Math.max(650, 1200 - (currentWave * 30)); this.bulletSpeed = 8.8;
+                    this.color = '#06b6d4'; this.speed = 1.8 * diffMultiplier; this.shootInterval = Math.max(550, 1100 - (currentWave * 30)); this.bulletSpeed = 13.5;
                 } else if (this.type === 'void_stalker') {
-                    this.color = '#a855f7'; this.speed = 2.2 * diffMultiplier; this.shootInterval = Math.max(1400, 2400 - (currentWave * 50)); this.bulletSpeed = 10.5;
+                    this.color = '#a855f7'; this.speed = 2.2 * diffMultiplier; this.shootInterval = Math.max(1200, 2200 - (currentWave * 50)); this.bulletSpeed = 15.0;
                     this.teleportCooldown = 3500;
                 } else if (this.type === 'cluster_bomber') {
-                    this.color = '#ef4444'; this.speed = 0.9 * diffMultiplier; this.shootInterval = Math.max(2000, 3400 - (currentWave * 50)); this.bulletSpeed = 6.8;
+                    this.color = '#ef4444'; this.speed = 0.9 * diffMultiplier; this.shootInterval = Math.max(1800, 3100 - (currentWave * 50)); this.bulletSpeed = 11.5;
                 } else if (this.type === 'hyper_sniper') {
-                    this.color = '#ec4899'; this.speed = 0.95 * diffMultiplier; this.shootInterval = Math.max(1600, 2800 - (currentWave * 50)); this.bulletSpeed = 24.0;
+                    this.color = '#ec4899'; this.speed = 0.95 * diffMultiplier; this.shootInterval = Math.max(1400, 2600 - (currentWave * 50)); this.bulletSpeed = 30.0;
                     this.laserAimTimer = 0;
                 } else if (this.type === 'magneto_drone') {
                     this.color = '#8b5cf6'; this.speed = 1.6 * diffMultiplier; this.shootInterval = 999999;
                 } else if (this.type === 'echo_mimic') {
-                    this.color = '#14b8a6'; this.speed = 1.4 * diffMultiplier; this.shootInterval = Math.max(800, 1500 - (currentWave * 40)); this.bulletSpeed = 9.2;
+                    this.color = '#14b8a6'; this.speed = 1.4 * diffMultiplier; this.shootInterval = Math.max(700, 1350 - (currentWave * 40)); this.bulletSpeed = 13.5;
                 } else if (this.type === 'solar_rammer') {
                     this.color = '#f59e0b'; this.speed = 3.2 * diffMultiplier; this.shootInterval = 999999;
                 } else if (this.type === 'glitch_specter') {
-                    this.color = '#00f3ff'; this.speed = 2.0 * diffMultiplier; this.shootInterval = Math.max(1200, 2000 - (currentWave * 40)); this.bulletSpeed = 9.0;
+                    this.color = '#00f3ff'; this.speed = 2.0 * diffMultiplier; this.shootInterval = Math.max(1000, 1800 - (currentWave * 40)); this.bulletSpeed = 13.5;
                     this.phaseTimer = 0;
                 } else if (this.type === 'ion_interceptor') {
-                    this.color = '#6366f1'; this.speed = 3.0 * diffMultiplier; this.shootInterval = Math.max(600, 1100 - (currentWave * 30)); this.bulletSpeed = 11.0;
+                    this.color = '#6366f1'; this.speed = 3.0 * diffMultiplier; this.shootInterval = Math.max(500, 1000 - (currentWave * 30)); this.bulletSpeed = 15.5;
                 } else if (this.type === 'vortex_carrier') {
                     this.color = '#3b82f6'; this.speed = 0.65 * diffMultiplier; this.shootInterval = 4500; this.bulletSpeed = 0;
                 } else if (this.type === 'blaze_hound') {
-                    this.color = '#dc2626'; this.speed = 2.9 * diffMultiplier; this.shootInterval = Math.max(800, 1400 - (currentWave * 35)); this.bulletSpeed = 8.5;
+                    this.color = '#dc2626'; this.speed = 2.9 * diffMultiplier; this.shootInterval = Math.max(700, 1300 - (currentWave * 35)); this.bulletSpeed = 13.0;
                 } else if (this.type === 'quantum_wraith') {
-                    this.color = '#d946ef'; this.speed = 1.7 * diffMultiplier; this.shootInterval = Math.max(1000, 1800 - (currentWave * 40)); this.bulletSpeed = 9.5;
+                    this.color = '#d946ef'; this.speed = 1.7 * diffMultiplier; this.shootInterval = Math.max(900, 1650 - (currentWave * 40)); this.bulletSpeed = 14.0;
                     this.hasCloned = false;
                 } else if (this.type === 'apex_dreadnought') {
                     this.color = '#fbbf24'; this.speed = 0.55 * diffMultiplier; this.shootInterval = 850; this.bulletSpeed = 8.0;
@@ -10888,8 +10943,23 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 let targetX = player ? player.x : WORLD_W/2, targetY = player ? player.y : WORLD_H/2;
                 
                 if (this.type === 'drone') {
-                    let boss = enemies.find(e => e && !e.isDead && e.type === 'boss');
-                    if (boss) { let orbitAngle = performance.now() * 0.0025; targetX = boss.x + Math.cos(orbitAngle) * 80; targetY = boss.y + Math.sin(orbitAngle) * 80; }
+                    // طائرة الإسناد والدرع: تبحث عن حليف لحمايته (الزعماء، النخبة، الدروع، القناصة، إلخ) وتدور حوله لحمايته
+                    let ally = enemies.find(e => e && !e.isDead && e !== this && e.type !== 'drone' && (e.type === 'boss' || e.isElite || e.type === 'juggernaut' || e.type === 'sniper' || e.type === 'artillery' || e.type === 'swarm_queen'));
+                    if (!ally) {
+                        ally = enemies.find(e => e && !e.isDead && e !== this && e.type !== 'drone');
+                    }
+                    if (ally) {
+                        this.shieldedAlly = ally;
+                        ally.isProtectedByDrone = true;
+                        let orbitAngle = performance.now() * 0.003 + (this.orbitAngle || 0);
+                        targetX = ally.x + Math.cos(orbitAngle) * (ally.radius + 36);
+                        targetY = ally.y + Math.sin(orbitAngle) * (ally.radius + 36);
+                    } else if (player) {
+                        this.shieldedAlly = null;
+                        let angleFromP = Math.atan2(this.y - player.y, this.x - player.x);
+                        targetX = player.x + Math.cos(angleFromP) * 340;
+                        targetY = player.y + Math.sin(angleFromP) * 340;
+                    }
                 } else if (this.type === 'dasher' && player) {
                     let dToP = dist(this.x, this.y, player.x, player.y);
                     if (this.dashState === 0) {
@@ -11001,7 +11071,13 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
 
             shoot() {
                 if (this.isDead || this.isStaggered || !player) return;
-                let targetX = player.x + (player.vx * 12), targetY = player.y + (player.vy * 12);
+                // حساب دقيق لاستباق حركة وسرعة اللاعب بناءً على زمن وصول الرصاصة (Ballistic Lead Intercept)
+                const distToP = Math.hypot(player.x - this.x, player.y - this.y);
+                const bSpeed = Math.max(8, this.bulletSpeed || 13);
+                const flightFrames = Math.min(26, distToP / bSpeed);
+                const precision = (['sniper', 'hyper_sniper', 'hacker', 'turret'].includes(this.type) || this.isElite) ? 1.0 : 0.88;
+                let targetX = player.x + (player.vx * flightFrames * precision);
+                let targetY = player.y + (player.vy * flightFrames * precision);
                 const angle = Math.atan2(targetY - this.y, targetX - this.x);
                 const spawnX = this.x + Math.cos(angle) * (this.radius + 6), spawnY = this.y + Math.sin(angle) * (this.radius + 6);
                 const isNearScreen = (this.x >= camX - 300 && this.x <= camX + width + 300 && this.y >= camY - 300 && this.y <= camY + height + 300);
@@ -11019,7 +11095,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                             enemies.push(new Enemy('micro_swarm', 1, false, this.x + (Math.random()-0.5)*30, this.y + (Math.random()-0.5)*30));
                         }
                         createExplosion(this.x, this.y, colors.enemySwarmQueen, 12, 6);
-                        if (isNearScreen) playNoiseBurst(pinkNoiseBuffer, 'bandpass', 3500, 800, 0.22, 0.08, 2.0);
+                        if (isNearScreen) playSound('shoot');
                     }
                 } else if (this.type === 'chronomancer') {
                     enemyTimeBubbles.push(new EnemyTimeBubble(targetX, targetY));
@@ -11236,8 +11312,18 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             draw() {
                 if (this.isDead || this.x < camX - 100 || this.x > camX + width + 100 || this.y < camY - 100 || this.y > camY + height + 100) return;
                 if (this.type === 'drone') {
-                    let target = enemies.find(e => e && !e.isDead && e !== this && (e.type === 'boss' || e.type === 'sniper' || e.type === 'juggernaut'));
-                    if (target) { ctx.save(); ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(target.x, target.y); ctx.strokeStyle = 'rgba(0, 255, 204, 0.5)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.restore(); }
+                    let target = (this.shieldedAlly && !this.shieldedAlly.isDead) ? this.shieldedAlly : enemies.find(e => e && !e.isDead && e !== this && e.type !== 'drone');
+                    if (target) {
+                        ctx.save();
+                        // خط ربط ليزري نبضي ينقل الطاقة للحليف
+                        ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(target.x, target.y);
+                        ctx.strokeStyle = `rgba(0, 255, 204, ${Math.sin(performance.now() * 0.01) * 0.3 + 0.6})`;
+                        ctx.lineWidth = 2.5; ctx.stroke();
+                        // درع واقٍ متوهج يدور حول الحليف المحمي
+                        ctx.beginPath(); ctx.arc(target.x, target.y, target.radius + 10 + Math.sin(performance.now() * 0.008) * 3, 0, Math.PI * 2);
+                        ctx.strokeStyle = 'rgba(0, 255, 204, 0.75)'; ctx.lineWidth = 2.0; ctx.setLineDash([6, 3]); ctx.stroke();
+                        ctx.restore();
+                    }
                 }
                 
                 ctx.save(); ctx.translate(this.x, this.y);
@@ -12013,6 +12099,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             }
 
             isBossWave = (activeGameMode === 'boss_rush') || (currentWave % 5 === 0);
+            isEliteWave = !isBossWave && (currentWave % 3 === 0);
             if (cleanWaveDisplay) cleanWaveDisplay.innerText = currentWave;
 
             if (isBossWave) {
@@ -12028,6 +12115,14 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 bossWarningBanner.innerText = ` تحذير: استنفار طوارئ! ظهور الزعيم [${bossName}] بوسط الساحة `;
                 bossWarningBanner.style.display = 'block';
                 setTimeout(() => { bossWarningBanner.style.display = 'none'; }, 3500);
+            } else if (isEliteWave) {
+                enemiesInWaveTotal = 10 + (currentWave * 4);
+                enemiesLeftToSpawn = enemiesInWaveTotal;
+                if (player) spawnFloatingText(player.x, player.y - 45, `⚠️ موجة النخبة ${currentWave} (ELITE WAVE)!`, '#ffd700', 2500);
+                bossWarningBanner.innerText = `⚠️ استنفار: موجة النخبة ${currentWave}! جميع الأعداء نخبويون ذوو سمات خارقة!`;
+                bossWarningBanner.style.display = 'block';
+                setTimeout(() => { bossWarningBanner.style.display = 'none'; }, 3500);
+                playSound('overcharge');
             } else {
                 enemiesInWaveTotal = 14 + (currentWave * 6);
                 enemiesLeftToSpawn = enemiesInWaveTotal;
@@ -13185,47 +13280,46 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     spawnTimer += effectiveDelta * timeScale;
                     const spawnRate = Math.max(180, 520 - (currentWave * 25)), maxActiveEnemies = Math.min(50, 16 + Math.floor(currentWave * 2.5));
                     if (spawnTimer >= spawnRate && enemies.filter(e => e && !e.isDead).length < maxActiveEnemies) {
-                        // مصفوفة الأعداء الشاملة والمتوازنة بنسب متساوية لجميع الـ 40+ نوعاً
-                        // All 40+ Archetypes balanced and available across waves with tactical weighting
-                        let pool = [
-                            'neon_shooter', 'sniper', 'dasher', 'burst', 'mine', 'splitter', 'phantom', 
-                            'orbiter', 'juggernaut', 'architect', 'flanker', 'mirror', 'swarm_queen', 
-                            'leech', 'chronomancer', 'tether', 'artillery', 'hacker', 'volatile',
-                            'cyber_vanguard', 'plasma_mortar', 'tesla_coil', 'cryo_drifter', 'void_stalker', 
-                            'cluster_bomber', 'hyper_sniper', 'magneto_drone', 'echo_mimic', 'solar_rammer', 
-                            'glitch_specter', 'ion_interceptor', 'vortex_carrier', 'blaze_hound', 'quantum_wraith', 
-                            'apex_dreadnought', 'bio_hazard', 'stasis_weaver', 'plasma_hydra', 'orbital_sentinel'
-                        ];
-                        // Intelligent tactical squad and solo spawning system
-                        let spawnRoll = Math.random();
-                        let isElite = (currentWave >= 2 && Math.random() < Math.min(0.40, 0.15 + currentWave * 0.02));
+                        // مصفوفة الأعداء الديناميكية المتنوعة تصاعدياً حسب رقم الموجة
+                        let tier1 = ['neon_shooter', 'dasher', 'splitter', 'mine', 'flanker'];
+                        let tier2 = ['sniper', 'burst', 'drone', 'phantom', 'orbiter', 'volatile'];
+                        let tier3 = ['juggernaut', 'architect', 'mirror', 'leech', 'cyber_vanguard'];
+                        let tier4 = ['chronomancer', 'swarm_queen', 'artillery', 'hacker', 'tether'];
+                        let tier5 = ['plasma_mortar', 'tesla_coil', 'cryo_drifter', 'void_stalker'];
 
-                        if (spawnRoll < 0.20 && enemiesLeftToSpawn >= 3 && enemies.filter(e => e && !e.isDead).length <= maxActiveEnemies - 3) {
-                            // Tactical Squad Formations
+                        let dynamicPool = [...tier1];
+                        if (currentWave >= 2) dynamicPool.push(...tier2);
+                        if (currentWave >= 4) dynamicPool.push(...tier3);
+                        if (currentWave >= 6) dynamicPool.push(...tier4);
+                        if (currentWave >= 8) dynamicPool.push(...tier5);
+
+                        // إذا كانت الموجة موجة نخبة (كل 3 ويفات) يكون 100% من الأعداء نخبة
+                        let isElite = isEliteWave || (currentWave >= 2 && Math.random() < Math.min(0.40, 0.15 + currentWave * 0.02));
+                        let spawnRoll = Math.random();
+
+                        if (spawnRoll < 0.25 && enemiesLeftToSpawn >= 3 && enemies.filter(e => e && !e.isDead).length <= maxActiveEnemies - 3) {
+                            // تشكيلات فرق تكتيكية متكاملة
                             let squads = [
-                                ['cyber_vanguard', 'hyper_sniper', 'flanker'], // Shield + Sniper + Flanker
-                                ['vortex_carrier', 'drone', 'drone'], // Carrier + Drones
-                                ['plasma_mortar', 'tesla_coil', 'stasis_weaver'], // Artillery + Shock + Freeze
-                                ['swarm_queen', 'leech', 'bio_hazard'], // Swarm + Drain + Acid
-                                ['solar_rammer', 'volatile', 'dasher'], // Rush Breachers
-                                ['chronomancer', 'void_stalker', 'glitch_specter'], // Reality Warpers
-                                ['apex_dreadnought', 'orbital_sentinel', 'mirror'], // Heavy Fortress
-                                ['ion_interceptor', 'blaze_hound', 'echo_mimic'] // Fast Skirmishers
+                                ['cyber_vanguard', 'sniper', 'flanker'], // درع + قناص + مناور
+                                ['juggernaut', 'drone', 'neon_shooter'], // درع جبار + طائرة إسناد + صائد
+                                ['plasma_mortar', 'tesla_coil', 'cryo_drifter'], // مدفعية + تسلا + صقيع
+                                ['swarm_queen', 'leech', 'volatile'], // سرب + ماص + منصهر
+                                ['dasher', 'burst', 'mine'], // هجوم سريع
+                                ['chronomancer', 'phantom', 'hacker'], // تشويه زمني واختراق
+                                ['artillery', 'mirror', 'architect'] // تحصين ودفاع
                             ];
                             let chosenSquad = squads[Math.floor(Math.random() * squads.length)];
-                            let baseOffX = (Math.random() - 0.5) * 200;
-                            let baseOffY = (Math.random() - 0.5) * 200;
                             chosenSquad.forEach((sType, idx) => {
-                                let sqX = player ? player.x + Math.cos(idx * 2) * (1100 + idx * 80) : WORLD_W / 2;
-                                let sqY = player ? player.y + Math.sin(idx * 2) * (1100 + idx * 80) : WORLD_H / 2;
+                                let sqX = player ? player.x + Math.cos(idx * 2) * (1050 + idx * 75) : WORLD_W / 2;
+                                let sqY = player ? player.y + Math.sin(idx * 2) * (1050 + idx * 75) : WORLD_H / 2;
                                 sqX = Math.max(100, Math.min(WORLD_W - 100, sqX));
                                 sqY = Math.max(100, Math.min(WORLD_H - 100, sqY));
-                                enemies.push(new Enemy(sType, 1, isElite && idx === 0, sqX, sqY));
+                                enemies.push(new Enemy(sType, 1, isEliteWave || (isElite && idx === 0), sqX, sqY));
                                 enemiesLeftToSpawn--;
                             });
                         } else {
-                            // Solo tactical spawn
-                            let chosenType = pool[Math.floor(Math.random() * pool.length)];
+                            // رسبون فردي ديناميكي متنوع
+                            let chosenType = dynamicPool[Math.floor(Math.random() * dynamicPool.length)];
                             enemies.push(new Enemy(chosenType, 1, isElite));
                             enemiesLeftToSpawn--;
                         }
@@ -13501,6 +13595,11 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                         }
                         if (activeTacticalZone && activeTacticalZone.type === 'berserk' && player && distSq(player.x, player.y, activeTacticalZone.x, activeTacticalZone.y) < activeTacticalZone.radius**2) {
                             finalDmg *= 3.0; // نيران فائقة وضرر مضاعف 3x داخل حقل الهيجان
+                        }
+                        if (e.isProtectedByDrone) {
+                            finalDmg *= 0.5; // حماية بنسبة 50% من طائرة الدرع المساندة
+                            createExplosion(pb.x, pb.y, '#00ffcc', 4, 3);
+                            spawnFloatingText(e.x, e.y - 20, 'درع إسناد!', '#00ffcc', 600);
                         }
                         if (e.type === 'juggernaut') {
                             let angleToBullet = Math.atan2(pb.y - e.y, pb.x - e.x), lookAngle = player ? Math.atan2(player.y - e.y, player.x - e.x) : 0;
@@ -13892,12 +13991,13 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 drawExpandedTacticalMap();
             }
 
-            // مؤشر تحذيري فقط للزعماء الكبار عند خروجهم عن الشاشة (دون أي مشتتات للأعداء العاديين أو الواحات)
+            // مؤشر تحذيري ذكي عالي الدقة للزعماء والأعداء النخبة والقناصين والمدفعية عند خروجهم عن الشاشة
             for (let e of enemies) { 
-                if (e && !e.isDead && e.type === 'boss') {
+                if (e && !e.isDead && (e.type === 'boss' || e.isElite || e.type === 'sniper' || e.type === 'artillery')) {
                     let isOff = (e.x < camX || e.x > camX + width || e.y < camY || e.y > camY + height);
                     if (isOff) {
-                        drawOffScreenArrow(e.x, e.y, colors.enemyBoss, ` ${e.name || 'زعيم'}`);
+                        const arrowColor = (e.type === 'boss') ? colors.enemyBoss : (e.isElite ? '#ffd700' : (e.type === 'sniper' ? '#f43f5e' : '#ffaa00'));
+                        drawOffScreenArrow(e.x, e.y, arrowColor, ` ${e.name || 'تهديد'}`);
                     }
                 }
             }
