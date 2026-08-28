@@ -704,6 +704,18 @@ dailyLoginData.streakCount = Math.max(1, Math.min(7, parseInt(dailyLoginData.str
 function showCyberModal(modalId) {
     const modal = typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
     if (!modal) return null;
+
+    // ── PORTAL FIX ──────────────────────────────────────────────────
+    // #main-menu has overflow:hidden + overflow-y:auto which creates a
+    // stacking context that traps position:fixed children inside it, so
+    // modals never escape onto the screen. We move them to <body> once.
+    if (!modal._portaled && modal.parentElement && modal.parentElement.id === 'main-menu') {
+        document.body.appendChild(modal);
+        modal._portaled = true;
+    }
+    // ────────────────────────────────────────────────────────────────
+
+    modal._openedAt = Date.now();
     modal.classList.remove('hidden');
     modal.removeAttribute('inert');
     modal.setAttribute('aria-hidden', 'false');
@@ -711,7 +723,24 @@ function showCyberModal(modalId) {
     modal.style.setProperty('visibility', 'visible', 'important');
     modal.style.setProperty('opacity', '1', 'important');
     modal.style.setProperty('pointer-events', 'auto', 'important');
-    modal.style.setProperty('z-index', '50000', 'important');
+    modal.style.setProperty('z-index', '999999', 'important');
+    modal.style.setProperty('position', 'fixed', 'important');
+    modal.style.setProperty('inset', '0', 'important');
+
+    // Attach backdrop dismiss with ghost-click debounce lock (once)
+    if (!modal._backdropBound) {
+        modal._backdropBound = true;
+        const handleBackdrop = (e) => {
+            if (e.target === modal && (Date.now() - (modal._openedAt || 0) > 250)) {
+                if (e.cancelable) e.preventDefault();
+                hideCyberModal(modal);
+            }
+        };
+        modal.addEventListener('click', handleBackdrop);
+        modal.addEventListener('touchend', handleBackdrop, { passive: false });
+    }
+
+    if (typeof playSound === 'function') playSound('ui_click');
     return modal;
 }
 
@@ -725,8 +754,39 @@ function hideCyberModal(modalId) {
     modal.style.setProperty('visibility', 'hidden', 'important');
     modal.style.setProperty('opacity', '0', 'important');
     modal.style.setProperty('pointer-events', 'none', 'important');
+    if (typeof playSound === 'function') playSound('ui_hover');
     return modal;
 }
+
+// ── PORTAL ALL HEADER MODALS ON DOM READY ───────────────────────────
+// Proactively move all .cyber-modal children of #main-menu to <body>
+// so they are never trapped inside a stacking context.
+function portalAllMenuModals() {
+    const mainMenu = document.getElementById('main-menu');
+    if (!mainMenu) return;
+    const ids = ['daily-rewards-modal', 'cloud-account-modal', 'admin-login-modal', 'rank-leaderboard-modal', 'mode-select-modal', 'perk-detail-modal', 'custom-room-modal', 'custom-lobby-modal'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && el.parentElement && el.parentElement.id === 'main-menu') {
+            document.body.appendChild(el);
+            el._portaled = true;
+        }
+    });
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', portalAllMenuModals, { once: true });
+} else {
+    portalAllMenuModals();
+}
+
+// Global Escape Key Listener to dismiss any active cyber modal
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' || e.code === 'Escape') {
+        const activeModals = document.querySelectorAll('.cyber-modal:not(.hidden), .modal-backdrop:not(.hidden)');
+        activeModals.forEach(m => hideCyberModal(m));
+    }
+});
+
 if (typeof window !== 'undefined') {
     window.showCyberModal = showCyberModal;
     window.hideCyberModal = hideCyberModal;
@@ -854,8 +914,13 @@ const I18N_DICTIONARY = {
         tabPerks: 'البيركات التلقائية',
         tabMissions: 'المهمات والتحديات',
         tabSettings: 'الإعدادات والتحكم',
+        btnFullscreen: 'شاشة كاملة',
+        pwaInstallBtn: 'تثبيت',
+        dailyBtn: 'مكافآت',
         btnRank: 'الرانك',
         btnAccount: 'الحساب',
+        btnAdmin: 'الأدمن',
+        levelShort: 'Lv.',
         btnLeaderboard: 'لوحة الأبطال PTS',
         btnStartBattle: '⚡ بدء المعركة (BATTLE)',
         btnStartBattleSub: 'اختر النمط وانطلق في الساحة',
@@ -1047,8 +1112,13 @@ const I18N_DICTIONARY = {
         tabPerks: 'Auto Perks',
         tabMissions: 'Missions & Bounties',
         tabSettings: 'Settings & Controls',
+        btnFullscreen: 'Fullscreen',
+        pwaInstallBtn: 'Install',
+        dailyBtn: 'Rewards',
         btnRank: 'Rank',
-        btnAccount: 'Profile',
+        btnAccount: 'Account',
+        btnAdmin: 'Admin',
+        levelShort: 'Lv.',
         btnLeaderboard: 'PTS Leaderboard',
         btnStartBattle: '⚡ BATTLE / START',
         btnStartBattleSub: 'Select Combat Mode & Deploy',
@@ -4861,10 +4931,8 @@ function updateGoogleUI() {
             if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                 return window.location.origin;
             }
-            if (window.location.protocol === 'file:' || !window.location.host) {
-                return APEX_CLOUD_SERVER;
-            }
-            return window.location.origin;
+            // Universal cross-site connection to central multiplayer server
+            return APEX_CLOUD_SERVER;
         }
 
         function initMultiplayerSocket(forceConnect = false) {
@@ -14593,15 +14661,13 @@ function initHeaderActionButtons() {
             btn.style.setProperty('cursor', 'pointer', 'important');
             btn.style.setProperty('touch-action', 'manipulation', 'important');
             
-            const handleEvent = (e) => {
+            btn.onclick = (e) => {
                 if (e) {
                     try { e.preventDefault(); } catch(_) {}
                     try { e.stopPropagation(); } catch(_) {}
                 }
                 fn();
             };
-            btn.onclick = handleEvent;
-            btn.addEventListener('touchend', handleEvent, { passive: false });
         }
     };
     bindBtn('fullscreen-toggle-btn', toggleFullScreen);

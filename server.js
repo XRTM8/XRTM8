@@ -59,6 +59,17 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '145329ma';
 
+// Universal Cross-Origin Resource Sharing (CORS) for global embedding (Itch.io, GitHub Pages, Poki, CrazyGames, etc.)
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 // Middleware for parsing JSON requests
 app.use(express.json());
 
@@ -447,12 +458,196 @@ const CHASSIS_COMBAT_STATS = Object.freeze({
 const PVE_REVIVE_DURATION_MS = 5000;
 const PVE_REVIVE_DISTANCE = 120;
 
-// Initialize permanent public standard rooms
-gameRooms.set('online_pve', new GameRoom('online_pve', 'Co-Op PvE Arena', 'online_coop', { maxPlayers: 16 }));
+// Initialize permanent public standard rooms with strict balanced capacity
+gameRooms.set('online_pve', new GameRoom('online_pve', 'Co-Op PvE Arena', 'online_coop', { maxPlayers: 4 }));
 gameRooms.set('online_coop', gameRooms.get('online_pve')); // alias
-gameRooms.set('online_pvp', new GameRoom('online_pvp', 'Warzone PvP Arena', 'online_pvp', { maxPlayers: 16 }));
-gameRooms.set('online_boss_raid', new GameRoom('online_boss_raid', 'Quantum Boss Raid', 'online_boss_raid', { maxPlayers: 16 }));
-gameRooms.set('online_free_roam', new GameRoom('online_free_roam', 'Free Roam Sandbox', 'online_free_roam', { maxPlayers: 32 }));
+gameRooms.set('online_pvp', new GameRoom('online_pvp', 'Warzone PvP Arena', 'online_pvp', { maxPlayers: 8 }));
+gameRooms.set('online_boss_raid', new GameRoom('online_boss_raid', 'Quantum Boss Raid', 'online_boss_raid', { maxPlayers: 6 }));
+gameRooms.set('online_free_roam', new GameRoom('online_free_roam', 'Free Roam Sandbox', 'online_free_roam', { maxPlayers: 12 }));
+
+// ====================================================================
+// SIMULATED ONLINE BOT PLAYERS SUBSYSTEM & DYNAMIC REBALANCING
+// ====================================================================
+const BOT_NAMES_POOL = [
+    // Arabic Authentic Gamer Handles
+    'صقر_الصحراء', 'البرق_الأسطوري', 'قاهر_الظلام', 'فارس_الليل', 'شبح_الساحة',
+    'سيد_الرماية', 'كاسر_الأمواج', 'النسر_الملكي', 'عاصفة_النار', 'بطل_المجرة',
+    'ذئب_الفضاء', 'سيف_الحق', 'طيف_السرعة', 'صياد_الزعماء', 'موجة_الدمار',
+    'قناص_الرياض', 'فهد_الجزيرة', 'شبح_دبي', 'أمير_الظلال', 'درع_الوطن',
+    // English Authentic Gamer Handles
+    'ShadowSniper_99', 'Ghost_Valkyrie', 'Neon_Overlord', 'Vortex_Spectre', 'CyberTitan_X',
+    'Apex_Striker', 'QuantumDrifter', 'Nova_Blaze', 'HyperZero', 'ZeroGravity',
+    'Echo_Warrior', 'SolarFlare_07', 'DarkMatter', 'Pulse_Cannon', 'Star_Cruiser',
+    'Omega_Phantom', 'Rogue_Hydra', 'Stealth_Reaper', 'Aero_Knight', 'Blaze_Core'
+];
+
+const BOT_CHASSIS_LIST = ['assault', 'breacher', 'support', 'engineer', 'sniper'];
+const BOT_WEAPONS_LIST = ['blaster', 'plasma_scatter', 'railgun', 'laser_beam', 'vulcan_gatling', 'missile_pod', 'flamethrower'];
+const BOT_SKINS_LIST = ['default', 'cyber_neon', 'stealth_obsidian', 'gold_striker', 'plasma_void', 'crimson_fury', 'solar_flare'];
+
+class BotPlayer {
+    constructor(room) {
+        this.id = 'bot_' + Math.random().toString(36).substring(2, 9);
+        this.isBot = true;
+        this.username = BOT_NAMES_POOL[Math.floor(Math.random() * BOT_NAMES_POOL.length)];
+        this.chassis = BOT_CHASSIS_LIST[Math.floor(Math.random() * BOT_CHASSIS_LIST.length)];
+        this.weapon = BOT_WEAPONS_LIST[Math.floor(Math.random() * BOT_WEAPONS_LIST.length)];
+        this.skin = BOT_SKINS_LIST[Math.floor(Math.random() * BOT_SKINS_LIST.length)];
+        
+        const stats = CHASSIS_COMBAT_STATS[this.chassis] || CHASSIS_COMBAT_STATS.assault;
+        this.maxHp = stats.hp;
+        this.hp = stats.hp;
+        this.health = stats.hp;
+        this.maxHealth = stats.hp;
+        this.shield = stats.shield;
+        this.maxShield = stats.shield;
+
+        const spawnAngle = Math.random() * Math.PI * 2;
+        const spawnDist = 350 + Math.random() * 1400;
+        this.x = Math.round(4000 + Math.cos(spawnAngle) * spawnDist);
+        this.y = Math.round(4000 + Math.sin(spawnAngle) * spawnDist);
+        this.vx = 0;
+        this.vy = 0;
+        this.facingAngle = Math.random() * Math.PI * 2;
+
+        this.targetX = this.x;
+        this.targetY = this.y;
+        this.isDashing = false;
+        this.sprintActive = false;
+        this.overchargeActive = false;
+        this.isFiringUlt = false;
+        this.isDead = false;
+        this.isDowned = false;
+        this.score = Math.floor(Math.random() * 2800);
+        this.kills = Math.floor(Math.random() * 6);
+        this.deaths = 0;
+        this.revives = 0;
+        this.ping = Math.floor(28 + Math.random() * 32);
+        this.level = Math.floor(12 + Math.random() * 48);
+
+        this.aiChangeTargetTime = Date.now() + Math.random() * 2000;
+        this.aiTargetAngle = this.facingAngle;
+        this.aiSpeed = 4.2 + Math.random() * 2.2;
+        this.aiDashCooldown = Date.now() + 4000 + Math.random() * 6000;
+    }
+
+    update(room, dt) {
+        if (this.isDead) return;
+        const now = Date.now();
+
+        // Dynamic tactical roaming & target acquisition
+        if (now > this.aiChangeTargetTime) {
+            this.aiChangeTargetTime = now + 1600 + Math.random() * 2400;
+            
+            let target = null;
+            let minDist = 1800;
+
+            for (const other of room.players.values()) {
+                if (other.id !== this.id && !other.isDead) {
+                    const dist = Math.hypot(other.x - this.x, other.y - this.y);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        target = other;
+                    }
+                }
+            }
+
+            if (target && (room.mode === 'online_pvp' || (room.mode === 'online_coop' && target.isDowned))) {
+                const angToTarget = Math.atan2(target.y - this.y, target.x - this.x);
+                if (minDist > 320) {
+                    this.aiTargetAngle = angToTarget + (Math.random() - 0.5) * 0.4;
+                } else {
+                    this.aiTargetAngle = angToTarget + Math.PI / 2 * (Math.random() > 0.5 ? 1 : -1);
+                }
+                this.facingAngle = angToTarget;
+            } else if (room.bossState && room.mode === 'online_boss_raid') {
+                const angToBoss = Math.atan2(room.bossState.y - this.y, room.bossState.x - this.x);
+                const distToBoss = Math.hypot(room.bossState.x - this.x, room.bossState.y - this.y);
+                if (distToBoss > 650) {
+                    this.aiTargetAngle = angToBoss + (Math.random() - 0.5) * 0.5;
+                } else {
+                    this.aiTargetAngle = angToBoss + Math.PI / 2;
+                }
+                this.facingAngle = angToBoss;
+            } else {
+                if (this.x < 1500 || this.x > 6500 || this.y < 1500 || this.y > 6500) {
+                    this.aiTargetAngle = Math.atan2(4000 - this.y, 4000 - this.x);
+                } else {
+                    this.aiTargetAngle += (Math.random() - 0.5) * 1.4;
+                }
+                this.facingAngle = this.aiTargetAngle;
+            }
+        }
+
+        const moveVx = Math.cos(this.aiTargetAngle) * this.aiSpeed;
+        const moveVy = Math.sin(this.aiTargetAngle) * this.aiSpeed;
+        this.vx = moveVx;
+        this.vy = moveVy;
+        this.x = Math.max(800, Math.min(7200, this.x + this.vx));
+        this.y = Math.max(800, Math.min(7200, this.y + this.vy));
+
+        // Occasional tactical evasion dash
+        if (now > this.aiDashCooldown) {
+            this.aiDashCooldown = now + 6000 + Math.random() * 8000;
+            this.isDashing = true;
+            setTimeout(() => { this.isDashing = false; }, 260);
+        }
+    }
+}
+
+// Room Dynamic Slot Balancing Engine
+function manageRoomBots(room) {
+    if (!room || room.isCustom) return;
+
+    const targetCounts = {
+        'online_pve': 4,
+        'online_coop': 4,
+        'online_pvp': 8,
+        'online_boss_raid': 6,
+        'online_free_roam': 8
+    };
+
+    const targetCount = targetCounts[room.id] || targetCounts[room.mode] || 4;
+    
+    let humanCount = 0;
+    let botPlayers = [];
+
+    for (const [pId, p] of room.players.entries()) {
+        if (p.isBot) {
+            botPlayers.push(p);
+        } else {
+            humanCount++;
+        }
+    }
+
+    const totalCount = humanCount + botPlayers.length;
+
+    // A) If room is over capacity, gracefully remove a bot to free slot for human
+    if (totalCount > targetCount && botPlayers.length > 0) {
+        const botToRemove = botPlayers.pop();
+        room.players.delete(botToRemove.id);
+        io.to(room.id).emit('player_left', {
+            id: botToRemove.id,
+            username: botToRemove.username,
+            reason: 'slot_rebalance'
+        });
+    }
+    // B) If room has space, backfill with simulated bot player
+    else if (totalCount < targetCount) {
+        const newBot = new BotPlayer(room);
+        room.players.set(newBot.id, newBot);
+        io.to(room.id).emit('player_joined', {
+            id: newBot.id,
+            username: newBot.username,
+            chassis: newBot.chassis,
+            weapon: newBot.weapon,
+            skin: newBot.skin,
+            x: newBot.x,
+            y: newBot.y,
+            isBot: true
+        });
+    }
+}
 
 function getClientIp(socket) {
     const forwarded = socket.handshake.headers['x-forwarded-for'];
@@ -739,7 +934,27 @@ io.on('connection', async (socket) => {
             lastUpdate: Date.now()
         };
 
+        // Dynamic bot slot rebalance on human join: make room if room is full
+        if (room.players.size >= room.maxPlayers) {
+            let botToRemove = null;
+            for (const [pId, p] of room.players.entries()) {
+                if (p.isBot) {
+                    botToRemove = p;
+                    break;
+                }
+            }
+            if (botToRemove) {
+                room.players.delete(botToRemove.id);
+                io.to(room.id).emit('player_left', {
+                    id: botToRemove.id,
+                    username: botToRemove.username,
+                    reason: 'slot_rebalance'
+                });
+            }
+        }
+
         room.players.set(socket.id, initialSpawnState);
+        manageRoomBots(room);
 
         // Fetch trophies and profile
         let userTrophies = 0;
@@ -894,6 +1109,7 @@ io.on('connection', async (socket) => {
                 username: meta.username
             });
             socket.leave(room.id);
+            manageRoomBots(room);
         }
         meta.currentRoomId = null;
         meta.mode = 'lobby';
@@ -1678,6 +1894,13 @@ socket.on('admin_auth', (authData) => {
 setInterval(() => {
     const now = Date.now();
     for (const room of gameRooms.values()) {
+        // Update Bot Player AI Movements & Combat Decisions
+        for (const p of room.players.values()) {
+            if (p.isBot && typeof p.update === 'function') {
+                p.update(room, 0.028);
+            }
+        }
+
         if (room.players.size > 0) {
             updateRoomAnomalies(room);
             const snapshot = Array.from(room.players.values()).map(p => ({
@@ -1705,8 +1928,9 @@ setInterval(() => {
                 isDowned: p.isDowned,
                 score: p.score,
                 kills: p.kills,
-                ping: activeSockets.get(p.id)?.ping || 20,
-                serverTs: now
+                ping: p.isBot ? p.ping : (activeSockets.get(p.id)?.ping || 20),
+                serverTs: now,
+                isBot: Boolean(p.isBot)
             }));
             io.to(room.id).emit('room_tick_sync', {
                 serverTs: now,
@@ -1716,6 +1940,13 @@ setInterval(() => {
         }
     }
 }, 28); // ~35.7Hz high-frequency tick rate
+
+// Periodic Bot Room Manager (Ensures public rooms remain populated & balanced)
+setInterval(() => {
+    for (const room of gameRooms.values()) {
+        manageRoomBots(room);
+    }
+}, 3000);
 
 server.listen(PORT, '0.0.0.0', () => {
     console.log(`
