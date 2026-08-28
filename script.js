@@ -143,6 +143,12 @@ function isMobileTouchActive() {
     return false;
 }
 
+function getResponsiveCameraZoom() {
+    const touch = isMobileTouchActive();
+    if (!touch) return window.innerWidth < 900 ? 0.9 : 1.0;
+    return window.innerHeight > window.innerWidth ? 0.9 : 0.8;
+}
+
 function updateMobileControlsVisibility() {
     const touchContainer = document.getElementById('touch-controls-container');
     const jBase = document.getElementById('joystick-base');
@@ -152,7 +158,7 @@ function updateMobileControlsVisibility() {
     const mobileMapBtn = document.getElementById('mobile-map-btn-hud');
     const sbBtn = document.getElementById('sandbox-btn-hud');
     const isTouch = isMobileTouchActive();
-    const isPlaying = !isGameOver && !isGamePaused && (!mainMenu || mainMenu.style.display === 'none');
+    const isPlaying = !isGameOver && !isGamePaused && !isAwaitingPvpRespawn && !(player && player.isKnockedDown) && (!mainMenu || mainMenu.style.display === 'none');
     
     document.body.classList.toggle('sandbox-mode-active', (activeGameMode === 'sandbox'));
     document.body.classList.toggle('class-support-active', !!(player && player.playerClass === 'support'));
@@ -1433,14 +1439,14 @@ setInterval(() => {
 
 // Spectator Mode helpers
 function spectatorCycleNext() {
-    const list = Array.from(remotePlayers.values()).filter(p => (p.hp || 100) > 0);
+    const list = getAliveTeammates();
     if (list.length === 0) return;
     spectatorTargetIndex = (spectatorTargetIndex + 1) % list.length;
     updateSpectatorHUD(list[spectatorTargetIndex]);
 };
 
 function spectatorCyclePrev() {
-    const list = Array.from(remotePlayers.values()).filter(p => (p.hp || 100) > 0);
+    const list = getAliveTeammates();
     if (list.length === 0) return;
     spectatorTargetIndex = (spectatorTargetIndex - 1 + list.length) % list.length;
     updateSpectatorHUD(list[spectatorTargetIndex]);
@@ -2596,6 +2602,12 @@ function isSandboxMode() {
         let combo = 1, comboTimer = 0;
         let lastTime = 0, gameLoopId = null;
         let isGameOver = false, isGamePaused = false, isModalActive = false, isMoving = false;
+        let isAwaitingPvpRespawn = false;
+        let pvpRespawnRequestPending = false;
+        let pvpRespawnFallbackTimer = null;
+        let pendingSelfSpawn = null;
+        let lastOnlineJoinPayload = null;
+        let lastPvpAttacker = null;
         let timeScale = 0.25, spawnTimer = 0, difficulty = 1.0;
         let frameCount = 0, fpsTimer = 0, currentRealFps = 60;
 
@@ -4098,6 +4110,8 @@ function updateGoogleUI() {
         let pveDownedPlayers = new Map();
         let myOrbitalDrone = null;
         let localReviveProgress = 0;
+        let localReviveTargetId = null;
+        let pveRevivePendingTargets = new Set();
 
         function getRankTierClient(trophies = 0) {
             trophies = Math.max(0, Number(trophies) || 0);
@@ -4693,15 +4707,16 @@ function updateGoogleUI() {
 
             initMultiplayerSocket(true);
 
-            if (socket) {
-                socket.emit('join_game_mode', {
-                    mode: mode,
-                    username: tacticalUsername,
-                    chassis: selectedChassis,
-                    weapon: selectedWeapon,
-                    skin: activeCosmeticSkin,
-                    deviceToken: getOrInitDeviceToken()
-                });
+            lastOnlineJoinPayload = {
+                mode: mode,
+                username: tacticalUsername,
+                chassis: selectedChassis,
+                weapon: selectedWeapon,
+                skin: activeCosmeticSkin,
+                deviceToken: getOrInitDeviceToken()
+            };
+            if (socket && socket.connected) {
+                socket.emit('join_game_mode', lastOnlineJoinPayload);
             }
 
             startGame();
@@ -4753,6 +4768,9 @@ function updateGoogleUI() {
                     const tag = document.getElementById('player-status-tag');
                     if (tag) { tag.innerText = '[ONLINE] متصل بالسحابة'; tag.style.color = '#00ff88'; }
                     checkUsernameAvailability(tacticalUsername);
+                    if (lastOnlineJoinPayload && isMultiplayerMode()) {
+                        socket.emit('join_game_mode', lastOnlineJoinPayload);
+                    }
                 });
 
                 socket.on('username_check_result', (data) => {
@@ -4818,14 +4836,15 @@ function updateGoogleUI() {
                     }
 
                     // Auto-join socket to created room
-                    socket.emit('join_game_mode', {
+                    lastOnlineJoinPayload = {
                         mode: data.roomId,
                         username: tacticalUsername,
                         chassis: selectedChassis,
                         weapon: selectedWeapon,
                         skin: activeCosmeticSkin,
                         deviceToken: getOrInitDeviceToken()
-                    });
+                    };
+                    socket.emit('join_game_mode', lastOnlineJoinPayload);
                 });
 
                 socket.on('custom_room_join_result', (data) => {
@@ -4851,14 +4870,15 @@ function updateGoogleUI() {
                             lobbyModal.style.display = 'flex';
                         }
 
-                        socket.emit('join_game_mode', {
+                        lastOnlineJoinPayload = {
                             mode: data.roomId,
                             username: tacticalUsername,
                             chassis: selectedChassis,
                             weapon: selectedWeapon,
                             skin: activeCosmeticSkin,
                             deviceToken: getOrInitDeviceToken()
-                        });
+                        };
+                        socket.emit('join_game_mode', lastOnlineJoinPayload);
                     } else {
                         const errorTag = document.getElementById('cr-join-error-msg');
                         if (errorTag) {
@@ -4980,6 +5000,9 @@ socket.on('disconnect', () => {
                     const tag = document.getElementById('player-status-tag');
                     if (tag) { tag.innerText = '[LAG] غير متصل'; tag.style.color = '#ff0055'; }
                     remotePlayers.clear();
+                    if (isAwaitingPvpRespawn && window.ChronoUI) {
+                        window.ChronoUI.announce('انقطع الاتصال. ستتم محاولة إعادة مزامنة ظهورك تلقائياً.');
+                    }
                 });
 
                 socket.on('server_presence', (data) => {
@@ -5012,16 +5035,14 @@ socket.on('disconnect', () => {
                     remotePlayers.clear();
                     if (data && data.players) {
                         data.players.forEach(p => {
-                            if (p.id !== socket.id) {
-                                remotePlayers.set(p.id, {
-                                    ...p,
-                                    targetX: p.x,
-                                    targetY: p.y,
-                                    targetFacingAngle: p.facingAngle || 0,
-                                    radius: 18,
-                                    score: p.score || 0,
-                                    kills: p.kills || 0
-                                });
+                            if (p.id === socket.id) {
+                                pendingSelfSpawn = p;
+                                if (player) applyAuthoritativeSpawn(p, false);
+                            } else {
+                                const normalized = window.ChronoMultiplayer
+                                    ? window.ChronoMultiplayer.normalizePlayer(p)
+                                    : { ...p, targetX: p.x, targetY: p.y, targetFacingAngle: p.facingAngle || 0, radius: 18 };
+                                remotePlayers.set(p.id, normalized);
                             }
                         });
                         updateOnlineLeaderboardUI(data.players);
@@ -5030,15 +5051,10 @@ socket.on('disconnect', () => {
 
                 socket.on('player_joined', (p) => {
                     if (p.id === socket.id) return;
-                    remotePlayers.set(p.id, {
-                        ...p,
-                        targetX: p.x,
-                        targetY: p.y,
-                        targetFacingAngle: p.facingAngle || 0,
-                        radius: 18,
-                        score: p.score || 0,
-                        kills: p.kills || 0
-                    });
+                    const normalized = window.ChronoMultiplayer
+                        ? window.ChronoMultiplayer.normalizePlayer(p)
+                        : { ...p, targetX: p.x, targetY: p.y, targetFacingAngle: p.facingAngle || 0, radius: 18 };
+                    remotePlayers.set(p.id, normalized);
                     spawnFloatingText(p.x, p.y - 40, `+ انضم العميل ${p.username}`, '#00ff88');
                 });
 
@@ -5056,37 +5072,18 @@ socket.on('disconnect', () => {
 
                 socket.on('room_tick_sync', (playersList) => {
                     if (!playersList) return;
+                    const presentRemoteIds = new Set();
                     playersList.forEach(p => {
                         if (p.id === socket.id) return;
+                        presentRemoteIds.add(p.id);
                         let existing = remotePlayers.get(p.id);
-                        if (existing) {
-                            existing.targetX = p.x;
-                            existing.targetY = p.y;
-                            existing.targetFacingAngle = p.facingAngle;
-                            existing.vx = p.vx;
-                            existing.vy = p.vy;
-                            existing.health = p.health;
-                            existing.maxHealth = p.maxHealth;
-                            existing.chassis = p.chassis;
-                            existing.weapon = p.weapon;
-                            existing.overchargeActive = p.overchargeActive;
-                            existing.isDashing = p.isDashing;
-                            existing.isFiringUlt = p.isFiringUlt;
-                            existing.skin = p.skin;
-                            existing.username = p.username;
-                            existing.score = p.score || 0;
-                            existing.kills = p.kills || 0;
-                        } else {
-                            remotePlayers.set(p.id, {
-                                ...p,
-                                targetX: p.x,
-                                targetY: p.y,
-                                targetFacingAngle: p.facingAngle || 0,
-                                radius: 18,
-                                score: p.score || 0,
-                                kills: p.kills || 0
-                            });
-                        }
+                        const normalized = window.ChronoMultiplayer
+                            ? window.ChronoMultiplayer.normalizePlayer(p, existing)
+                            : { ...existing, ...p, targetX: p.x, targetY: p.y, targetFacingAngle: p.facingAngle || 0, radius: 18 };
+                        remotePlayers.set(p.id, normalized);
+                    });
+                    remotePlayers.forEach((_, id) => {
+                        if (!presentRemoteIds.has(id)) remotePlayers.delete(id);
                     });
                     updateOnlineLeaderboardUI(playersList);
                 });
@@ -5096,7 +5093,12 @@ socket.on('disconnect', () => {
                     const angle = typeof data.angle === 'number' ? data.angle : 0;
                     const speed = data.speed || 22;
                     const damage = data.damage || 14;
-                    spawnPlayerBullet(data.x || 0, data.y || 0, angle, speed, damage, !!data.isParried, !!data.isPiercing, true, true);
+                    const remoteBullet = spawnPlayerBullet(data.x || 0, data.y || 0, angle, speed, damage, !!data.isParried, !!data.isPiercing, true, true);
+                    if (remoteBullet) {
+                        remoteBullet.sourcePlayerId = data.shooterId;
+                        remoteBullet.sourceWeapon = data.weaponType || 'blaster';
+                        remoteBullet.sourceColor = data.color || '#ff4fa3';
+                    }
                     
                     if (data.weaponType === 'shotgun' || data.weaponType === 'double_barrel' || data.weaponType === 'flak_cannon') {
                         playSound('shoot_shotgun');
@@ -5124,25 +5126,41 @@ socket.on('disconnect', () => {
 
                 // PVP Fair Damage Resolution
                 socket.on('pvp_take_damage', (data) => {
-                    if (player && !isGameOver) {
+                    if (player && !isGameOver && !isAwaitingPvpRespawn) {
+                        lastPvpAttacker = {
+                            id: data.attackerId || null,
+                            name: data.attackerName || 'منافس',
+                            weapon: data.weaponType || data.weapon || 'blaster'
+                        };
                         // تفادي أثناء الداش (Dash Invulnerability / Graze Dodge)
-                        if (player.dashInvulnerableTimer > 0) {
+                        if (player.dashInvulnerableTimer > 0 || player.invulnerableTimer > 0) {
                             spawnFloatingText(player.x, player.y - 30, ` مراوغة خارقة (DODGED)!`, '#00f3ff');
                             playSound('parry');
                             return;
                         }
 
-                        let isFatal = player.takeHit({ x: player.x, y: player.y, radius: 4 });
-                        createExplosion(player.x, player.y, '#ff0055', 22, 10);
-                        spawnFloatingText(player.x, player.y - 30, `-${Math.round(data.damage)} HP [${data.attackerName}]`, '#ff0055');
-                        
-                        if (isFatal || player.shieldCharges <= 0) {
-                            if (activeGameMode === 'online_pvp') {
-                                handlePvpLocalElimination(data.attackerName, data.attackerId, data.weapon);
-                            } else {
-                                triggerGameOver();
-                            }
-                            socket.emit('pvp_player_eliminated', { killerName: data.attackerName, killerId: data.attackerId, weapon: data.weapon });
+                        const outcome = window.ChronoGameState
+                            ? window.ChronoGameState.applyPvpHit(player, data)
+                            : { hp: Math.max(0, player.hp - 35), shieldCharges: Math.max(0, player.shieldCharges - 1), shieldAbsorbed: player.shieldCharges > 0, fatal: player.hp <= 35, damageApplied: 35 };
+
+                        player.hp = outcome.hp;
+                        player.shieldCharges = outcome.shieldCharges;
+                        player.hasShield = outcome.shieldCharges > 0;
+                        player.invulnerableTimer = outcome.shieldAbsorbed ? 420 : 280;
+
+                        if (outcome.shieldAbsorbed) {
+                            triggerShockwave(player.x, player.y, '#38e0ff', 150);
+                            spawnFloatingText(player.x, player.y - 30, `صد الدرع ضربة ${data.attackerName || 'منافس'}`, '#38e0ff');
+                            playSound('parry');
+                        } else {
+                            createExplosion(player.x, player.y, '#ff416c', 22, 10);
+                            spawnFloatingText(player.x, player.y - 30, `-${Math.round(outcome.damageApplied)} HP [${data.attackerName || 'منافس'}]`, '#ff416c');
+                            playSound('shield');
+                        }
+                        updateVitalsAndAmmoHUD();
+
+                        if (outcome.fatal) {
+                            handlePvpLocalElimination(data.attackerName, data.attackerId, data.weaponType || data.weapon);
                         }
                     }
                 });
@@ -5203,6 +5221,12 @@ socket.on('disconnect', () => {
                             y: data.y || (player ? player.y : 2000),
                             downedTimer: data.bleedoutSeconds || 999
                         });
+                        const remote = remotePlayers.get(dId);
+                        if (remote) {
+                            remote.isDowned = true;
+                            remote.health = 0;
+                            remote.hp = 0;
+                        }
                     }
 
                     const banner = document.getElementById('pve-downed-banner');
@@ -5211,8 +5235,12 @@ socket.on('disconnect', () => {
 
                     if (banner) banner.classList.remove('hidden');
                     if (agentVal) agentVal.innerText = dName;
-                    if (timerVal) timerVal.innerText = data.bleedoutSeconds || 15;
+                    if (timerVal) timerVal.innerText = Math.round((data.reviveDurationMs || 5000) / 1000);
                     playSound('shield');
+
+                    if (player && dId === socket.id && player.isKnockedDown) {
+                        showPveDownedSpectator();
+                    }
 
                     if (player && player.isKnockedDown && !hasAliveTeammates()) {
                         spawnFloatingText(player.x, player.y - 50, '☠️ انهيار كامل للفريق (SQUAD WIPE)!', '#ff0055');
@@ -5223,23 +5251,47 @@ socket.on('disconnect', () => {
                 socket.on('pve_revive_success', (data) => {
                     let targetId = data.revivedId || data.targetId;
                     if (targetId) pveDownedPlayers.delete(targetId);
+                    if (targetId) pveRevivePendingTargets.delete(targetId);
+                    localReviveProgress = 0;
+                    localReviveTargetId = null;
                     const banner = document.getElementById('pve-downed-banner');
                     if (pveDownedPlayers.size === 0 && banner) banner.classList.add('hidden');
 
                     if (player && (socket.id === targetId || targetId === 'self')) {
                         player.isKnockedDown = false;
-                        player.hp = player.maxHp;
-                        player.shieldCharges = player.shieldMaxCharges;
+                        player.hp = Number(data.hp ?? data.health ?? player.maxHp);
+                        player.shieldCharges = Number(data.shield ?? player.shieldMaxCharges);
+                        player.hasShield = player.shieldCharges > 0;
                         player.invulnerableTimer = 3000;
+                        hidePveDownedSpectator();
                         updateVitalsAndAmmoHUD();
                         createExplosion(player.x, player.y, '#00ff88', 40, 16);
                         triggerShockwave(player.x, player.y, '#00ff88', 350);
                         spawnFloatingText(player.x, player.y - 45, `⚡ تم إصلاح مركبتك وإنعاشك بواسطة ${data.reviverName || 'الزميل'}!`, '#00ff88');
                     } else {
+                        const remote = remotePlayers.get(targetId);
+                        if (remote) {
+                            remote.isDowned = false;
+                            remote.isDead = false;
+                            remote.health = Number(data.hp ?? data.health ?? remote.maxHealth ?? 100);
+                            remote.hp = remote.health;
+                            remote.shield = Number(data.shield ?? remote.maxShield ?? 0);
+                        }
                         createExplosion(player ? player.x : 0, player ? player.y : 0, '#00ff88', 35, 12);
                         spawnFloatingText(player ? player.x : width / 2, player ? player.y - 45 : height / 2, `[OK] تم إنعاش ${data.targetName || 'الزميل'} بواسطة ${data.reviverName}!`, '#00ff88');
                     }
                     playSound('heal');
+                });
+
+                socket.on('pve_revive_rejected', (data) => {
+                    const targetId = data && data.targetId;
+                    if (targetId) pveRevivePendingTargets.delete(targetId);
+                    localReviveTargetId = targetId || null;
+                    const remainingMs = Math.max(0, Number(data && data.remainingMs) || 0);
+                    const reviveDuration = window.ChronoGameState ? window.ChronoGameState.PVE_REVIVE_DURATION_MS : 5000;
+                    localReviveProgress = data && data.reason === 'duration'
+                        ? Math.max(0, Math.min(0.98, 1 - (remainingMs / reviveDuration)))
+                        : 0;
                 });
 
                 socket.on('pve_reviver_reward', (data) => {
@@ -5303,9 +5355,40 @@ socket.on('disconnect', () => {
                 });
 
                 socket.on('player_respawned', (data) => {
+                    if (!data) return;
+                    if (data.id === socket.id) {
+                        applyAuthoritativeSpawn(data, true);
+                    } else {
+                        const currentRemote = remotePlayers.get(data.id);
+                        const normalized = window.ChronoMultiplayer
+                            ? window.ChronoMultiplayer.normalizePlayer({ ...data, isDead: false }, currentRemote)
+                            : { ...currentRemote, ...data, targetX: data.x, targetY: data.y, isDead: false };
+                        remotePlayers.set(data.id, normalized);
+                    }
                     createExplosion(data.x, data.y, '#00ff88', 35, 14);
                     triggerShockwave(data.x, data.y, '#00ff88', 220);
                     spawnFloatingText(data.x, data.y - 40, ` عاد ${data.username} للساحة!`, '#00ff88');
+                });
+
+                socket.on('respawn_wait', (data) => {
+                    const waitMs = Math.max(100, Number(data && data.remainingMs) || 300);
+                    pvpRespawnRequestPending = true;
+                    if (pvpRespawnFallbackTimer) clearTimeout(pvpRespawnFallbackTimer);
+                    pvpRespawnFallbackTimer = setTimeout(() => {
+                        if (isAwaitingPvpRespawn && socket && isSocketConnected) {
+                            socket.emit('player_respawn');
+                        }
+                    }, waitMs + 80);
+                });
+
+                socket.on('player_eliminated', (data) => {
+                    if (!data || data.id === socket.id) return;
+                    const remote = remotePlayers.get(data.id);
+                    if (remote) {
+                        remote.isDead = true;
+                        remote.health = 0;
+                        remote.hp = 0;
+                    }
                 });
 
                 // Server Global Announcement
@@ -5410,16 +5493,47 @@ socket.on('disconnect', () => {
         // ====================================================================
         let pvpRespawnCountdownTimer = null;
         function handlePvpLocalElimination(killerName, killerId, weapon) {
+            if (isAwaitingPvpRespawn) return;
             const respawnModal = document.getElementById('pvp-respawn-modal');
             const killerNameEl = document.getElementById('respawn-killer-name');
             const countdownEl = document.getElementById('respawn-countdown-val');
-            
+
+            isAwaitingPvpRespawn = true;
+            pvpRespawnRequestPending = false;
+            if (player) {
+                player.hp = 0;
+                player.shieldCharges = 0;
+                player.hasShield = false;
+                player.vx = 0;
+                player.vy = 0;
+                player.isEliminated = true;
+            }
+            isMouseDown = false;
+            resetJoystick();
+            resetAimJoystick();
+            updateVitalsAndAmmoHUD();
+            updateMobileControlsVisibility();
+
             if (killerNameEl) killerNameEl.innerText = killerName || 'Rival Agent';
-            if (respawnModal) respawnModal.classList.remove('hidden');
-            
+            if (window.ChronoUI) {
+                window.ChronoUI.showOverlay(respawnModal, 900000);
+                window.ChronoUI.announce(`تم إسقاطك بواسطة ${killerName || 'منافس'}. ستعود للساحة تلقائياً خلال ثلاث ثوان.`);
+            } else if (respawnModal) {
+                respawnModal.classList.remove('hidden');
+                respawnModal.style.display = 'flex';
+            }
+
+            if (socket && isSocketConnected) {
+                socket.emit('pvp_player_eliminated', {
+                    killerName: killerName,
+                    killerId: killerId,
+                    weapon: weapon || 'blaster'
+                });
+            }
+
             let secondsLeft = 3;
             if (countdownEl) countdownEl.innerText = secondsLeft;
-            
+
             if (pvpRespawnCountdownTimer) clearInterval(pvpRespawnCountdownTimer);
             pvpRespawnCountdownTimer = setInterval(() => {
                 secondsLeft--;
@@ -5432,29 +5546,96 @@ socket.on('disconnect', () => {
             }, 1000);
         }
 
+        function applyAuthoritativeSpawn(serverState, fromRespawn) {
+            if (!serverState) return;
+            pendingSelfSpawn = serverState;
+            if (!player) return;
+
+            const spawnState = window.ChronoGameState
+                ? window.ChronoGameState.createRespawnState(player, serverState)
+                : {
+                    x: serverState.x,
+                    y: serverState.y,
+                    vx: 0,
+                    vy: 0,
+                    hp: serverState.hp || player.maxHp,
+                    maxHp: serverState.maxHp || player.maxHp,
+                    shieldCharges: serverState.shield ?? player.shieldMaxCharges,
+                    shieldMaxCharges: serverState.maxShield ?? player.shieldMaxCharges,
+                    invulnerableTimer: 3000,
+                    isKnockedDown: false,
+                    isEliminated: false
+                };
+
+            Object.assign(player, spawnState);
+            player.hasShield = player.shieldCharges > 0;
+            isAwaitingPvpRespawn = false;
+            pvpRespawnRequestPending = false;
+            lastPvpAttacker = null;
+            pendingSelfSpawn = null;
+            if (pvpRespawnFallbackTimer) {
+                clearTimeout(pvpRespawnFallbackTimer);
+                pvpRespawnFallbackTimer = null;
+            }
+
+            const respawnModal = document.getElementById('pvp-respawn-modal');
+            if (window.ChronoUI) window.ChronoUI.hideOverlay(respawnModal);
+            else if (respawnModal) {
+                respawnModal.classList.add('hidden');
+                respawnModal.style.display = 'none';
+            }
+            camX = player.x - width / 2;
+            camY = player.y - height / 2;
+            updateVitalsAndAmmoHUD();
+            updateMobileControlsVisibility();
+
+            if (fromRespawn) {
+                playSound('portal');
+                spawnFloatingText(player.x, player.y - 45, 'تمت إعادة النشر — حصانة 3 ثوانٍ', '#00ff88');
+                if (window.ChronoUI) window.ChronoUI.announce('عدت إلى الساحة مع حصانة مؤقتة.');
+            }
+        }
+
         function executeManualPvpRespawn() {
+            if (!isAwaitingPvpRespawn || pvpRespawnRequestPending) return;
             if (pvpRespawnCountdownTimer) {
                 clearInterval(pvpRespawnCountdownTimer);
                 pvpRespawnCountdownTimer = null;
             }
             const respawnModal = document.getElementById('pvp-respawn-modal');
-            if (respawnModal) respawnModal.classList.add('hidden');
-            
-            if (!player) player = new Player(selectedWeapon, selectedClass);
-            player.x = 1600 + (Math.random() - 0.5) * 600;
-            player.y = 1600 + (Math.random() - 0.5) * 600;
-            player.vx = 0; player.vy = 0;
-            player.shieldCharges = player.shieldLevel;
-            player.hasShield = true;
-            player.invulnerableTimer = 3000; // 3-second spawn protection shield!
-            
-            createExplosion(player.x, player.y, '#00f3ff', 35, 14);
-            triggerShockwave(player.x, player.y, '#00f3ff', 240);
-            playSound('portal');
-            spawnFloatingText(player.x, player.y - 45, ' تم إعادة النشر + درع حماية نشط!', '#00ff88');
+            pvpRespawnRequestPending = true;
+            const countdownEl = document.getElementById('respawn-countdown-val');
+            if (countdownEl) countdownEl.innerText = '…';
 
             if (socket && isSocketConnected) {
-                socket.emit('player_respawn', { x: player.x, y: player.y });
+                socket.emit('player_respawn');
+                // A lost acknowledgement must never leave the player permanently frozen.
+                pvpRespawnFallbackTimer = setTimeout(() => {
+                    pvpRespawnRequestPending = false;
+                    if (isAwaitingPvpRespawn && socket && isSocketConnected) {
+                        socket.emit('player_respawn');
+                    } else if (isAwaitingPvpRespawn) {
+                        const fallback = {
+                            x: WORLD_W / 2,
+                            y: WORLD_H / 2,
+                            hp: player ? player.maxHp : 100,
+                            maxHp: player ? player.maxHp : 100,
+                            shield: player ? player.shieldMaxCharges : 1,
+                            maxShield: player ? player.shieldMaxCharges : 1
+                        };
+                        applyAuthoritativeSpawn(fallback, true);
+                    }
+                }, 2200);
+            } else {
+                const fallback = {
+                    x: WORLD_W / 2,
+                    y: WORLD_H / 2,
+                    hp: player ? player.maxHp : 100,
+                    maxHp: player ? player.maxHp : 100,
+                    shield: player ? player.shieldMaxCharges : 1,
+                    maxShield: player ? player.shieldMaxCharges : 1
+                };
+                applyAuthoritativeSpawn(fallback, true);
             }
         }
 
@@ -5959,10 +6140,11 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (remotePlayers.size === 0) return;
 
             remotePlayers.forEach((rp, id) => {
+                if (!rp || rp.isDead) return;
                 // Smooth coordinates interpolation with dead reckoning
                 const dtFactor = Math.min(1.0, 0.32 * frameFactor);
-                rp.x = lerp(rp.x || rp.targetX, rp.targetX, dtFactor);
-                rp.y = lerp(rp.y || rp.targetY, rp.targetY, dtFactor);
+                rp.x = lerp(rp.x ?? rp.targetX, rp.targetX, dtFactor);
+                rp.y = lerp(rp.y ?? rp.targetY, rp.targetY, dtFactor);
 
                 // Shortest-distance circular angular interpolation
                 const curAngle = rp.facingAngle !== undefined ? rp.facingAngle : (rp.targetFacingAngle || 0);
@@ -6099,8 +6281,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 ctx.strokeRect(barX, barY, barW, barH);
 
                 // Health Bar Fill
-                const currentHp = Math.max(0, rp.health || 100);
-                const maxHp = Math.max(1, rp.maxHealth || 100);
+                const currentHp = Math.max(0, rp.health ?? rp.hp ?? 100);
+                const maxHp = Math.max(1, rp.maxHealth ?? rp.maxHp ?? 100);
                 const fillRatio = Math.min(1, currentHp / maxHp);
                 const hpColor = fillRatio > 0.5 ? '#00ff88' : (fillRatio > 0.25 ? '#ffd700' : '#ff0055');
                 ctx.fillStyle = hpColor;
@@ -6730,6 +6912,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         // AAA MOBILE PERFECTION: DYNAMIC FLOATING JOYSTICKS
         // ====================================================================
         let isJoystickFloating = false;
+        let isAimJoystickFloating = false;
 
         // --- Movement Joystick (Left) ---
         if (joystickBase) {
@@ -6767,14 +6950,15 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     isJoystickFloating = true;
                     joystickBase.classList.add('floating-active');
                     const halfW = 60;
-                    joystickBase.style.left = Math.max(10, Math.min(window.innerWidth * 0.42 - halfW * 2, e.clientX - halfW)) + 'px';
-                    joystickBase.style.top = Math.max(70, Math.min(window.innerHeight - halfW * 2 - 10, e.clientY - halfW)) + 'px';
-                    joystickBase.style.bottom = 'auto';
+                    joystickBase.style.setProperty('left', Math.max(10, Math.min(window.innerWidth * 0.42 - halfW * 2, e.clientX - halfW)) + 'px', 'important');
+                    joystickBase.style.setProperty('top', Math.max(70, Math.min(window.innerHeight - halfW * 2 - 10, e.clientY - halfW)) + 'px', 'important');
+                    joystickBase.style.setProperty('bottom', 'auto', 'important');
                     joystickBaseX = e.clientX;
                     joystickBaseY = e.clientY;
                     joystickPointerId = e.pointerId;
                     try { joystickBase.setPointerCapture(e.pointerId); } catch(err) {}
                     handleJoystickMove(e.clientX, e.clientY);
+                    if (e.cancelable) e.preventDefault();
                 }
             }
 
@@ -6782,6 +6966,14 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (e.clientX > window.innerWidth * 0.48 && e.clientY > 60) {
                 if (e.target && (e.target.closest('.hud-action-btn') || e.target.closest('#mobile-pause-btn-hud') || e.target.closest('#mobile-map-btn-hud') || e.target.closest('.overlay-screen') || e.target.closest('.modal-backdrop') || e.target.closest('button') || e.target.closest('input'))) return;
                 if (aimJoystickPointerId === null && joystickAimBase) {
+                    if (gameSettings.floatingJoystick !== false) {
+                        const halfW = 60;
+                        isAimJoystickFloating = true;
+                        joystickAimBase.style.setProperty('left', Math.max(window.innerWidth * 0.52, Math.min(window.innerWidth - halfW * 2 - 10, e.clientX - halfW)) + 'px', 'important');
+                        joystickAimBase.style.setProperty('right', 'auto', 'important');
+                        joystickAimBase.style.setProperty('top', Math.max(70, Math.min(window.innerHeight - halfW * 2 - 10, e.clientY - halfW)) + 'px', 'important');
+                        joystickAimBase.style.setProperty('bottom', 'auto', 'important');
+                    }
                     updateJoystickCenter();
                     aimJoystickPointerId = e.pointerId;
                     try { joystickAimBase.setPointerCapture(e.pointerId); } catch(err) {}
@@ -6790,9 +6982,10 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     if (player && !isGameOver) {
                         player.shootTimer = player.shootInterval;
                     }
+                    if (e.cancelable) e.preventDefault();
                 }
             }
-        }, { passive: true });
+        }, { passive: false });
 
         function resetJoystick(e) {
             if (e && e.pointerId !== undefined && e.pointerId !== joystickPointerId) return;
@@ -6806,9 +6999,9 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (joystickBase) {
                 joystickBase.classList.remove('floating-active');
                 if (isJoystickFloating) {
-                    joystickBase.style.left = '';
-                    joystickBase.style.top = '';
-                    joystickBase.style.bottom = '';
+                    joystickBase.style.removeProperty('left');
+                    joystickBase.style.removeProperty('top');
+                    joystickBase.style.removeProperty('bottom');
                     isJoystickFloating = false;
                     updateJoystickCenter();
                 }
@@ -6876,6 +7069,14 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             }
             if (joystickAimBase) {
                 joystickAimBase.classList.remove('aiming-active');
+                if (isAimJoystickFloating) {
+                    joystickAimBase.style.removeProperty('left');
+                    joystickAimBase.style.removeProperty('right');
+                    joystickAimBase.style.removeProperty('top');
+                    joystickAimBase.style.removeProperty('bottom');
+                    isAimJoystickFloating = false;
+                    updateJoystickCenter();
+                }
             }
             aimJoystickPointerId = null;
         }
@@ -6933,7 +7134,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             hasMouseMoved = true;
             lastMouseMoveTime = performance.now();
             let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
-            cameraZoom = isMobile ? 0.72 : 1.0;
+            cameraZoom = getResponsiveCameraZoom();
             mouseWorldX = camX + (mouseScreenX / cameraZoom);
             mouseWorldY = camY + (mouseScreenY / cameraZoom);
 
@@ -6961,7 +7162,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 hasMouseMoved = true;
                 lastMouseMoveTime = performance.now();
                 let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
-                cameraZoom = isMobile ? 0.72 : 1.0;
+                cameraZoom = getResponsiveCameraZoom();
                 mouseWorldX = camX + (mouseScreenX / cameraZoom);
                 mouseWorldY = camY + (mouseScreenY / cameraZoom);
             }
@@ -7004,7 +7205,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     hasMouseMoved = true;
                     lastMouseMoveTime = now;
                     let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
-                    cameraZoom = isMobile ? 0.72 : 1.0;
+                    cameraZoom = getResponsiveCameraZoom();
                     mouseWorldX = camX + (mouseScreenX / cameraZoom);
                     mouseWorldY = camY + (mouseScreenY / cameraZoom);
                 }
@@ -7020,7 +7221,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     hasMouseMoved = true;
                     lastMouseMoveTime = performance.now();
                     let isMobile = (width < 850 || height < 600 || isMobileTouchActive());
-                    cameraZoom = isMobile ? 0.72 : 1.0;
+                    cameraZoom = getResponsiveCameraZoom();
                     mouseWorldX = camX + (mouseScreenX / cameraZoom);
                     mouseWorldY = camY + (mouseScreenY / cameraZoom);
                 }
@@ -7075,8 +7276,10 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
         function resize() {
             width = Math.max(320, window.innerWidth || 800);
             height = Math.max(240, window.innerHeight || 600);
-            let maxDpr = gameSettings.lowEnd ? 1.0 : Math.min(window.devicePixelRatio || 1, 3.0);
-            let dpr = maxDpr;
+            const nativeDpr = Math.max(1, window.devicePixelRatio || 1);
+            const pixelBudget = gameSettings.lowEnd ? 2200000 : (isMobileTouchActive() ? 5600000 : 8200000);
+            const budgetDpr = Math.sqrt(pixelBudget / Math.max(1, width * height));
+            let dpr = gameSettings.lowEnd ? 1 : Math.max(1, Math.min(nativeDpr, 2.5, budgetDpr));
             canvas.width = Math.round(width * dpr);
             canvas.height = Math.round(height * dpr);
             canvas.style.width = width + 'px';
@@ -8129,16 +8332,93 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             }
         }
 
+        function getAliveTeammates() {
+            if (!remotePlayers || remotePlayers.size === 0) return [];
+            return Array.from(remotePlayers.entries())
+                .filter(([rId, rp]) => {
+                    if (!rp || rp.isDead || rp.isDowned || pveDownedPlayers.has(rId)) return false;
+                    const remoteHp = Number(rp.health ?? rp.hp ?? 0);
+                    return Number.isFinite(remoteHp) && remoteHp > 0;
+                })
+                .map(([, rp]) => rp);
+        }
+
         function hasAliveTeammates() {
-            if (!remotePlayers || remotePlayers.size === 0) return false;
-            for (let [rId, rp] of remotePlayers.entries()) {
-                if (!rp) continue;
-                let isDowned = pveDownedPlayers.has(rId) || rp.isDowned || ((rp.health !== undefined) && rp.health <= 0);
-                if (!isDowned) {
-                    return true;
-                }
+            return getAliveTeammates().length > 0;
+        }
+
+        function showPveDownedSpectator() {
+            const overlay = document.getElementById('spectator-hud-overlay');
+            const hint = document.getElementById('spectator-respawn-hint');
+            const alive = getAliveTeammates();
+            const wasSpectating = isSpectating;
+            isSpectating = true;
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.style.display = 'flex';
             }
-            return false;
+            if (hint) hint.innerText = 'مركبتك معطلة — يجب أن يبقى زميل قريباً منك 5 ثوانٍ لإصلاحها';
+            if (alive.length > 0) {
+                spectatorTargetIndex = Math.min(spectatorTargetIndex, alive.length - 1);
+                updateSpectatorHUD(alive[spectatorTargetIndex]);
+            }
+            updateMobileControlsVisibility();
+            if (!wasSpectating && window.ChronoUI) window.ChronoUI.announce('تعطلت مركبتك. يستطيع زميل حي إصلاحها خلال خمس ثوانٍ.');
+        }
+
+        function hidePveDownedSpectator() {
+            const overlay = document.getElementById('spectator-hud-overlay');
+            if (overlay) {
+                overlay.classList.add('hidden');
+                overlay.style.display = 'none';
+            }
+            isSpectating = false;
+            updateMobileControlsVisibility();
+        }
+
+        function enterPveDownedState(targetPlayer) {
+            if (!targetPlayer || targetPlayer.isKnockedDown || isGameOver) return;
+            targetPlayer.isKnockedDown = true;
+            targetPlayer.hp = 0;
+            targetPlayer.shieldCharges = 0;
+            targetPlayer.hasShield = false;
+            targetPlayer.invulnerableTimer = 0;
+            targetPlayer.vx = 0;
+            targetPlayer.vy = 0;
+            isMouseDown = false;
+            resetJoystick();
+            resetAimJoystick();
+            updateVitalsAndAmmoHUD();
+            showPveDownedSpectator();
+            try {
+                if (socket && isSocketConnected) socket.emit('pve_player_downed', { x: targetPlayer.x, y: targetPlayer.y });
+            } catch (e) {}
+            playSound('shield');
+            createExplosion(targetPlayer.x, targetPlayer.y, '#ff0055', 40, 16);
+            triggerShockwave(targetPlayer.x, targetPlayer.y, '#ff0055', 300);
+            spawnFloatingText(targetPlayer.x, targetPlayer.y - 50, 'تعطلت المركبة — انتظر زميلاً حياً لإصلاحها', '#ff0055');
+        }
+
+        function ensureDeathLifecycle() {
+            if (!player || isGameOver || Number(player.hp) > 0) return;
+
+            if (activeGameMode === 'online_pvp') {
+                if (!isAwaitingPvpRespawn) {
+                    const source = lastPvpAttacker || {};
+                    handlePvpLocalElimination(source.name || 'الساحة', source.id || null, source.weapon || 'blaster');
+                }
+                return;
+            }
+
+            const isOnlineCoop = (activeGameMode === 'online_pve' || activeGameMode === 'online_coop') && isMultiplayerMode() && socket && isSocketConnected;
+            if (isOnlineCoop && hasAliveTeammates()) {
+                if (!player.isKnockedDown) enterPveDownedState(player);
+                else if (!isSpectating) showPveDownedSpectator();
+                return;
+            }
+
+            // Offline modes and a complete PvE squad wipe always end immediately.
+            triggerGameOver();
         }
 
         class Player {
@@ -8627,7 +8907,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                         if (keys.a) inputDx -= 1;
                         if (keys.d) inputDx += 1;
                         if (keys.w) inputDy -= 1;
-                        if (keys.s) inputDy -= 1;
+                        if (keys.s) inputDy += 1;
                     }
                     if (inputDx !== 0 || inputDy !== 0) {
                         moveAngle = Math.atan2(inputDy, inputDx);
@@ -8690,39 +8970,33 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 if (this.hp <= 0) {
                     this.hp = 0;
                     updateVitalsAndAmmoHUD();
+                    // PvP has a dedicated timed respawn lifecycle. Never convert it into a full game-over.
+                    if (activeGameMode === 'online_pvp') {
+                        const source = lastPvpAttacker || {};
+                        handlePvpLocalElimination(source.name || 'الساحة', source.id || null, source.weapon || 'blaster');
+                        return false;
+                    }
                     // نظام السقوط والتعطل حصراً في طور PVE التعاوني المتصل بالإنترنت مع وجود زملاء أحياء
                     const isOnlineCoop = (activeGameMode === 'online_pve' || activeGameMode === 'online_coop') && isMultiplayerMode() && socket && isSocketConnected;
                     if (isOnlineCoop && hasAliveTeammates()) {
-                        if (!this.isKnockedDown) {
-                            this.isKnockedDown = true;
-                            this.hp = 0;
-                            this.shieldCharges = 0;
-                            this.invulnerableTimer = 0;
-                            try {
-                                socket.emit('pve_player_downed', { x: this.x, y: this.y });
-                            } catch (e) {}
-                            playSound('shield');
-                            createExplosion(this.x, this.y, '#ff0055', 40, 16);
-                            triggerShockwave(this.x, this.y, '#ff0055', 300);
-                            spawnFloatingText(this.x, this.y - 50, '🚨 تعطلت المركبة! بانتظار مساعدة أحد الزملاء...', '#ff0055');
-                        }
+                        enterPveDownedState(this);
                         return false; // ينتظر الإنعاش طالما هناك زميل حي
                     }
-                    // في جميع الحالات الفردية والأوفلاين وPVP وعند موت جميع الزملاء
+                    // في جميع الحالات الفردية والأوفلاين وعند موت جميع الزملاء
                     triggerGameOver();
-                    return true;
+                    return false;
                 }
                 return false;
             }
 
             update(delta, effectiveDelta, timeScale, frameFactor) {
+                if (activeGameMode === 'online_pvp' && isAwaitingPvpRespawn) {
+                    this.vx = 0;
+                    this.vy = 0;
+                    return;
+                }
                 if (this.hp <= 0 && !isGameOver && !this.isKnockedDown) {
-                    const isOnlineCoop = (activeGameMode === 'online_pve' || activeGameMode === 'online_coop') && isMultiplayerMode() && socket && isSocketConnected;
-                    if (isOnlineCoop && hasAliveTeammates()) {
-                        // لا شيء
-                    } else {
-                        triggerGameOver();
-                    }
+                    ensureDeathLifecycle();
                     return;
                 }
                 if (this.invulnerableTimer > 0) this.invulnerableTimer -= effectiveDelta * timeScale;
@@ -8738,6 +9012,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                         triggerGameOver();
                         return;
                     }
+                    if (!isSpectating) showPveDownedSpectator();
                     this.vx *= 0.85;
                     this.vy *= 0.85;
                     this.x += this.vx * frameFactor;
@@ -8807,17 +9082,25 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 if ((activeGameMode === 'online_pve' || activeGameMode === 'online_coop') && pveDownedPlayers.size > 0 && !this.isKnockedDown) {
                     let isNearDowned = false;
                     for (let [downedId, dInfo] of pveDownedPlayers.entries()) {
+                        if (pveRevivePendingTargets.has(downedId)) continue;
                         let rp = remotePlayers.get(downedId);
                         let targetX = rp ? rp.x : dInfo.x;
                         let targetY = rp ? rp.y : dInfo.y;
                         if (distSq(this.x, this.y, targetX, targetY) < 75 * 75) {
                             isNearDowned = true;
-                            localReviveProgress += delta / 2000;
+                            if (localReviveTargetId !== downedId) {
+                                localReviveTargetId = downedId;
+                                localReviveProgress = 0;
+                            }
+                            const reviveDuration = window.ChronoGameState ? window.ChronoGameState.PVE_REVIVE_DURATION_MS : 5000;
+                            localReviveProgress = Math.min(1, localReviveProgress + (delta / reviveDuration));
                             if (Math.random() < 0.4) {
                                 spawnParticle(targetX + (Math.random() - 0.5) * 30, targetY + (Math.random() - 0.5) * 30, '#00ff88', 0, -1, 0.1);
                             }
                             if (localReviveProgress >= 1) {
                                 localReviveProgress = 0;
+                                localReviveTargetId = null;
+                                pveRevivePendingTargets.add(downedId);
                                 if (socket && isSocketConnected) {
                                     socket.emit('pve_revive_ally', { targetId: downedId, targetName: dInfo.username || 'الزميل' });
                                 }
@@ -8826,7 +9109,8 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                         }
                     }
                     if (!isNearDowned) {
-                        localReviveProgress = Math.max(0, localReviveProgress - delta / 1200);
+                        localReviveProgress = Math.max(0, localReviveProgress - delta / 800);
+                        if (localReviveProgress <= 0) localReviveTargetId = null;
                     }
                 }
 
@@ -9483,6 +9767,10 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 this.x = x; this.y = y; this.speed = speed; this.vx = Math.cos(angle) * this.speed; this.vy = Math.sin(angle) * this.speed;
                 this.radius = isPiercing ? 8 : (isParried ? 7 : 4.5); this.damage = isPiercing ? damage * 1.5 : (isParried ? damage * 2.5 : damage);
                 this.isParried = isParried; this.isPiercing = isPiercing; 
+                this.isRemote = false;
+                this.sourcePlayerId = null;
+                this.sourceWeapon = null;
+                this.sourceColor = null;
                 this.hitEnemies.clear(); 
                 this.expired = false;
                 this.isRicochetTracked = false;
@@ -9523,11 +9811,12 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 let angle = Math.atan2(this.vy, this.vx);
                 ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(angle);
 
-                let curWeapon = player ? player.weapon : 'blaster';
+                let curWeapon = this.sourceWeapon || (player ? player.weapon : 'blaster');
                 let wLvl = (weaponLevels && weaponLevels[curWeapon]) ? weaponLevels[curWeapon] : 1;
 
-                let wepSkin = (typeof equippedCosmetics !== 'undefined') ? equippedCosmetics.weapon : 'wep_default';
+                let wepSkin = this.isRemote ? 'wep_default' : ((typeof equippedCosmetics !== 'undefined') ? equippedCosmetics.weapon : 'wep_default');
                 let bulletColor = (this.bouncesLeft > 0) ? '#ffd700' : (player && player.evolution === 'fire' ? '#ff5500' : (wLvl >= 3 ? '#ffd700' : (wLvl >= 2 ? '#bd00ff' : colors.playerBullet)));
+                if (this.isRemote) bulletColor = this.sourceColor || '#ff4fa3';
                 
                 if (wepSkin === 'wep_dragonfire') bulletColor = '#ff4400';
                 else if (wepSkin === 'wep_solar_flare') bulletColor = '#ff6600';
@@ -9624,9 +9913,12 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     speed: speed,
                     damage: damage,
                     isParried: isParried,
-                    isPiercing: isPiercing
+                    isPiercing: isPiercing,
+                    color: colors.playerBullet,
+                    weaponType: player ? player.weapon : selectedWeapon
                 });
             }
+            return pb;
         }
 
         class EnergyCube {
@@ -11643,18 +11935,54 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             checkAchievements(survivalSeconds, sessionKills, metaCurrency, currentWave);
         }
 
+        function forceDisplayGameOverOverlay() {
+            let screen = document.getElementById('game-over-screen');
+            if (!screen && document.body) {
+                screen = document.createElement('div');
+                screen.id = 'game-over-screen';
+                screen.className = 'overlay-screen';
+                screen.innerHTML = '<div class="game-over-card"><h1 class="screen-title">انتهت الجولة</h1><p class="screen-subtitle">تم تدمير مركبتك</p><div class="game-over-actions"><button id="emergency-restart-btn" class="btn-main">إعادة اللعب</button><button id="emergency-menu-btn" class="btn-secondary">القائمة الرئيسية</button></div></div>';
+                document.body.appendChild(screen);
+                const restartButton = screen.querySelector('#emergency-restart-btn');
+                const menuButton = screen.querySelector('#emergency-menu-btn');
+                if (restartButton) restartButton.addEventListener('click', restartGame);
+                if (menuButton) menuButton.addEventListener('click', returnToMainMenu);
+            }
+            if (!screen) return false;
+
+            screen.hidden = false;
+            screen.classList.remove('hidden');
+            screen.removeAttribute('inert');
+            screen.setAttribute('aria-hidden', 'false');
+            screen.style.setProperty('display', 'flex', 'important');
+            screen.style.setProperty('position', 'fixed', 'important');
+            screen.style.setProperty('inset', '0', 'important');
+            screen.style.setProperty('width', '100vw', 'important');
+            screen.style.setProperty('height', '100dvh', 'important');
+            screen.style.setProperty('opacity', '1', 'important');
+            screen.style.setProperty('visibility', 'visible', 'important');
+            screen.style.setProperty('pointer-events', 'auto', 'important');
+            screen.style.setProperty('z-index', '2147483647', 'important');
+            return true;
+        }
+
+        function isGameOverOverlayVisible() {
+            const screen = document.getElementById('game-over-screen');
+            if (!screen || screen.classList.contains('hidden')) return false;
+            const styles = window.getComputedStyle(screen);
+            return styles.display !== 'none' && styles.visibility !== 'hidden' && Number(styles.opacity || 1) > 0;
+        }
+
         function triggerGameOver() {
-            if (isGameOver) return;
+            if (activeGameMode === 'online_pvp' && isAwaitingPvpRespawn) return;
+            const wasAlreadyGameOver = isGameOver;
             isGameOver = true;
 
             // 1. إظهار شاشة Game Over فوراً بأعلى طبقة ممكنة
-            if (gameOverScreen) {
-                gameOverScreen.classList.remove('hidden');
-                gameOverScreen.style.setProperty('display', 'flex', 'important');
-                gameOverScreen.style.setProperty('opacity', '1', 'important');
-                gameOverScreen.style.setProperty('visibility', 'visible', 'important');
-                gameOverScreen.style.setProperty('pointer-events', 'auto', 'important');
-                gameOverScreen.style.setProperty('z-index', '99999', 'important');
+            forceDisplayGameOverOverlay();
+            if (wasAlreadyGameOver) {
+                updateMobileControlsVisibility();
+                return;
             }
 
             // 2. إغلاق وإخفاء كافة النوافذ والطبقات المفتوحة لضمان عدم حجب الشاشة
@@ -11671,6 +11999,10 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 if (respawnModal) { respawnModal.classList.add('hidden'); respawnModal.style.display = 'none'; }
                 isModalActive = false;
                 isGamePaused = false;
+                isSpectating = false;
+                localReviveProgress = 0;
+                localReviveTargetId = null;
+                pveRevivePendingTargets.clear();
 
                 if (bossHudContainer) bossHudContainer.style.display = 'none'; 
                 if (dashBtnHud) dashBtnHud.style.display = 'none'; 
@@ -11720,29 +12052,58 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 checkContracts(finalSec, sessionParries, sessionCubesEnergy);
                 saveGameProgress(); 
                 updateArsenalUI();
+                updateMobileControlsVisibility();
+                if (window.ChronoUI) window.ChronoUI.announce(`انتهت الجولة. وصلت إلى الموجة ${currentWave} وصمدت ${finalSec.toFixed(1)} ثانية.`);
             } catch (saveErr) {
                 console.error('[triggerGameOver Save error]', saveErr);
             }
+
+            // Reassert once after all cleanup code, even if another UI handler tried to hide it.
+            window.setTimeout(forceDisplayGameOverOverlay, 0);
+            window.setTimeout(forceDisplayGameOverOverlay, 180);
         }
 
         function restartGame() {
             if (gameOverScreen) {
-                gameOverScreen.classList.add('hidden');
-                gameOverScreen.style.display = 'none';
+                if (window.ChronoUI) window.ChronoUI.hideOverlay(gameOverScreen);
+                else {
+                    gameOverScreen.classList.add('hidden');
+                    gameOverScreen.style.display = 'none';
+                }
             }
             startGame();
         };
 
         function returnToMainMenu() {
+            if (socket && isSocketConnected && isMultiplayerMode()) {
+                socket.emit('leave_game_mode');
+            }
+            lastOnlineJoinPayload = null;
+            pendingSelfSpawn = null;
+            isAwaitingPvpRespawn = false;
+            pvpRespawnRequestPending = false;
+            lastPvpAttacker = null;
+            localReviveProgress = 0;
+            localReviveTargetId = null;
+            pveRevivePendingTargets.clear();
+            pveDownedPlayers.clear();
+            isSpectating = false;
+            if (pvpRespawnFallbackTimer) { clearTimeout(pvpRespawnFallbackTimer); pvpRespawnFallbackTimer = null; }
             if (gameOverScreen) {
-                gameOverScreen.classList.add('hidden');
-                gameOverScreen.style.display = 'none';
+                if (window.ChronoUI) window.ChronoUI.hideOverlay(gameOverScreen);
+                else {
+                    gameOverScreen.classList.add('hidden');
+                    gameOverScreen.style.display = 'none';
+                }
             }
             if (pauseMenu) pauseMenu.classList.add('hidden');
             if (perkModal) perkModal.classList.add('hidden');
             if (relicModal) relicModal.classList.add('hidden');
             const respawnModal = document.getElementById('pvp-respawn-modal');
-            if (respawnModal) respawnModal.classList.add('hidden');
+            if (respawnModal) {
+                if (window.ChronoUI) window.ChronoUI.hideOverlay(respawnModal);
+                else respawnModal.classList.add('hidden');
+            }
             if (pvpRespawnCountdownTimer) { clearInterval(pvpRespawnCountdownTimer); pvpRespawnCountdownTimer = null; }
             const dock = document.getElementById('online-leaderboard-dock');
             if (dock) dock.style.display = 'none';
@@ -11812,6 +12173,15 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (relicModal) relicModal.classList.add('hidden');
             if (typeof remotePlayers !== 'undefined' && remotePlayers) remotePlayers.clear();
             if (typeof pveDownedPlayers !== 'undefined' && pveDownedPlayers) pveDownedPlayers.clear();
+            localReviveProgress = 0;
+            localReviveTargetId = null;
+            pveRevivePendingTargets.clear();
+            isSpectating = false;
+            const spectatorOverlay = document.getElementById('spectator-hud-overlay');
+            if (spectatorOverlay) {
+                spectatorOverlay.classList.add('hidden');
+                spectatorOverlay.style.display = 'none';
+            }
             if (!isSandboxMode()) {
                 sandboxGodMode = false;
                 sandboxInfAmmo = false;
@@ -11820,8 +12190,15 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             }
 
             player = new Player(selectedWeapon, selectedClass);
-            camX = player.x - width / 2;
-            camY = player.y - height / 2;
+            isAwaitingPvpRespawn = false;
+            pvpRespawnRequestPending = false;
+            lastPvpAttacker = null;
+            if (pendingSelfSpawn && isMultiplayerMode()) {
+                applyAuthoritativeSpawn(pendingSelfSpawn, false);
+            } else {
+                camX = player.x - width / 2;
+                camY = player.y - height / 2;
+            }
             enemies = []; bullets = []; bulletPool = []; playerBullets = []; playerBulletPool = []; particles = []; particlePool = []; floatingTexts = []; floatingTextPool = []; energyCubes = []; goldenCubes = []; ammoDrops = []; activeTacticalZone = null; activeRicochetCount = 0;
             enemyTimeBubbles = []; mortarWarnings = []; toxicPools = [];
             playerMines = []; teslaRenderArcs = []; arenaLaserWalls = []; temporalRifts = []; shockwaves = [];
@@ -12179,7 +12556,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             // Remote multiplayer agents
             if (isMultiplayerMode()) {
                 for (let [rId, rp] of remotePlayers.entries()) {
-                    if (rp) {
+                    if (rp && !rp.isDead) {
                         c.fillStyle = (activeGameMode === 'online_pvp') ? '#ff00ea' : '#00ff88';
                         c.beginPath();
                         c.arc(rp.x * scale, rp.y * scale, 4.5, 0, Math.PI * 2);
@@ -12347,7 +12724,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             // Remote Multiplayer Players
             if (isMultiplayerMode()) {
                 for (let [rId, rp] of remotePlayers.entries()) {
-                    if (rp) {
+                    if (rp && !rp.isDead) {
                         ctx.fillStyle = (activeGameMode === 'online_pvp') ? '#ff00ea' : '#00ff88';
                         ctx.beginPath();
                         ctx.arc(rx + rp.x * scale, ry + rp.y * scale, 2.8, 0, Math.PI * 2);
@@ -12383,6 +12760,10 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 // Perfect frame pacing: clamp delta cleanly between 1ms and 33.3ms for authentic 60/120/144/240Hz smoothness
                 let delta = Math.min(33.3, Math.max(1, rawDelta));
 
+                // Death watchdog runs before every early-return path. This guarantees that a
+                // zero-HP player can never remain in a running-but-uncontrollable limbo state.
+                ensureDeathLifecycle();
+
                 frameCount++;
                 if (currentTime - fpsTimer >= 500) {
                     currentRealFps = Math.round((frameCount * 1000) / (currentTime - fpsTimer));
@@ -12407,7 +12788,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 }
 
                 let isMobile = (width < 850 || height < 600 || ('ontouchstart' in window));
-                cameraZoom = isMobile ? 0.72 : 1.0;
+                cameraZoom = getResponsiveCameraZoom();
                 let viewW = width / cameraZoom;
                 let viewH = height / cameraZoom;
 
@@ -12438,22 +12819,28 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 if (isOnlineMode && socket && isSocketConnected) {
                     if (currentTime - lastNetworkSyncTime > 30) {
                         lastNetworkSyncTime = currentTime;
-                        socket.emit('player_update', {
-                            x: Math.round(player.x),
-                            y: Math.round(player.y),
-                            vx: Number(player.vx.toFixed(2)),
-                            vy: Number(player.vy.toFixed(2)),
-                            facingAngle: Number(player.facingAngle.toFixed(2)),
-                            health: player.shieldCharges,
-                            maxHealth: player.shieldLevel,
-                            chassis: player.chassis,
-                            weapon: player.weapon,
-                            overchargeActive: player.overchargeActive,
-                            isDashing: player.dashInvulnerableTimer > 0,
-                            isFiringUlt: player.isFiringUlt,
-                            score: Math.floor(score),
-                            skin: activeCosmeticSkin
-                        });
+                        const networkState = window.ChronoMultiplayer
+                            ? window.ChronoMultiplayer.createPlayerUpdate(player, {
+                                skin: activeCosmeticSkin,
+                                score: score,
+                                kills: sessionKills,
+                                isDead: isAwaitingPvpRespawn
+                            })
+                            : {
+                                x: Math.round(player.x),
+                                y: Math.round(player.y),
+                                vx: Number(player.vx.toFixed(2)),
+                                vy: Number(player.vy.toFixed(2)),
+                                facingAngle: Number(player.facingAngle.toFixed(2)),
+                                health: player.hp,
+                                maxHealth: player.maxHp,
+                                shield: player.shieldCharges,
+                                chassis: player.chassis,
+                                weapon: player.weapon,
+                                skin: activeCosmeticSkin,
+                                isDead: isAwaitingPvpRespawn
+                            };
+                        if (networkState) socket.emit('player_update', networkState);
                     }
                 }
 
@@ -12963,19 +13350,11 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                     }
                 }
 
-                // فحص إصابة اللاعب المحلي بطلقات المنافسين في نمط الساحة (PVP Remote Bullet vs Local Player)
+                // Remote projectiles are visual replicas. Damage arrives once through the server event,
+                // avoiding the former double-hit/game-over race between local collision and network damage.
                 if (activeGameMode === 'online_pvp' && pb.isRemote && !isGameOver && player) {
                     if (distSq(pb.x, pb.y, player.x, player.y) < (player.radius + pb.radius + 3)**2) {
-                        createExplosion(player.x, player.y, '#ff0055', 20, 10);
-                        let isFatal = player.takeHit(pb);
-                        spawnFloatingText(player.x, player.y - 30, `-1 HP [ضرر منافس]`, '#ff0055');
-                        playSound('explosion');
-                        if (isFatal) {
-                            triggerGameOver();
-                            if (socket && isSocketConnected) {
-                                socket.emit('pvp_player_eliminated', { killerName: 'Rival Agent' });
-                            }
-                        }
+                        createExplosion(player.x, player.y, '#ff416c', 10, 6);
                         pb.releaseRicochetSlot();
                         let recycledPb = playerBullets.splice(i, 1)[0];
                         if (recycledPb && playerBulletPool.length < 400) playerBulletPool.push(recycledPb);
@@ -12986,7 +13365,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
                 // إصابة اللاعبين الآخرين بطلقات اللاعب المحلي في نمط الساحة (Local Bullet vs Remote Players)
                 if (!hitEnemy && activeGameMode === 'online_pvp' && !pb.isRemote) {
                     for (let [rId, rp] of remotePlayers.entries()) {
-                        if (rp && distSq(pb.x, pb.y, rp.x, rp.y) < (rp.radius || 20)**2) {
+                        if (rp && !rp.isDead && distSq(pb.x, pb.y, rp.x, rp.y) < (rp.radius || 20)**2) {
                             let pvpDmg = pb.damage * 10;
                             rp.health = Math.max(0, (rp.health || 100) - pvpDmg);
                             createExplosion(rp.x, rp.y, '#ff00ea', 14, 6);
@@ -13291,7 +13670,7 @@ function drawAndInterpolateRemotePlayers(frameFactor) {
             if (isMultiplayerMode()) {
                 drawAndInterpolateRemotePlayers(frameFactor);
             }
-            if (!isGameOver && player) player.draw();
+            if (!isGameOver && !isAwaitingPvpRespawn && player) player.draw();
             pollGamepadInput();
 
             ctx.restore();
@@ -13450,3 +13829,33 @@ if (typeof window !== 'undefined') window.renderShopUI = renderShopUI;
 if (typeof window !== 'undefined') window.previewActionClick = previewActionClick;
 if (typeof window !== 'undefined') window.buyOrEquipCosmetic = buyOrEquipCosmetic;
 if (typeof window !== 'undefined') window.restartGame = restartGame;
+if (typeof window !== 'undefined') window.returnToMainMenu = returnToMainMenu;
+
+// A tiny public bridge lets the independent death watchdog keep working even if
+// a normal animation frame fails elsewhere in the large game engine.
+if (typeof window !== 'undefined') {
+    window.ChronoDeathBridge = Object.freeze({
+        tick() {
+            if (!player || (mainMenu && mainMenu.style.display !== 'none')) return;
+            if (Number(player.hp) <= 0) ensureDeathLifecycle();
+            if (isGameOver && activeGameMode !== 'online_pvp' && !isGameOverOverlayVisible()) {
+                forceDisplayGameOverOverlay();
+            }
+        },
+        forceGameOver() {
+            if (player) player.hp = 0;
+            triggerGameOver();
+            return this.getState();
+        },
+        getState() {
+            return {
+                mode: activeGameMode,
+                hp: player ? Number(player.hp) : null,
+                isGameOver,
+                awaitingPvpRespawn: isAwaitingPvpRespawn,
+                knockedDown: !!(player && player.isKnockedDown),
+                overlayVisible: isGameOverOverlayVisible()
+            };
+        }
+    });
+}

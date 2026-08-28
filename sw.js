@@ -1,12 +1,18 @@
 /**
  * Chrono Drift - Offline Cache & PWA Service Worker
  */
-const CACHE_NAME = 'chronodrift-v107-cache';
+const CACHE_NAME = 'chronodrift-v110-cache';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
+  './styles/ui-refresh.css',
   './script.js',
+  './js/game-state.js',
+  './js/multiplayer.js',
+  './js/ui.js',
+  './js/death-watchdog.js',
+  './js/mobile-controls.js',
   './socket.io.min.js',
   './manifest.json'
 ];

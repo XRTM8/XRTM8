@@ -33,7 +33,7 @@ function checkSocketRateLimit(socket, actionKey, maxCount, windowMs) {
 /**
  * ====================================================================
  * Chrono Drift (الانجراف الزمني) - High-Performance Real-Time Multiplayer Server
- * Engine: Node.js + Express + Socket.IO + SQLite3 Database
+ * Engine: Node.js + Express + Socket.IO + persistent JSON profiles
  * Features: Custom Rooms, Anti-Cheat, Time Anomalies, Boss Raids, i18n
  * ====================================================================
  */
@@ -42,7 +42,6 @@ const express = require('express');
 const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
-// sqlite3 loaded conditionally below
 const fs = require('fs');
 
 const app = express();
@@ -69,6 +68,11 @@ app.use(express.static(path.resolve(__dirname), {
     etag: true,
     maxAge: 0,
     setHeaders: (res, filePath) => {
+        // The game is updated frequently; never let an installed PWA keep an old
+        // death/UI script after a fix has been deployed.
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         if (filePath.endsWith('.js') || filePath.endsWith('sw.js')) {
             res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
         } else if (filePath.endsWith('.css')) {
@@ -169,7 +173,7 @@ function recordAdminFailedAttempt(ip) {
 
 
 // ====================================================================
-// 2. RESILIENT PERSISTENT DATABASE ENGINE (SQLITE3 + ATOMIC JSON BACKUP)
+// 2. RESILIENT PERSISTENT DATABASE ENGINE (JSON STORE)
 // ====================================================================
 
 // ====================================================================
@@ -266,21 +270,8 @@ function saveJsonDb() {
     }
 }
 
-try {
-    const sqlite3 = require('sqlite3').verbose();
-    db = new sqlite3.Database(DB_PATH, (err) => {
-        if (err) {
-            console.warn('[!] [DB Warning] Native SQLite3 error, switching to persistent JSON Engine.');
-            useJsonDb = true;
-        } else {
-            console.log('[DB] Connected successfully to SQLite database (chronodrift.sqlite)');
-            initDatabaseTables();
-        }
-    });
-} catch (e) {
-    console.log('ℹ [DB Engine] Operating with High-Performance Atomic JSON Store (chronodrift_db.json).');
-    useJsonDb = true;
-}
+console.log('ℹ [DB Engine] Operating with persistent JSON Store (chronodrift_db.json).');
+useJsonDb = true;
 
 function dbRun(sql, params = []) {
     if (!useJsonDb && db) {
@@ -442,6 +433,15 @@ class GameRoom {
 }
 
 const gameRooms = new Map();
+const CHASSIS_COMBAT_STATS = Object.freeze({
+    assault: { hp: 90, shield: 2 },
+    breacher: { hp: 140, shield: 3 },
+    support: { hp: 135, shield: 3 },
+    engineer: { hp: 105, shield: 2 },
+    sniper: { hp: 75, shield: 1 }
+});
+const PVE_REVIVE_DURATION_MS = 5000;
+const PVE_REVIVE_DISTANCE = 120;
 
 // Initialize permanent public standard rooms
 gameRooms.set('online_pve', new GameRoom('online_pve', 'Co-Op PvE Arena', 'online_coop', { maxPlayers: 16 }));
@@ -705,6 +705,7 @@ io.on('connection', async (socket) => {
         meta.currentRoomId = room.id;
         meta.username = cleanUsername;
         meta.chassis = sanitizeText(data ? data.chassis : 'assault', 20);
+        const combatStats = CHASSIS_COMBAT_STATS[meta.chassis] || CHASSIS_COMBAT_STATS.assault;
 
         const initialSpawnState = {
             id: socket.id,
@@ -715,10 +716,15 @@ io.on('connection', async (socket) => {
             x: Math.floor(3500 + Math.random() * 1000),
             y: Math.floor(3500 + Math.random() * 1000),
             angle: 0,
-            hp: 100,
-            maxHp: 100,
-            shield: 50,
-            maxShield: 50,
+            hp: combatStats.hp,
+            health: combatStats.hp,
+            maxHp: combatStats.hp,
+            maxHealth: combatStats.hp,
+            shield: combatStats.shield,
+            maxShield: combatStats.shield,
+            isDead: false,
+            isDowned: false,
+            respawnAvailableAt: 0,
             isDashing: false,
             sprintActive: false,
             kills: 0,
@@ -872,6 +878,26 @@ io.on('connection', async (socket) => {
         });
     });
 
+    socket.on('leave_game_mode', () => {
+        const meta = activeSockets.get(socket.id);
+        if (!meta || !meta.currentRoomId) return;
+        const room = gameRooms.get(meta.currentRoomId);
+        if (room) {
+            room.players.delete(socket.id);
+            room.readyPlayers.delete(socket.id);
+            socket.to(room.id).emit('player_left', {
+                id: socket.id,
+                username: meta.username
+            });
+            socket.leave(room.id);
+        }
+        meta.currentRoomId = null;
+        meta.mode = 'lobby';
+        playerMovementHistory.delete(socket.id);
+        playerShootHistory.delete(socket.id);
+        broadcastOnlineCount();
+    });
+
     // ----------------------------------------------------------------
     // Player Real-Time Movement & State Updates
     // ----------------------------------------------------------------
@@ -884,6 +910,13 @@ io.on('connection', async (socket) => {
 
         const existingPlayer = room.players.get(socket.id);
         if (!existingPlayer) return;
+
+        // A defeated player remains represented in snapshots but cannot move or overwrite
+        // the authoritative death state until the respawn endpoint completes.
+        if (existingPlayer.isDead || existingPlayer.isDowned) {
+            existingPlayer.lastUpdate = Date.now();
+            return;
+        }
 
         // Anti-cheat movement check
         if (!verifyPlayerMovement(socket, state)) return;
@@ -898,6 +931,7 @@ io.on('connection', async (socket) => {
         existingPlayer.health = existingPlayer.hp;
         existingPlayer.maxHealth = state.maxHealth || existingPlayer.maxHealth || 100;
         existingPlayer.shield = state.shield !== undefined ? state.shield : existingPlayer.shield;
+        existingPlayer.maxShield = state.maxShield !== undefined ? state.maxShield : existingPlayer.maxShield;
         existingPlayer.chassis = state.chassis || existingPlayer.chassis || 'assault';
         existingPlayer.weapon = state.weapon || existingPlayer.weapon || 'blaster';
         existingPlayer.skin = state.skin || existingPlayer.skin || 'default';
@@ -918,6 +952,9 @@ io.on('connection', async (socket) => {
         if (!verifyPlayerShooting(socket)) return;
         const meta = activeSockets.get(socket.id);
         if (!meta || !meta.currentRoomId) return;
+        const room = gameRooms.get(meta.currentRoomId);
+        const shooterState = room ? room.players.get(socket.id) : null;
+        if (!room || !shooterState || shooterState.isDead || shooterState.isDowned) return;
 
         const bulletAngle = (bulletData && typeof bulletData.angle === 'number')
             ? bulletData.angle
@@ -970,16 +1007,21 @@ io.on('connection', async (socket) => {
         if (!data || !data.targetId || typeof data.damage !== 'number') return;
         const meta = activeSockets.get(socket.id);
         if (!meta || !meta.currentRoomId) return;
+        const room = gameRooms.get(meta.currentRoomId);
+        if (!room || room.mode !== 'online_pvp') return;
+        const attackerState = room.players.get(socket.id);
+        const targetState = room.players.get(data.targetId);
+        if (!attackerState || !targetState || attackerState.isDead || targetState.isDead || data.targetId === socket.id) return;
 
         // Damage sanity clamp (prevent 1-hit-kill hack)
-        const safeDamage = Math.min(180, Math.max(1, data.damage));
+        const safeDamage = Math.min(60, Math.max(8, data.damage));
 
         io.to(data.targetId).emit('pvp_take_damage', {
             attackerId: socket.id,
             attackerName: meta.username,
             damage: safeDamage,
             isCrit: !!data.isCrit,
-            weaponType: data.weaponType || 'blaster'
+            weaponType: sanitizeText(data.weaponType || data.weapon || 'blaster', 40)
         });
 
         socket.to(meta.currentRoomId).emit('pvp_hit_effect', {
@@ -991,26 +1033,55 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('pvp_player_eliminated', async (data) => {
-        if (!data || !data.killerId) return;
+        const elimination = data || {};
         const meta = activeSockets.get(socket.id);
         if (!meta || !meta.currentRoomId) return;
         const room = gameRooms.get(meta.currentRoomId);
-        if (!room) return;
+        if (!room || room.mode !== 'online_pvp') return;
 
-        const killerSocket = io.sockets.sockets.get(data.killerId);
-        const killerMeta = killerSocket ? activeSockets.get(data.killerId) : null;
-        const killerName = killerMeta ? killerMeta.username : 'Unknown Warrior';
+        const victimState = room.players.get(socket.id);
+        if (!victimState || victimState.isDead || elimination.killerId === socket.id) return;
+
+        let killerState = null;
+        let killerSocket = null;
+        let killerName = 'الساحة';
+        if (elimination.killerId) {
+            killerState = room.players.get(elimination.killerId);
+            killerSocket = io.sockets.sockets.get(elimination.killerId);
+            const killerMeta = killerSocket ? activeSockets.get(elimination.killerId) : null;
+            if (!killerState || killerState.isDead || !killerMeta || killerMeta.currentRoomId !== meta.currentRoomId) return;
+            killerName = killerMeta.username;
+        }
+
+        victimState.isDead = true;
+        victimState.hp = 0;
+        victimState.health = 0;
+        victimState.shield = 0;
+        victimState.vx = 0;
+        victimState.vy = 0;
+        victimState.deaths = (victimState.deaths || 0) + 1;
+        victimState.respawnAvailableAt = Date.now() + 2500;
+        if (killerState) killerState.kills = (killerState.kills || 0) + 1;
 
         // Update stats
         try {
-            await dbRun('UPDATE players SET pvp_kills = pvp_kills + 1, trophies = trophies + 25, credits = credits + 50 WHERE username = ? COLLATE NOCASE', [killerName]);
+            if (killerState) {
+                await dbRun('UPDATE players SET pvp_kills = pvp_kills + 1, trophies = trophies + 25, credits = credits + 50 WHERE username = ? COLLATE NOCASE', [killerName]);
+            }
             await dbRun('UPDATE players SET pvp_deaths = pvp_deaths + 1, trophies = MAX(0, trophies - 10) WHERE username = ? COLLATE NOCASE', [meta.username]);
         } catch (e) {}
 
         io.to(room.id).emit('kill_feed_event', {
             killerName: killerName,
             victimName: meta.username,
-            weapon: data.weapon || 'blaster'
+            weapon: elimination.weapon || 'blaster'
+        });
+        io.to(room.id).emit('player_eliminated', {
+            id: socket.id,
+            username: meta.username,
+            killerId: elimination.killerId || null,
+            killerName,
+            respawnAt: victimState.respawnAvailableAt
         });
 
         if (killerSocket) {
@@ -1029,19 +1100,32 @@ io.on('connection', async (socket) => {
         if (!room) return;
 
         const playerState = room.players.get(socket.id);
+        if (!playerState) return;
+        if (room.mode === 'online_pvp' && !playerState.isDead) return;
+        if (playerState.isDead && Date.now() < (playerState.respawnAvailableAt || 0)) {
+            socket.emit('respawn_wait', {
+                remainingMs: Math.max(0, playerState.respawnAvailableAt - Date.now())
+            });
+            return;
+        }
         const spawnX = Math.floor(3500 + (Math.random() - 0.5) * 1200);
         const spawnY = Math.floor(3500 + (Math.random() - 0.5) * 1200);
+        const combatStats = CHASSIS_COMBAT_STATS[playerState.chassis] || CHASSIS_COMBAT_STATS.assault;
 
-        if (playerState) {
-            playerState.hp = 100;
-            playerState.health = 100;
-            playerState.shield = 50;
-            playerState.x = spawnX;
-            playerState.y = spawnY;
-            playerState.vx = 0;
-            playerState.vy = 0;
-            playerState.lastUpdate = Date.now();
-        }
+        playerState.hp = combatStats.hp;
+        playerState.health = combatStats.hp;
+        playerState.maxHp = combatStats.hp;
+        playerState.maxHealth = combatStats.hp;
+        playerState.shield = combatStats.shield;
+        playerState.maxShield = combatStats.shield;
+        playerState.x = spawnX;
+        playerState.y = spawnY;
+        playerState.vx = 0;
+        playerState.vy = 0;
+        playerState.isDead = false;
+        playerState.isDowned = false;
+        playerState.respawnAvailableAt = 0;
+        playerState.lastUpdate = Date.now();
 
         // Reset anti-cheat anchor cleanly
         playerMovementHistory.set(socket.id, {
@@ -1055,7 +1139,19 @@ io.on('connection', async (socket) => {
             id: socket.id,
             username: meta.username,
             x: spawnX,
-            y: spawnY
+            y: spawnY,
+            hp: playerState.hp,
+            health: playerState.health,
+            maxHp: playerState.maxHp,
+            maxHealth: playerState.maxHealth,
+            shield: playerState.shield,
+            maxShield: playerState.maxShield,
+            chassis: playerState.chassis,
+            weapon: playerState.weapon,
+            skin: playerState.skin,
+            invulnerableMs: 3000,
+            isDead: false,
+            isDowned: false
         });
     });
 
@@ -1065,11 +1161,26 @@ io.on('connection', async (socket) => {
     socket.on('pve_player_downed', (data) => {
         const meta = activeSockets.get(socket.id);
         if (!meta || !meta.currentRoomId) return;
-        io.to(meta.currentRoomId).emit('pve_downed_alert', {
+        const room = gameRooms.get(meta.currentRoomId);
+        if (!room || room.mode !== 'online_coop') return;
+        const downedState = room.players.get(socket.id);
+        if (!downedState || downedState.isDead || downedState.isDowned) return;
+
+        downedState.isDowned = true;
+        downedState.hp = 0;
+        downedState.health = 0;
+        downedState.shield = 0;
+        downedState.vx = 0;
+        downedState.vy = 0;
+        downedState.downedAt = Date.now();
+        downedState.lastUpdate = Date.now();
+
+        io.to(room.id).emit('pve_downed_alert', {
             downedId: socket.id,
             downedUsername: meta.username,
-            x: data ? data.x : 4000,
-            y: data ? data.y : 4000
+            x: downedState.x,
+            y: downedState.y,
+            reviveDurationMs: PVE_REVIVE_DURATION_MS
         });
     });
 
@@ -1077,11 +1188,70 @@ io.on('connection', async (socket) => {
         if (!data || !data.targetId) return;
         const meta = activeSockets.get(socket.id);
         if (!meta || !meta.currentRoomId) return;
+        const room = gameRooms.get(meta.currentRoomId);
+        if (!room || room.mode !== 'online_coop' || data.targetId === socket.id) return;
 
-        io.to(meta.currentRoomId).emit('pve_revive_success', {
-            revivedId: data.targetId,
+        const reviverState = room.players.get(socket.id);
+        const targetState = room.players.get(data.targetId);
+        if (!reviverState || !targetState || reviverState.isDead || reviverState.isDowned || !targetState.isDowned) return;
+        if ((reviverState.hp || reviverState.health || 0) <= 0) return;
+
+        const remainingMs = PVE_REVIVE_DURATION_MS - (Date.now() - (targetState.downedAt || Date.now()));
+        if (remainingMs > 150) {
+            socket.emit('pve_revive_rejected', {
+                targetId: data.targetId,
+                reason: 'duration',
+                remainingMs
+            });
+            return;
+        }
+
+        const dx = reviverState.x - targetState.x;
+        const dy = reviverState.y - targetState.y;
+        if ((dx * dx) + (dy * dy) > PVE_REVIVE_DISTANCE * PVE_REVIVE_DISTANCE) {
+            socket.emit('pve_revive_rejected', {
+                targetId: data.targetId,
+                reason: 'distance',
+                remainingMs: 0
+            });
+            return;
+        }
+
+        const combatStats = CHASSIS_COMBAT_STATS[targetState.chassis] || CHASSIS_COMBAT_STATS.assault;
+        targetState.hp = combatStats.hp;
+        targetState.health = combatStats.hp;
+        targetState.maxHp = combatStats.hp;
+        targetState.maxHealth = combatStats.hp;
+        targetState.shield = combatStats.shield;
+        targetState.maxShield = combatStats.shield;
+        targetState.isDead = false;
+        targetState.isDowned = false;
+        targetState.downedAt = 0;
+        targetState.vx = 0;
+        targetState.vy = 0;
+        targetState.lastUpdate = Date.now();
+        reviverState.revives = (reviverState.revives || 0) + 1;
+
+        io.to(room.id).emit('pve_revive_success', {
+            revivedId: targetState.id,
             reviverId: socket.id,
-            reviverName: meta.username
+            reviverName: meta.username,
+            targetName: targetState.username,
+            hp: targetState.hp,
+            health: targetState.health,
+            maxHp: targetState.maxHp,
+            maxHealth: targetState.maxHealth,
+            shield: targetState.shield,
+            maxShield: targetState.maxShield,
+            invulnerableMs: 3000,
+            isDead: false,
+            isDowned: false
+        });
+
+        socket.emit('pve_reviver_reward', {
+            credits: 75,
+            xp: 100,
+            revivedName: targetState.username
         });
 
         try {
@@ -1496,7 +1666,7 @@ server.listen(PORT, '0.0.0.0', () => {
 ============================================================
  CHRONO DRIFT (الانجراف الزمني) SERVER RUNNING ON PORT ${PORT}
 [SYS] WebGL Client & Authoritative Engine Active (20Hz Tick)
-[DB] SQLite Database: chronodrift.sqlite
+[DB] Persistent profile store: chronodrift_db.json
 [SEC] Anti-Cheat, XSS Shields, Custom Lobbies & Anomalies Ready
 ============================================================
 `);

@@ -7,7 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@600;700;800;900&family=Cairo:wght@600;700;800;900&family=Changa:wght@700;800;900&family=Chakra+Petch:wght@700;900&family=Rajdhani:wght@700;900&family=Share+Tech+Mono&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=108">
+    <link rel="stylesheet" href="style.css?v=110">
+    <link rel="stylesheet" href="styles/ui-refresh.css?v=4">
     <meta name="theme-color" content="#00f3ff">
     <script>
         // Load PWA manifest and Google Identity services safely on HTTP/HTTPS environments
@@ -390,7 +391,7 @@
         <span class="downed-icon"></span>
         <div class="downed-info">
             <div class="downed-title" data-i18n="downedTitle">استغاثة: زميلك سقط في المعركة!</div>
-            <div class="downed-agent-name"><span id="downed-agent-val">Agent_X</span> <span data-i18n="downedNeedsRevive">بحاجة لإنعاش فوري</span> (<span id="downed-timer-val">15</span><span data-i18n="secSuffix">ث</span>)</div>
+            <div class="downed-agent-name"><span id="downed-agent-val">Agent_X</span> <span data-i18n="downedNeedsRevive">بحاجة لإنعاش</span> — مدة الإصلاح <span id="downed-timer-val">5</span><span data-i18n="secSuffix">ث</span></div>
         </div>
     </div>
 
@@ -1433,7 +1434,7 @@
     <div id="pvp-respawn-modal" class="overlay-screen hidden" style="z-index: 35;">
         <div class="respawn-card">
             <div class="respawn-icon"></div>
-            <h2 class="respawn-title" style="color: #ff0055; margin: 4px 0;" data-i18n="fallenTitle">سقطت في الساحة!</h2>
+            <h2 id="respawn-title" class="respawn-title" style="color: #ff0055; margin: 4px 0;" data-i18n="fallenTitle">سقطت في الساحة!</h2>
             <div id="respawn-killer-txt" style="color: #8899a6; font-size: 0.9rem; margin-bottom: 12px;"><span data-i18n="eliminatedBy">تم القضاء عليك بواسطة:</span> <span id="respawn-killer-name" style="color: #ffd700; font-weight: bold;">Rival</span></div>
             
             <div class="respawn-timer-circle">
@@ -1442,7 +1443,7 @@
             
             <div style="font-size: 0.8rem; color: #00ff88; margin: 10px 0;" data-i18n="respawnShieldHint"> ستنال درع حصانة لمدة 3 ثوانٍ فور إعادة النشر!</div>
             
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
+            <div class="respawn-actions">
                 <button class="btn-main" onclick="executeManualPvpRespawn()" style="background: linear-gradient(135deg, #ff0055, #bd00ff);" data-i18n="respawnNowBtn">نشر فوري الآن </button>
                 <button class="shop-btn" onclick="quitToMainMenu()" style="background: rgba(255, 255, 255, 0.08);" data-i18n="quitToMenuBtn">مغادرة إلى القائمة</button>
             </div>
@@ -1473,8 +1474,9 @@
         </div>
     </div>
 
-    <div id="game-over-screen" class="overlay-screen hidden">
-        <h1 class="screen-title" style="color: var(--enemy-sniper);" data-i18n="destroyedTitle">تم تدميرك</h1>
+    <div id="game-over-screen" class="overlay-screen hidden" aria-hidden="true">
+      <div class="game-over-card">
+        <h1 id="game-over-title" class="screen-title" style="color: var(--enemy-sniper);" data-i18n="destroyedTitle">انتهت الجولة</h1>
         <div class="screen-subtitle">
             <span data-i18n="highestWave">أعلى موجة وصلت لها:</span> <span id="final-wave-val" style="font-weight: bold; color: var(--gold-color);">الموجة 1</span><br>
             <span data-i18n="survivalTime">زمن الصمود الكلي:</span> <span id="final-score-val" style="font-weight: bold; color: var(--player-color);">0.0</span>s<br>
@@ -1489,10 +1491,11 @@
             <div class="telemetry-row"><span data-i18n="telSubkills">ضحايا الأسلحة المساندة:</span><span class="telemetry-val" id="tel-subkills">0</span></div>
             <div class="telemetry-row"><span data-i18n="telUlts">القدرات المطلقة المنفذة:</span><span class="telemetry-val" id="tel-ults">0</span></div>
         </div>
-        <div style="display: flex; gap: 10px; margin-top: 10px; width: 100%; max-width: 340px;">
+        <div class="game-over-actions">
             <button class="btn-main" onclick="restartGame()" style="background: linear-gradient(135deg, #00f3ff, #00a2ff); flex: 1; margin-top: 0;" data-i18n="retryBattleBtn">إعادة القتال فوراً</button>
             <button class="btn-main" onclick="returnToMainMenu()" style="background: rgba(255, 255, 255, 0.1); flex: 1; margin-top: 0;" data-i18n="returnToMainMenuBtn">القائمة الرئيسية</button>
         </div>
+      </div>
     </div>
 
     <!-- بنر الإعلانات العامة من الخادم والمطور -->
@@ -1945,6 +1948,11 @@
     </div>
 
     <script src="socket.io.min.js"></script>
-    <script src="script.js?v=108"></script>
+    <script src="js/game-state.js?v=4"></script>
+    <script src="js/multiplayer.js?v=4"></script>
+    <script src="js/ui.js?v=4"></script>
+    <script src="script.js?v=110"></script>
+    <script src="js/death-watchdog.js?v=1"></script>
+    <script src="js/mobile-controls.js?v=4"></script>
 </body>
 </html>
