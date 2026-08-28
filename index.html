@@ -7,8 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@600;700;800;900&family=Cairo:wght@600;700;800;900&family=Changa:wght@700;800;900&family=Chakra+Petch:wght@700;900&family=Rajdhani:wght@700;900&family=Share+Tech+Mono&family=Tajawal:wght@500;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=110">
-    <link rel="stylesheet" href="styles/ui-refresh.css?v=4">
+    <link rel="stylesheet" href="style.css?v=115">
+    <link rel="stylesheet" href="styles/ui-refresh.css?v=9">
     <meta name="theme-color" content="#00f3ff">
     <script>
         // Load PWA manifest and Google Identity services safely on HTTP/HTTPS environments
@@ -442,6 +442,7 @@
                 <span id="spectator-respawn-hint">انتظر الإنعاش أو انتهاء الجولة</span>
             </div>
             <button class="spectator-nav-btn" onclick="spectatorCycleNext()">التالي ▶</button>
+            <button class="spectator-nav-btn" onclick="returnToMainMenu()" style="background: rgba(255, 0, 85, 0.2); border-color: #ff0055; color: #ff0055;">مغادرة</button>
         </div>
     </div>
 
@@ -1474,26 +1475,73 @@
         </div>
     </div>
 
-    <div id="game-over-screen" class="overlay-screen hidden" aria-hidden="true">
-      <div class="game-over-card">
-        <h1 id="game-over-title" class="screen-title" style="color: var(--enemy-sniper);" data-i18n="destroyedTitle">انتهت الجولة</h1>
-        <div class="screen-subtitle">
-            <span data-i18n="highestWave">أعلى موجة وصلت لها:</span> <span id="final-wave-val" style="font-weight: bold; color: var(--gold-color);">الموجة 1</span><br>
-            <span data-i18n="survivalTime">زمن الصمود الكلي:</span> <span id="final-score-val" style="font-weight: bold; color: var(--player-color);">0.0</span>s<br>
-            <span data-i18n="xpEarned">الخبرة المكتسبة (XP):</span> <span id="final-xp-val" style="font-weight: bold; color: #00f3ff;">0</span><br>
-            <span data-i18n="totalCubes">الرصيد الكلي من الكريستال:</span> <span id="total-meta-cubes-val" style="font-weight: bold; color: #ffd700;">0</span><br>
-            <span style="font-size: 0.82rem; color: #aaa;"><span data-i18n="roundCubes">المكعبات المجمعة في الجولة:</span> <span id="final-cubes-val" style="font-weight: bold; color: var(--energy-color);">0</span></span>
+    <!-- نافذة نهاية الجولة التكتيكية الخارقة (Apex Cyber Game Over Screen) -->
+    <div id="game-over-screen" class="overlay-screen hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
+      <div class="game-over-card apex-cyber-game-over">
+        <div class="game-over-skull-badge">
+            <svg class="c-icon c-icon-xl" viewBox="0 0 24 24"><path fill="none" stroke="#ff0055" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 2a9 9 0 0 0-9 9c0 3.5 2 6 4 7v3h10v-3c2-1 4-3.5 4-7a9 9 0 0 0-9-9zM10 21v-3M14 21v-3"/><circle cx="9" cy="11" r="1.5" fill="#ff0055"/><circle cx="15" cy="11" r="1.5" fill="#ff0055"/></svg>
         </div>
-        <div class="telemetry-box">
-            <div style="color:var(--energy-color); font-weight:bold; margin-bottom:6px; text-align:center;" data-i18n="telemetryTitle"> التحليل القتالي للجولة (Telemetry)</div>
-            <div class="telemetry-row"><span data-i18n="telParries">عمليات الصد الفوري (Parry):</span><span class="telemetry-val" id="tel-parries">0</span></div>
-            <div class="telemetry-row"><span data-i18n="telGrazes">المراوغات الملاصقة (Graze):</span><span class="telemetry-val" id="tel-grazes">0</span></div>
-            <div class="telemetry-row"><span data-i18n="telSubkills">ضحايا الأسلحة المساندة:</span><span class="telemetry-val" id="tel-subkills">0</span></div>
-            <div class="telemetry-row"><span data-i18n="telUlts">القدرات المطلقة المنفذة:</span><span class="telemetry-val" id="tel-ults">0</span></div>
+        <div class="game-over-header">
+            <h1 id="game-over-title" class="screen-title" data-i18n="destroyedTitle">انتهت الجولة</h1>
+            <div class="game-over-status-tag">SYSTEM OFFLINE • تم تدمير المركبة</div>
         </div>
+
+        <!-- شبكة الإحصائيات الرئيسية الكبرى -->
+        <div class="game-over-stats-grid">
+            <div class="go-stat-card wave-card">
+                <div class="go-stat-icon">🌊</div>
+                <div class="go-stat-meta">
+                    <span class="go-stat-label" data-i18n="highestWave">أعلى موجة</span>
+                    <strong class="go-stat-value gold" id="final-wave-val">الموجة 1</strong>
+                </div>
+            </div>
+            <div class="go-stat-card time-card">
+                <div class="go-stat-icon">⏱️</div>
+                <div class="go-stat-meta">
+                    <span class="go-stat-label" data-i18n="survivalTime">زمن الصمود</span>
+                    <strong class="go-stat-value cyan"><span id="final-score-val">0.0</span>s</strong>
+                </div>
+            </div>
+            <div class="go-stat-card xp-card">
+                <div class="go-stat-icon">⚡</div>
+                <div class="go-stat-meta">
+                    <span class="go-stat-label" data-i18n="xpEarned">الخبرة (XP)</span>
+                    <strong class="go-stat-value blue" id="final-xp-val">0</strong>
+                </div>
+            </div>
+            <div class="go-stat-card cubes-card">
+                <div class="go-stat-icon">💎</div>
+                <div class="go-stat-meta">
+                    <span class="go-stat-label" data-i18n="totalCubes">الكريستال</span>
+                    <strong class="go-stat-value purple" id="total-meta-cubes-val">0</strong>
+                    <small class="go-stat-sub">(+<span id="final-cubes-val">0</span> بالجولة)</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- صندوق التحليل القتالي الدقيق Telemetry -->
+        <div class="telemetry-box cyber-telemetry-box">
+            <div class="telemetry-box-title" data-i18n="telemetryTitle">📊 التحليل القتالي للجولة (Telemetry)</div>
+            <div class="telemetry-chips-row">
+                <div class="tel-chip"><span class="tel-icon">🛡️</span> <span data-i18n="telParries">صد فوري:</span> <strong id="tel-parries" class="tel-val cyan">0</strong></div>
+                <div class="tel-chip"><span class="tel-icon">💨</span> <span data-i18n="telGrazes">مراوغة:</span> <strong id="tel-grazes" class="tel-val green">0</strong></div>
+                <div class="tel-chip"><span class="tel-icon">🎯</span> <span data-i18n="telSubkills">أسلحة مساندة:</span> <strong id="tel-subkills" class="tel-val orange">0</strong></div>
+                <div class="tel-chip"><span class="tel-icon">💥</span> <span data-i18n="telUlts">قدرة مطلقة:</span> <strong id="tel-ults" class="tel-val red">0</strong></div>
+            </div>
+        </div>
+
+        <!-- أزرار الإجراءات الرئيسية الفخمة -->
         <div class="game-over-actions">
-            <button class="btn-main" onclick="restartGame()" style="background: linear-gradient(135deg, #00f3ff, #00a2ff); flex: 1; margin-top: 0;" data-i18n="retryBattleBtn">إعادة القتال فوراً</button>
-            <button class="btn-main" onclick="returnToMainMenu()" style="background: rgba(255, 255, 255, 0.1); flex: 1; margin-top: 0;" data-i18n="returnToMainMenuBtn">القائمة الرئيسية</button>
+            <button id="game-over-menu-btn" class="btn-main go-btn-menu-primary" onclick="returnToMainMenu()" data-i18n="returnToMainMenuBtn">
+                <span class="go-btn-icon">🏠</span>
+                <span class="go-btn-txt">العودة إلى الردهة (Lobby)</span>
+                <kbd class="go-btn-kbd">Esc / Enter</kbd>
+            </button>
+            <button id="game-over-restart-btn" class="btn-secondary go-btn-restart" onclick="restartGame()" data-i18n="retryBattleBtn">
+                <span class="go-btn-icon">⚡</span>
+                <span class="go-btn-txt">إعادة المحاولة</span>
+                <kbd class="go-btn-kbd">R</kbd>
+            </button>
         </div>
       </div>
     </div>
@@ -1948,11 +1996,11 @@
     </div>
 
     <script src="socket.io.min.js"></script>
-    <script src="js/game-state.js?v=4"></script>
-    <script src="js/multiplayer.js?v=4"></script>
-    <script src="js/ui.js?v=4"></script>
-    <script src="script.js?v=110"></script>
-    <script src="js/death-watchdog.js?v=1"></script>
-    <script src="js/mobile-controls.js?v=4"></script>
+    <script src="js/game-state.js?v=9"></script>
+    <script src="js/multiplayer.js?v=9"></script>
+    <script src="js/ui.js?v=9"></script>
+    <script src="script.js?v=115"></script>
+    <script src="js/death-watchdog.js?v=6"></script>
+    <script src="js/mobile-controls.js?v=9"></script>
 </body>
 </html>

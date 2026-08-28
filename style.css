@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700;900&family=Tajawal:wght@400;500;700;900&display=swap');
+
         :root {
             --bg-color: #020306;
             --panel-bg: rgba(6, 10, 18, 0.94);
@@ -978,45 +980,125 @@
         }
 
         .overlay-screen { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            background: radial-gradient(circle at 50% 20%, rgba(10, 18, 32, 0.96) 0%, rgba(3, 5, 10, 0.98) 100%); 
-            backdrop-filter: blur(16px); 
-            -webkit-backdrop-filter: blur(16px);
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center; 
-            z-index: 30; 
-            padding: 16px; 
-            animation: overlayFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            position: fixed !important; 
+            inset: 0 !important; 
+            width: 100vw !important; 
+            height: 100vh !important; 
+            height: 100dvh !important; 
+            background: radial-gradient(circle at 50% 20%, rgba(10, 18, 32, 0.96) 0%, rgba(3, 5, 10, 0.98) 100%) !important; 
+            backdrop-filter: blur(20px) !important; 
+            -webkit-backdrop-filter: blur(20px) !important;
+            display: flex !important; 
+            flex-direction: column !important; 
+            align-items: center !important; 
+            justify-content: center !important; 
+            z-index: 100 !important; 
+            padding: 16px !important; 
+            pointer-events: auto !important;
+            box-sizing: border-box !important;
+            animation: overlayFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
         }
         @keyframes overlayFadeIn {
             from { opacity: 0; transform: scale(0.985); }
             to { opacity: 1; transform: scale(1); }
         }
-        .overlay-screen.hidden { opacity: 0; pointer-events: none; display: none !important; }
+        .overlay-screen.hidden { 
+            display: none !important; 
+            visibility: hidden !important; 
+            pointer-events: none !important; 
+            opacity: 0 !important; 
+        }
+        .overlay-screen:not(.hidden) {
+            display: flex !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+            opacity: 1 !important;
+        }
 
-        /* Dedicated high-priority Game Over Screen styling */
+        #main-menu {
+            z-index: 100 !important;
+        }
+
+        .cyber-modal, .modal-backdrop {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            background: rgba(2, 6, 12, 0.88) !important;
+            backdrop-filter: blur(14px) !important;
+            -webkit-backdrop-filter: blur(14px) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 50000 !important;
+            padding: 16px !important;
+            pointer-events: auto !important;
+        }
+        .cyber-modal.hidden, .modal-backdrop.hidden {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            opacity: 0 !important;
+        }
+        .cyber-modal:not(.hidden), .modal-backdrop:not(.hidden) {
+            display: flex !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+            opacity: 1 !important;
+        }
+
+        #pause-menu {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            height: 100dvh !important;
+            z-index: 60000 !important;
+            background: radial-gradient(circle at 50% 30%, rgba(8, 14, 26, 0.97) 0%, rgba(2, 4, 8, 0.99) 100%) !important;
+            backdrop-filter: blur(24px) !important;
+            -webkit-backdrop-filter: blur(24px) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: 16px !important;
+            pointer-events: auto !important;
+        }
+        #pause-menu.hidden {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+            opacity: 0 !important;
+        }
+        #pause-menu:not(.hidden) {
+            display: flex !important;
+            visibility: visible !important;
+            pointer-events: auto !important;
+            opacity: 1 !important;
+        }
+
+        /* ====================================================================
+           APEX ULTRA-CYBER GAME OVER SCREEN (RESPONSIVE FOR ALL DEVICES)
+           ==================================================================== */
         #game-over-screen {
             position: fixed !important;
             inset: 0 !important;
             width: 100vw !important;
             height: 100vh !important;
             height: 100dvh !important;
-            z-index: 99999 !important;
-            background: radial-gradient(circle at 50% 30%, rgba(18, 5, 12, 0.97) 0%, rgba(4, 2, 8, 0.99) 100%) !important;
-            backdrop-filter: blur(20px) !important;
-            -webkit-backdrop-filter: blur(20px) !important;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            overflow-y: auto;
-            pointer-events: auto;
+            z-index: 2147483647 !important;
+            background: radial-gradient(circle at 50% 30%, rgba(30, 8, 20, 0.96) 0%, rgba(4, 2, 8, 0.99) 100%) !important;
+            backdrop-filter: blur(24px) !important;
+            -webkit-backdrop-filter: blur(24px) !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)) !important;
+            overflow-y: auto !important;
+            pointer-events: auto !important;
+            box-sizing: border-box !important;
         }
         #game-over-screen.hidden {
             display: none !important;
@@ -1029,6 +1111,262 @@
             visibility: visible !important;
             opacity: 1 !important;
             pointer-events: auto !important;
+        }
+
+        .apex-cyber-game-over {
+            background: linear-gradient(165deg, rgba(28, 12, 24, 0.97) 0%, rgba(10, 5, 14, 0.99) 100%) !important;
+            border: 1.5px solid rgba(255, 0, 85, 0.65) !important;
+            border-radius: 24px !important;
+            padding: clamp(16px, 3.5vw, 30px) !important;
+            width: 100% !important;
+            max-width: 520px !important;
+            box-shadow: 0 0 60px rgba(255, 0, 85, 0.35), 0 20px 80px rgba(0, 0, 0, 0.8), inset 0 0 24px rgba(255, 0, 85, 0.1) !important;
+            direction: rtl !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            text-align: center !important;
+            position: relative !important;
+            box-sizing: border-box !important;
+            margin: auto !important;
+            animation: goCardIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+
+        @keyframes goCardIn {
+            0% { opacity: 0; transform: scale(0.92) translateY(18px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        .game-over-skull-badge {
+            width: 54px;
+            height: 54px;
+            border-radius: 50%;
+            background: rgba(255, 0, 85, 0.15);
+            border: 1.5px solid rgba(255, 0, 85, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            box-shadow: 0 0 20px rgba(255, 0, 85, 0.4);
+            animation: pulseBadge 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseBadge {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(255, 0, 85, 0.4); }
+            50% { transform: scale(1.08); box-shadow: 0 0 35px rgba(255, 0, 85, 0.7); }
+        }
+
+        .game-over-header .screen-title {
+            font-family: 'Chakra Petch', 'Tajawal', sans-serif !important;
+            font-size: clamp(1.8rem, 6vw, 2.6rem) !important;
+            font-weight: 900 !important;
+            color: #ff0055 !important;
+            background: linear-gradient(180deg, #ffffff 10%, #ff0055 90%) !important;
+            -webkit-background-clip: text !important;
+            -webkit-text-fill-color: transparent !important;
+            filter: drop-shadow(0 0 16px rgba(255, 0, 85, 0.6)) !important;
+            margin: 0 !important;
+            line-height: 1.15 !important;
+        }
+
+        .game-over-status-tag {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+            color: #ff77aa;
+            letter-spacing: 1.5px;
+            margin-top: 4px;
+            margin-bottom: 14px;
+            text-transform: uppercase;
+        }
+
+        .game-over-stats-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 10px !important;
+            width: 100% !important;
+            margin-bottom: 12px !important;
+        }
+
+        .go-stat-card {
+            background: rgba(255, 255, 255, 0.04) !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 14px !important;
+            padding: 10px 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            text-align: right !important;
+            transition: transform 0.2s, border-color 0.2s !important;
+        }
+
+        .go-stat-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(0, 243, 255, 0.4) !important;
+        }
+
+        .go-stat-icon {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .go-stat-meta {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .go-stat-label {
+            font-size: 0.70rem;
+            color: #94a3b8;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        .go-stat-value {
+            font-size: 1.1rem;
+            font-weight: 900;
+            font-family: 'Chakra Petch', 'Share Tech Mono', monospace;
+            line-height: 1.2;
+        }
+
+        .go-stat-value.gold { color: #ffd700; }
+        .go-stat-value.cyan { color: #00f3ff; }
+        .go-stat-value.blue { color: #38bdf8; }
+        .go-stat-value.purple { color: #e879f9; }
+        .go-stat-sub { font-size: 0.65rem; color: #00ff88; margin-top: 1px; }
+
+        .cyber-telemetry-box {
+            background: rgba(0, 0, 0, 0.45) !important;
+            border: 1px solid rgba(0, 243, 255, 0.2) !important;
+            border-radius: 14px !important;
+            padding: 10px 14px !important;
+            width: 100% !important;
+            margin-bottom: 16px !important;
+        }
+
+        .telemetry-box-title {
+            font-size: 0.75rem !important;
+            font-weight: 800 !important;
+            color: #00f3ff !important;
+            margin-bottom: 8px !important;
+            font-family: 'Tajawal', sans-serif;
+            text-align: center;
+        }
+
+        .telemetry-chips-row {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 6px 12px !important;
+        }
+
+        .tel-chip {
+            font-size: 0.72rem !important;
+            color: #cbd5e1 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            background: rgba(255, 255, 255, 0.03) !important;
+            padding: 3px 8px !important;
+            border-radius: 8px !important;
+            font-family: 'Tajawal', sans-serif;
+        }
+
+        .tel-val { font-family: 'Share Tech Mono', monospace; font-weight: bold; font-size: 0.85rem; }
+        .tel-val.cyan { color: #00f3ff; }
+        .tel-val.green { color: #00ff88; }
+        .tel-val.orange { color: #fb923c; }
+        .tel-val.red { color: #f43f5e; }
+
+        .game-over-actions {
+            display: flex !important;
+            gap: 10px !important;
+            width: 100% !important;
+        }
+
+        .go-btn-menu-primary {
+            background: linear-gradient(135deg, #00f3ff 0%, #0088ff 100%) !important;
+            color: #020617 !important;
+            border: none !important;
+            border-radius: 14px !important;
+            font-weight: 900 !important;
+            font-size: 0.95rem !important;
+            padding: 12px 16px !important;
+            flex: 1.4 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 8px !important;
+            box-shadow: 0 0 25px rgba(0, 243, 255, 0.4) !important;
+            cursor: pointer !important;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        }
+
+        .go-btn-menu-primary:hover, .go-btn-menu-primary:focus-visible {
+            transform: scale(1.03) !important;
+            box-shadow: 0 0 35px rgba(0, 243, 255, 0.7) !important;
+        }
+
+        .go-btn-restart {
+            background: rgba(255, 255, 255, 0.08) !important;
+            color: #e2e8f0 !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 14px !important;
+            font-weight: 700 !important;
+            font-size: 0.88rem !important;
+            padding: 12px 14px !important;
+            flex: 1 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            gap: 6px !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+        }
+
+        .go-btn-restart:hover, .go-btn-restart:focus-visible {
+            background: rgba(255, 255, 255, 0.16) !important;
+            border-color: rgba(255, 255, 255, 0.4) !important;
+            transform: scale(1.02) !important;
+        }
+
+        .go-btn-kbd {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            padding: 1px 6px;
+            font-size: 0.68rem;
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: bold;
+            margin-right: auto;
+        }
+
+        @media (max-width: 480px) {
+            .apex-cyber-game-over {
+                padding: 14px !important;
+                border-radius: 18px !important;
+            }
+            .game-over-skull-badge {
+                width: 44px;
+                height: 44px;
+                margin-bottom: 4px;
+            }
+            .game-over-stats-grid {
+                gap: 6px !important;
+            }
+            .go-stat-card {
+                padding: 6px 8px !important;
+                border-radius: 10px !important;
+            }
+            .go-btn-kbd {
+                display: none !important;
+            }
+            .game-over-actions {
+                flex-direction: column !important;
+                gap: 8px !important;
+            }
+            .go-btn-restart, .go-btn-menu {
+                width: 100% !important;
+                padding: 10px 12px !important;
+            }
         }
         
         .screen-title { 
@@ -2804,7 +3142,6 @@
 /* ====================================================================
    COMPREHENSIVE VISUAL POLISH PASS (INDIE SCI-FI NEON SPACE SHOOTER)
    ==================================================================== */
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700;900&family=Tajawal:wght@400;500;700;900&display=swap');
 
 body {
     font-family: 'Chakra Petch', 'Tajawal', -apple-system, sans-serif !important;

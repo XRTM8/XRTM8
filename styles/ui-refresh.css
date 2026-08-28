@@ -382,13 +382,28 @@ select:focus-visible {
 }
 
 #game-over-screen {
-    z-index: 1000000 !important;
+    z-index: 2147483647 !important;
     background:
         radial-gradient(circle at 50% 20%, rgba(255, 65, 108, 0.2), transparent 32%),
         rgba(2, 6, 12, 0.94) !important;
+    justify-content: center !important;
+    align-items: center !important;
 }
 
-.game-over-card,
+#game-over-screen.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+}
+
+#game-over-screen:not(.hidden) {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
 .respawn-card {
     width: min(520px, 94vw) !important;
     max-height: calc(var(--app-height) - 28px) !important;
@@ -401,25 +416,6 @@ select:focus-visible {
     scrollbar-width: thin;
 }
 
-.game-over-card .screen-title {
-    margin-bottom: 12px !important;
-    color: #ffffff !important;
-    background: none !important;
-    -webkit-text-fill-color: #ffffff !important;
-    font-size: clamp(2rem, 8vw, 3.5rem) !important;
-    letter-spacing: -0.03em !important;
-}
-
-.game-over-card .screen-subtitle {
-    display: block !important;
-    width: 100% !important;
-    padding: 14px 16px !important;
-    border-radius: 14px !important;
-    line-height: 1.8 !important;
-    background: rgba(255, 255, 255, 0.04) !important;
-}
-
-.game-over-actions,
 .respawn-actions {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
