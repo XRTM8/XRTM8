@@ -4772,7 +4772,15 @@ html[lang="en"] .title-sub {
 }
 
 /* 8. Spectator HUD Overlay */
-.spectator-hud-overlay {
+.spectator-hud-overlay.hidden,
+#spectator-hud-overlay.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.spectator-hud-overlay:not(.hidden) {
     position: fixed;
     bottom: 25px;
     left: 50%;

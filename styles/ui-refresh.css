@@ -1008,7 +1008,15 @@ select:focus-visible {
 /* ===================================================================
    ENHANCED LIVE SPECTATOR HUD & ALLY TRACKING DOCK
    =================================================================== */
-.spectator-hud-overlay {
+.spectator-hud-overlay.hidden,
+#spectator-hud-overlay.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.spectator-hud-overlay:not(.hidden) {
     position: fixed !important;
     bottom: max(20px, env(safe-area-inset-bottom)) !important;
     left: 50% !important;

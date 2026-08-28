@@ -1633,7 +1633,7 @@ function spectatorCyclePrev() {
 function updateSpectatorHUD(targetPlayer) {
     const overlay = document.getElementById('spectator-hud-overlay');
     const nameEl = document.getElementById('spectator-target-name');
-    if (!overlay || !targetPlayer) return;
+    if (!overlay || !targetPlayer || !isSpectating) return;
     overlay.classList.remove('hidden');
     overlay.style.display = 'flex';
     if (nameEl) {
