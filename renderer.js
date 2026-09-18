@@ -1,0 +1,3157 @@
+/**
+ * Hyper-Lane Tactics Online - Tactical Canvas 2D Renderer (v5.0 Overhaul)
+ * 60-120 FPS requestAnimationFrame with Linear Interpolation (Lerp)
+ * Cyber Fortresses, Plasma Chasm River, High-Detail Mecha Units & Floating Damage Text
+ */
+
+class TacticalRenderer {
+    constructor(canvas, gameRoom, options = {}) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d', { alpha: false });
+        this.room = gameRoom;
+        this.options = options;
+
+        // Virtual Resolution (9:16)
+        this.V_WIDTH = 1080;
+        this.V_HEIGHT = 1920;
+
+        // Display scaling
+        this.scale = 1.0;
+        this.offsetX = 0;
+        this.offsetY = 0;
+
+        // Snapshot buffer for Lerp
+        this.prevSnapshot = null;
+        this.currentSnapshot = null;
+        this.lastSnapshotTime = performance.now();
+        this.tickInterval = 50; // 50ms (20 Ticks/sec)
+
+        // Particle System Pool & FX
+        this.particles = [];
+        this.laserBeams = [];
+        this.mortarShells = [];
+        this.empRings = [];
+        this.floatingTexts = [];
+        this.maxParticles = 180;
+
+        // Interactive Drag State
+        this.dragState = {
+            active: false,
+            cardId: null,
+            canvasX: 0,
+            canvasY: 0,
+            hoveredLane: null,
+            snappedUnitId: null,
+            isCatalyst: false
+        };
+
+        this.selectedCardId = null;
+        this.screenShake = 0;
+        this.activeHazardAlert = null;
+
+        this.initResize();
+        this.bindEvents();
+        this.hookGameRoomEvents();
+    }
+
+    initResize() {
+        const resize = () => {
+            const parent = this.canvas.parentElement;
+            if (!parent) return;
+
+            const rect = parent.getBoundingClientRect();
+            const renderW = Math.round(rect.width);
+            const renderH = Math.round(rect.height);
+
+            if (renderW === 0 || renderH === 0) return;
+
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            this.canvas.width = Math.round(renderW * dpr);
+            this.canvas.height = Math.round(renderH * dpr);
+            this.canvas.style.width = '100%';
+            this.canvas.style.height = '100%';
+
+            this.scale = (renderW * dpr) / this.V_WIDTH;
+            this.dpr = dpr;
+        };
+
+        window.addEventListener('resize', resize);
+        window.addEventListener('orientationchange', resize);
+        if (typeof ResizeObserver !== 'undefined' && this.canvas.parentElement) {
+            new ResizeObserver(resize).observe(this.canvas.parentElement);
+        }
+        resize();
+    }
+
+    feedSnapshot(snapshot) {
+        this.prevSnapshot = this.currentSnapshot || snapshot;
+        this.currentSnapshot = snapshot;
+        this.lastSnapshotTime = performance.now();
+    }
+
+    hookGameRoomEvents() {
+        this.room.onEvent = (evt) => {
+            if (this.options.onSoundTrigger) {
+                this.options.onSoundTrigger(evt.type, evt);
+            }
+
+            // Visual effects triggers
+            if (evt.type === 'unit_attack') {
+                this.createSparks(evt.targetX, evt.targetY, evt.splash ? 18 : 8, '#00F2FE');
+            } else if (evt.type === 'tower_laser_fire') {
+                const color = evt.owner === 1 ? '#00F2FE' : '#FF2A54';
+                this.laserBeams.push({
+                    fromX: evt.fromX, fromY: evt.fromY,
+                    toX: evt.toX, toY: evt.toY,
+                    color: color,
+                    life: 0.22, maxLife: 0.22
+                });
+                this.createSparks(evt.toX, evt.toY, 12, color);
+            } else if (evt.type === 'emp_blast' || evt.type === 'cannon_fired') {
+                this.empRings.push({
+                    x: evt.x, y: evt.y || 820,
+                    radius: 10, maxRadius: 360,
+                    color: '#FFB703',
+                    life: 0.5, maxLife: 0.5
+                });
+                this.screenShake = 14;
+            } else if (evt.type === 'unit_fused') {
+                this.createSparks(evt.x, evt.y, 45, '#00F2FE');
+                this.empRings.push({
+                    x: evt.x, y: evt.y,
+                    radius: 20, maxRadius: 200,
+                    color: '#00F2FE',
+                    life: 0.4, maxLife: 0.4
+                });
+                this.addFloatingText(evt.x, evt.y - 45, 'FUSION EVOLUTION!', '#00F2FE', true);
+                this.screenShake = 8;
+            } else if (evt.type === 'tower_destroyed') {
+                this.createSparks(evt.x, evt.y, 60, '#FF2A54');
+                this.addFloatingText(evt.x, evt.y, 'FORTRESS DESTROYED', '#FF2A54', true);
+                this.screenShake = 24;
+            } else if (evt.type === 'relay_captured') {
+                this.empRings.push({
+                    x: 540, y: 820,
+                    radius: 20, maxRadius: 240,
+                    color: evt.owner === 1 ? '#00F2FE' : '#FF2A54',
+                    life: 0.45, maxLife: 0.45
+                });
+                this.addFloatingText(540, 800, 'RELAY OVERCHARGE!', evt.owner === 1 ? '#00F2FE' : '#FF2A54', true);
+            } else if (evt.type === 'damage_dealt') {
+                const color = evt.isShield ? '#00F2FE' : (evt.isTower ? '#FFB703' : '#FF2A54');
+                const text = evt.isShield ? `SHIELD -${evt.amount}` : `-${evt.amount}`;
+                this.addFloatingText(evt.x + (Math.random() - 0.5) * 35, evt.y - 25, text, color, evt.amount > 130);
+            } else if (evt.type === 'orbital_strike') {
+                this.laserBeams.push({
+                    fromX: evt.fromX, fromY: evt.fromY,
+                    toX: evt.toX, toY: evt.toY,
+                    color: '#FFB703',
+                    life: 0.4, maxLife: 0.4
+                });
+                this.createSparks(evt.toX, evt.toY, 35, '#FFB703');
+                this.addFloatingText(evt.toX, evt.toY - 25, 'ORBITAL BEAM -260', '#FFB703', true);
+                this.screenShake = 18;
+            } else if (evt.type === 'sniper_fire') {
+                const color = evt.owner === 1 ? '#00F2FE' : '#FF2A54';
+                this.laserBeams.push({
+                    fromX: evt.x, fromY: evt.y,
+                    toX: evt.targetX !== undefined ? evt.targetX : evt.x,
+                    toY: evt.targetY !== undefined ? evt.targetY : (evt.y - 300),
+                    color: color,
+                    life: 0.28, maxLife: 0.28
+                });
+                this.createSparks(evt.x, evt.y, 14, '#FFFFFF');
+                this.empRings.push({
+                    x: evt.x, y: evt.y,
+                    radius: 6, maxRadius: 50,
+                    color: color,
+                    life: 0.2, maxLife: 0.2
+                });
+                this.addFloatingText(evt.x, evt.y - 35, '🎯 SNIPER CRIT', color, true);
+            } else if (evt.type === 'turret_fire') {
+                const color = evt.owner === 1 ? '#00F2FE' : '#FFB703';
+                this.laserBeams.push({
+                    fromX: evt.x, fromY: evt.y,
+                    toX: evt.targetX !== undefined ? evt.targetX : evt.x,
+                    toY: evt.targetY !== undefined ? evt.targetY : (evt.y - 180),
+                    color: color,
+                    life: 0.12, maxLife: 0.12
+                });
+                this.createSparks(evt.targetX !== undefined ? evt.targetX : evt.x, evt.targetY !== undefined ? evt.targetY : evt.y, 6, color);
+            } else if (evt.type === 'mortar_fire') {
+                const color = evt.owner === 1 ? '#00F2FE' : '#FFB703';
+                this.mortarShells.push({
+                    fromX: evt.x, fromY: evt.y,
+                    toX: evt.targetX !== undefined ? evt.targetX : evt.x,
+                    toY: evt.targetY !== undefined ? evt.targetY : (evt.y - 450),
+                    splashRadius: evt.splashRadius || 130,
+                    color: color,
+                    duration: 0.75, // 0.75s travel time
+                    elapsed: 0,
+                    owner: evt.owner
+                });
+                this.createSparks(evt.x, evt.y - 18, 16, '#FFB703');
+            } else if (evt.type === 'orbital_target_locked') {
+                this.empRings.push({
+                    x: evt.x, y: evt.y,
+                    radius: 320, maxRadius: 20,
+                    color: '#FF2A54',
+                    life: 0.75, maxLife: 0.75
+                });
+                this.addFloatingText(evt.x, evt.y - 40, '⚠️ ORBITAL LOCK 320px', '#FF2A54', true);
+            } else if (evt.type === 'orbital_impact') {
+                this.empRings.push({
+                    x: evt.x, y: evt.y,
+                    radius: 15, maxRadius: 180,
+                    color: '#FFB703',
+                    life: 0.45, maxLife: 0.45
+                });
+                this.createSparks(evt.x, evt.y, 30, '#FF5500');
+                this.screenShake = Math.max(this.screenShake, 14);
+            } else if (evt.type === 'nano_shield_aoe') {
+                this.empRings.push({
+                    x: evt.x, y: evt.y,
+                    radius: 20, maxRadius: evt.radius || 320,
+                    color: '#10B981',
+                    life: 0.6, maxLife: 0.6
+                });
+                this.createSparks(evt.x, evt.y, 40, '#34D399');
+                this.addFloatingText(evt.x, evt.y - 45, '🛡️ NANO AEGIS +480', '#10B981', true);
+            } else if (evt.type === 'plasma_blast') {
+                this.empRings.push({
+                    x: evt.x, y: evt.y,
+                    radius: 20, maxRadius: evt.radius || 320,
+                    color: '#A855F7',
+                    life: 0.6, maxLife: 0.6
+                });
+                this.createSparks(evt.x, evt.y, 50, '#FF2A54');
+                this.addFloatingText(evt.x, evt.y - 45, '🔥 PLASMA WAVE 320px', '#FF2A54', true);
+                this.screenShake = Math.max(this.screenShake, 12);
+            } else if (evt.type === 'cryo_freeze_pulse') {
+                this.empRings.push({
+                    x: evt.x, y: evt.y,
+                    radius: 25, maxRadius: evt.radius || 320,
+                    color: '#A5F3FC',
+                    life: 0.85, maxLife: 0.85
+                });
+                this.createSparks(evt.x, evt.y, 45, '#E0F2FE');
+                this.addFloatingText(evt.x, evt.y - 45, '❄️ CRYO FREEZE 3.5s', '#00F2FE', true);
+                this.screenShake = Math.max(this.screenShake, 8);
+            } else if (evt.type === 'spawner_deploy') {
+                this.empRings.push({
+                    x: evt.x, y: evt.y,
+                    radius: 10, maxRadius: 60,
+                    color: '#00F2FE',
+                    life: 0.45, maxLife: 0.45
+                });
+                this.createSparks(evt.x, evt.y, 25, '#38BDF8');
+            } else if (evt.type === 'inferno_beam_tick') {
+                const rampFactor = Math.min(1.0, (evt.beamDuration || 0) / 4.0);
+                const sparkColor = rampFactor > 0.7 ? '#FFFA65' : (rampFactor > 0.3 ? '#FF8C00' : '#FF4500');
+                this.createSparks(evt.targetX, evt.targetY, Math.round(3 + rampFactor * 8), sparkColor);
+                if (rampFactor > 0.6 && Math.random() < 0.35) {
+                    this.screenShake = Math.max(this.screenShake, 3);
+                }
+            } else if (evt.type === 'twin_zap_strike') {
+                const color = '#00F2FE';
+                this.laserBeams.push({
+                    fromX: evt.attackerX, fromY: evt.attackerY,
+                    toX: evt.target1X, toY: evt.target1Y,
+                    color: color,
+                    life: 0.18, maxLife: 0.18
+                });
+                this.createSparks(evt.target1X, evt.target1Y, 14, '#38BDF8');
+                this.addFloatingText(evt.target1X, evt.target1Y - 25, '⚡ MICRO-STUN', '#00F2FE', false);
+
+                if (evt.target2X !== null && evt.target2Y !== null) {
+                    this.laserBeams.push({
+                        fromX: evt.attackerX, fromY: evt.attackerY,
+                        toX: evt.target2X, toY: evt.target2Y,
+                        color: '#67E8F9',
+                        life: 0.18, maxLife: 0.18
+                    });
+                    this.createSparks(evt.target2X, evt.target2Y, 14, '#67E8F9');
+                    this.addFloatingText(evt.target2X, evt.target2Y - 25, '⚡ MICRO-STUN', '#00F2FE', false);
+                }
+                this.screenShake = Math.max(this.screenShake, 4);
+            } else if (evt.type === 'arena_hazard') {
+                this.activeHazardAlert = {
+                    hazardType: evt.hazardType,
+                    title: evt.title,
+                    desc: evt.desc,
+                    life: 3.8,
+                    maxLife: 3.8
+                };
+                this.screenShake = Math.max(this.screenShake, 16);
+                if (evt.hazardType === 'plasma_storm') {
+                    for (let i = 0; i < 6; i++) {
+                        const rx = 180 + Math.random() * 720;
+                        const ry = 720 + Math.random() * 180;
+                        this.empRings.push({
+                            x: rx, y: ry,
+                            radius: 15, maxRadius: 180,
+                            color: '#A855F7',
+                            life: 0.75, maxLife: 0.75
+                        });
+                        this.createSparks(rx, ry, 35, '#C084FC');
+                    }
+                } else {
+                    this.empRings.push({
+                        x: 540, y: 820,
+                        radius: 40, maxRadius: 460,
+                        color: '#FFB703',
+                        life: 1.2, maxLife: 1.2
+                    });
+                    this.createSparks(540, 820, 65, '#F59E0B');
+                }
+            }
+        };
+    }
+
+    addFloatingText(x, y, text, color, isCrit = false) {
+        if (this.floatingTexts.length > 30) this.floatingTexts.shift();
+        this.floatingTexts.push({
+            x, y,
+            text,
+            color,
+            isCrit,
+            life: 0.75,
+            maxLife: 0.75,
+            vy: -40 - Math.random() * 20
+        });
+    }
+
+    createSparks(x, y, count, color) {
+        for (let i = 0; i < count; i++) {
+            if (this.particles.length >= this.maxParticles) break;
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 50 + Math.random() * 240;
+            this.particles.push({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                color: color,
+                size: 3 + Math.random() * 5,
+                life: 0.25 + Math.random() * 0.35,
+                maxLife: 0.6
+            });
+        }
+    }
+
+    // --- MAIN RENDER LOOP ---
+    render(now) {
+        const ctx = this.ctx;
+        const nowMs = now || performance.now();
+        const dt = 0.016;
+
+        const elapsed = nowMs - this.lastSnapshotTime;
+        const alpha = Math.min(1.0, elapsed / this.tickInterval);
+
+        let shakeX = 0, shakeY = 0;
+        if (this.screenShake > 0) {
+            shakeX = (Math.random() - 0.5) * this.screenShake;
+            shakeY = (Math.random() - 0.5) * this.screenShake;
+            this.screenShake = Math.max(0, this.screenShake - 0.8);
+        }
+
+        ctx.save();
+        try {
+            ctx.scale(this.scale, this.scale);
+            ctx.translate(shakeX, shakeY);
+
+            // 1. Draw Cyber Arena Map & Plasma Chasm River
+            this.drawArenaBackground(ctx, nowMs);
+
+            // 2. Draw 3 Distinct Lanes with guidance rails
+            this.drawLanes(ctx, nowMs);
+
+            // 3. Draw Bridges crossing the Plasma Chasm
+            this.drawChasmBridges(ctx);
+
+            // 4. Draw Central Relay Core
+            const relayState = this.currentSnapshot ? this.currentSnapshot.relayCore : null;
+            this.drawRelayCore(ctx, relayState, nowMs);
+
+            // 5. Draw Cyber Fortresses (Towers)
+            if (this.currentSnapshot) {
+                this.drawTowers(ctx, this.currentSnapshot.p1.towers, 1, nowMs);
+                this.drawTowers(ctx, this.currentSnapshot.p2.towers, 2, nowMs);
+            }
+
+            // 6. Draw Units with Lerp & Mecha Vectors
+            this.drawUnits(ctx, alpha, nowMs);
+
+            // 7. Draw Visual FX & Floating Damage Text
+            this.drawVisualEffects(ctx, dt);
+
+            // 8. Draw Drag Reticle
+            this.drawDragOverlay(ctx);
+
+            // 9. Draw Redline Edge Warning
+            if (this.currentSnapshot && this.currentSnapshot.p1.isRedline) {
+                this.drawRedlineGlow(ctx, nowMs);
+            }
+
+            // 10. Draw In-World Overtime Sky Banner directly above Enemy Base
+            if (this.currentSnapshot && this.currentSnapshot.isOvertime) {
+                this.drawOvertimeSkyBanner(ctx, nowMs);
+            }
+
+            // 11. Draw Dynamic Arena Hazard In-World Sky Banner
+            if (this.activeHazardAlert && this.activeHazardAlert.life > 0) {
+                this.drawHazardSkyBanner(ctx, dt, nowMs);
+            }
+        } catch (renderErr) {
+            console.error('TacticalRenderer.render error:', renderErr);
+        } finally {
+            ctx.restore();
+        }
+    }
+
+    drawArenaBackground(ctx, nowMs) {
+        // Deep carbon background
+        ctx.fillStyle = '#06080E';
+        ctx.fillRect(0, 0, this.V_WIDTH, this.V_HEIGHT);
+
+        // Glowing cyber grid
+        ctx.strokeStyle = 'rgba(0, 242, 254, 0.035)';
+        ctx.lineWidth = 1;
+        const gridSize = 64;
+
+        ctx.beginPath();
+        for (let x = 0; x <= this.V_WIDTH; x += gridSize) {
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, this.V_HEIGHT);
+        }
+        for (let y = 0; y <= this.V_HEIGHT; y += gridSize) {
+            ctx.moveTo(0, y);
+            ctx.lineTo(this.V_WIDTH, y);
+        }
+        ctx.stroke();
+
+        // --- PLASMA CHASM (River at Y = 820) ---
+        const chasmY = 820;
+        const chasmH = 70;
+
+        // Chasm trench background
+        const riverGrad = ctx.createLinearGradient(0, chasmY - chasmH/2, 0, chasmY + chasmH/2);
+        riverGrad.addColorStop(0, 'rgba(0, 242, 254, 0.02)');
+        riverGrad.addColorStop(0.5, 'rgba(0, 242, 254, 0.12)');
+        riverGrad.addColorStop(1, 'rgba(0, 242, 254, 0.02)');
+        ctx.fillStyle = riverGrad;
+        ctx.fillRect(0, chasmY - chasmH/2, this.V_WIDTH, chasmH);
+
+        // Chasm glowing borders
+        ctx.strokeStyle = 'rgba(0, 242, 254, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, chasmY - chasmH/2);
+        ctx.lineTo(this.V_WIDTH, chasmY - chasmH/2);
+        ctx.moveTo(0, chasmY + chasmH/2);
+        ctx.lineTo(this.V_WIDTH, chasmY + chasmH/2);
+        ctx.stroke();
+
+        // Sinusoidal energy streams inside chasm
+        ctx.strokeStyle = 'rgba(0, 242, 254, 0.25)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let x = 0; x <= this.V_WIDTH; x += 12) {
+            const yOffset = Math.sin((x * 0.015) + (nowMs * 0.003)) * 14;
+            if (x === 0) ctx.moveTo(x, chasmY + yOffset);
+            else ctx.lineTo(x, chasmY + yOffset);
+        }
+        ctx.stroke();
+
+        // Deployment boundary warning line at Y = 900
+        // Free Deployment boundary warning line at Y = 860
+        ctx.strokeStyle = 'rgba(0, 242, 254, 0.45)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([12, 8]);
+        ctx.beginPath();
+        ctx.moveTo(40, 860);
+        ctx.lineTo(this.V_WIDTH - 40, 860);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.font = '700 13px "Rajdhani"';
+        ctx.fillStyle = 'rgba(0, 242, 254, 0.65)';
+        ctx.textAlign = 'right';
+        ctx.fillText('⚡ منطقة الإنزال الحر (FREE TACTICAL DEPLOYMENT ZONE)', this.V_WIDTH - 50, 882);
+    }
+
+    drawLanes(ctx, nowMs) {
+        // Bridges crossing the chasm at Y = 820
+        const bridges = [
+            { x: 230, w: 180, isHyper: false, id: 0, name: 'LEFT BRIDGE' },
+            { x: 540, w: 200, isHyper: true, id: 1, name: 'HYPER-CORE' },
+            { x: 850, w: 180, isHyper: false, id: 2, name: 'RIGHT BRIDGE' }
+        ];
+
+        // Draw bridge approaches only (spanning Y: 740 to 900)
+        for (const b of bridges) {
+            const isHovered = this.dragState.active && this.dragState.hoveredLane === b.id;
+            const laneColor = b.isHyper ? 'rgba(255, 183, 3, 0.12)' : 'rgba(0, 242, 254, 0.08)';
+            const borderColor = b.isHyper ? '#FFB703' : '#00F2FE';
+
+            // Bridge tactical approach pads (only near the chasm, not full screen!)
+            ctx.fillStyle = isHovered ? (b.isHyper ? 'rgba(255, 183, 3, 0.25)' : 'rgba(0, 242, 254, 0.2)') : laneColor;
+            ctx.fillRect(b.x - b.w / 2, 740, b.w, 160);
+
+            ctx.strokeStyle = isHovered ? borderColor : (b.isHyper ? 'rgba(255, 183, 3, 0.4)' : 'rgba(0, 242, 254, 0.25)');
+            ctx.lineWidth = isHovered ? 2.5 : 1.5;
+            ctx.strokeRect(b.x - b.w / 2, 740, b.w, 160);
+
+            // Directional chevron arrows at bridge entry
+            ctx.strokeStyle = b.isHyper ? 'rgba(255, 183, 3, 0.6)' : 'rgba(0, 242, 254, 0.4)';
+            ctx.lineWidth = 2;
+            const arrowY = 875;
+            ctx.beginPath();
+            ctx.moveTo(b.x - 24, arrowY + 10);
+            ctx.lineTo(b.x, arrowY);
+            ctx.lineTo(b.x + 24, arrowY + 10);
+            ctx.stroke();
+        }
+    }
+
+    drawChasmBridges(ctx, nowMs = performance.now()) {
+        const bridges = [230, 540, 850];
+        const chasmY = 820;
+        const bw = 172;
+        const bh = 80;
+
+        for (let idx = 0; idx < bridges.length; idx++) {
+            const bx = bridges[idx];
+            const isCenter = idx === 1;
+
+            // 1. Reinforced Steel Substructure & Shadow
+            ctx.fillStyle = '#060A12';
+            ctx.fillRect(bx - bw / 2 - 4, chasmY - bh / 2 - 2, bw + 8, bh + 4);
+
+            // 2. High-Tech Hex Deck Platform
+            ctx.fillStyle = '#0B1220';
+            ctx.fillRect(bx - bw / 2, chasmY - bh / 2, bw, bh);
+
+            // Tech floor grating pattern
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.07)';
+            ctx.lineWidth = 1.5;
+            for (let x = bx - bw / 2 + 16; x < bx + bw / 2; x += 24) {
+                ctx.beginPath();
+                ctx.moveTo(x, chasmY - bh / 2);
+                ctx.lineTo(x, chasmY + bh / 2);
+                ctx.stroke();
+            }
+
+            // Cross-brace tension cables
+            ctx.strokeStyle = 'rgba(0, 242, 254, 0.12)';
+            ctx.beginPath();
+            ctx.moveTo(bx - bw / 2, chasmY - bh / 2);
+            ctx.lineTo(bx + bw / 2, chasmY + bh / 2);
+            ctx.moveTo(bx - bw / 2, chasmY + bh / 2);
+            ctx.lineTo(bx + bw / 2, chasmY - bh / 2);
+            ctx.stroke();
+
+            // 3. Neon Energy Guide Rails
+            const railColor = isCenter ? '#FFB703' : '#00F2FE';
+            ctx.strokeStyle = railColor;
+            ctx.lineWidth = 3;
+            // North rail
+            ctx.beginPath();
+            ctx.moveTo(bx - bw / 2, chasmY - bh / 2);
+            ctx.lineTo(bx + bw / 2, chasmY - bh / 2);
+            ctx.stroke();
+            // South rail
+            ctx.beginPath();
+            ctx.moveTo(bx - bw / 2, chasmY + bh / 2);
+            ctx.lineTo(bx + bw / 2, chasmY + bh / 2);
+            ctx.stroke();
+
+            // 4. Moving Directional Energy Chevrons along lanes
+            const flowOffset = (nowMs * 0.05) % 36;
+            ctx.strokeStyle = railColor;
+            ctx.lineWidth = 2;
+            for (let y = chasmY - bh / 2 + flowOffset; y < chasmY + bh / 2; y += 36) {
+                ctx.beginPath();
+                ctx.moveTo(bx - 12, y - 6);
+                ctx.lineTo(bx, y);
+                ctx.lineTo(bx + 12, y - 6);
+                ctx.stroke();
+            }
+
+            // Corner bridge pylons with glowing LED status nodes
+            const corners = [
+                [bx - bw / 2, chasmY - bh / 2],
+                [bx + bw / 2, chasmY - bh / 2],
+                [bx - bw / 2, chasmY + bh / 2],
+                [bx + bw / 2, chasmY + bh / 2]
+            ];
+            for (const [cx, cy] of corners) {
+                ctx.fillStyle = '#1E293B';
+                ctx.fillRect(cx - 5, cy - 5, 10, 10);
+                ctx.fillStyle = railColor;
+                ctx.beginPath();
+                ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+
+    drawRelayCore(ctx, relayState, nowMs) {
+        const cx = 540;
+        const cy = 820;
+        const owner = relayState ? relayState.owner : 0;
+        const isCooldown = relayState && relayState.cooldown > 0;
+
+        let auraColor = '#FFB703';
+        if (owner === 1) auraColor = '#00F2FE';
+        if (owner === 2) auraColor = '#FF2A54';
+
+        const angle = (nowMs * 0.0018) % (Math.PI * 2);
+
+        ctx.save();
+        ctx.translate(cx, cy);
+
+        // 1. Holographic Ground Projection Ring
+        const pulse = 1 + Math.sin(nowMs * 0.006) * 0.1;
+        ctx.strokeStyle = auraColor;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 8]);
+        ctx.beginPath();
+        ctx.arc(0, 0, 58 * pulse, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 2. Heavy Segmented Gear Armor Ring
+        ctx.rotate(angle);
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 5;
+        ctx.setLineDash([18, 12]);
+        ctx.beginPath();
+        ctx.arc(0, 0, 46, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Inner glowing dial
+        ctx.strokeStyle = auraColor;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 38, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 3. Central Quantum Plasma Core
+        ctx.rotate(-angle * 2.2);
+        const grad = ctx.createRadialGradient(0, 0, 2, 0, 0, 24);
+        grad.addColorStop(0, '#FFFFFF');
+        grad.addColorStop(0.4, auraColor);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, 24, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Core Center Diamond Emblem
+        ctx.fillStyle = auraColor;
+        ctx.beginPath();
+        ctx.moveTo(0, -18); ctx.lineTo(18, 0); ctx.lineTo(0, 18); ctx.lineTo(-18, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        // 4. Orbiting Plasma Nodes with trails
+        for (let i = 0; i < 4; i++) {
+            const orbAngle = angle * 1.6 + (i * Math.PI / 2);
+            const ox = Math.cos(orbAngle) * 34;
+            const oy = Math.sin(orbAngle) * 34;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(ox, oy, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = auraColor;
+            ctx.beginPath();
+            ctx.arc(ox, oy, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Lightning energy discharge to bridges when overcharged
+        if (isCooldown || owner !== 0) {
+            this.drawElectricArcs(ctx, 42, auraColor, nowMs);
+        }
+
+        ctx.restore();
+
+        // Status Label
+        ctx.font = 'bold 18px "Rajdhani"';
+        ctx.textAlign = 'center';
+        if (isCooldown) {
+            ctx.fillStyle = '#94A3B8';
+            ctx.fillText(`OVERCHARGE: ${relayState.cooldown}s`, cx, cy + 86);
+        } else {
+            ctx.fillStyle = '#FFB703';
+            ctx.fillText('RELAY CORE ONLINE', cx, cy + 86);
+        }
+    }
+
+    // --- OVERHAULED CYBER FORTRESSES (TOWERS) ---
+    drawTowers(ctx, towers, playerNum, nowMs) {
+        const isP1 = playerNum === 1;
+        const primaryColor = isP1 ? '#00F2FE' : '#FF2A54';
+
+        const list = [
+            { key: 'left', data: towers.left, isMain: false },
+            { key: 'main', data: towers.main, isMain: true },
+            { key: 'right', data: towers.right, isMain: false }
+        ];
+
+        for (const t of list) {
+            const tower = t.data;
+            if (!tower.alive) {
+                this.drawDestroyedFortress(ctx, tower, t.isMain, nowMs);
+                continue;
+            }
+
+            // Find closest enemy unit to aim motorized turrets dynamically!
+            let targetAngle = isP1 ? -Math.PI / 2 : Math.PI / 2;
+            let hasTarget = false;
+            if (this.currentSnapshot && this.currentSnapshot.units) {
+                let minDist = tower.range || (t.isMain ? 310 : 260);
+                let closest = null;
+                for (const u of this.currentSnapshot.units) {
+                    if (!u.alive || u.owner === playerNum || u.isStealth) continue;
+                    const d = Math.hypot(u.x - tower.x, u.y - tower.y);
+                    if (d <= minDist) {
+                        minDist = d;
+                        closest = u;
+                    }
+                }
+                if (closest) {
+                    targetAngle = Math.atan2(closest.y - tower.y, closest.x - tower.x);
+                    hasTarget = true;
+                } else {
+                    // Idle subtle surveillance scan
+                    targetAngle += Math.sin(nowMs * 0.0016 + (tower.x * 0.02)) * 0.28;
+                }
+            }
+
+            ctx.save();
+            ctx.translate(tower.x, tower.y);
+
+            if (t.isMain) {
+                this.drawMainCitadel(ctx, tower, isP1, primaryColor, targetAngle, hasTarget, nowMs);
+            } else {
+                this.drawSentryTower(ctx, tower, isP1, primaryColor, targetAngle, hasTarget, nowMs);
+            }
+
+            // Frozen Ice Dome Overlay (Cryo Freeze Pulse)
+            if (tower.isFrozen) {
+                const rFrozen = t.isMain ? 68 : 50;
+                ctx.strokeStyle = '#A5F3FC';
+                ctx.fillStyle = 'rgba(165, 243, 252, 0.35)';
+                ctx.lineWidth = 3.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, rFrozen, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#E0F2FE';
+                for (let k = 0; k < 6; k++) {
+                    const ia = (k * Math.PI * 2) / 6;
+                    const ix = Math.cos(ia) * rFrozen;
+                    const iy = Math.sin(ia) * rFrozen;
+                    ctx.beginPath();
+                    ctx.moveTo(ix, iy);
+                    ctx.lineTo(ix + Math.cos(ia) * 16, iy + Math.sin(ia) * 16);
+                    ctx.lineTo(ix + Math.cos(ia + 0.3) * 8, iy + Math.sin(ia + 0.3) * 8);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+
+            ctx.restore();
+
+            // Segmented Holographic Health Bar
+            const barY = tower.y + (isP1 ? (t.isMain ? 78 : 64) : (t.isMain ? -78 : -64));
+            this.drawHealthBar(ctx, tower.x, barY, tower.hp, tower.maxHp, t.isMain ? 120 : 86, primaryColor, true);
+        }
+    }
+
+    drawMainCitadel(ctx, tower, isP1, primaryColor, targetAngle, hasTarget, nowMs) {
+        const baseRadius = 58;
+
+        // 1. Ground Energy Foundation Ring
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([10, 8]);
+        ctx.beginPath();
+        ctx.arc(0, 0, baseRadius + 14, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 2. Heavy 8-Sided Armored Bastion Platform
+        ctx.fillStyle = '#0B111D';
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 3.5;
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+            const a = (i * Math.PI * 2) / 8 + Math.PI / 8;
+            const px = Math.cos(a) * baseRadius;
+            const py = Math.sin(a) * baseRadius;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // 4 Corner Outpost Bastions with LED lights
+        for (let i = 0; i < 4; i++) {
+            const a = (i * Math.PI / 2);
+            const bx = Math.cos(a) * (baseRadius - 4);
+            const by = Math.sin(a) * (baseRadius - 4);
+            ctx.fillStyle = '#1E293B';
+            ctx.strokeStyle = primaryColor;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(bx, by, 9, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            // Conduit lines connecting bastions to core
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.lineTo(0, 0);
+            ctx.stroke();
+        }
+
+        // 3. Rotating Command Deck Ring
+        const ringAngle = (nowMs * 0.001) % (Math.PI * 2);
+        ctx.save();
+        ctx.rotate(ringAngle);
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 2;
+        ctx.setLineDash([14, 10]);
+        ctx.beginPath();
+        ctx.arc(0, 0, 36, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+        // 4. Central Nuclear Reactor Spire Core
+        const corePulse = 1 + Math.sin(nowMs * 0.007) * 0.12;
+        const radGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, 24 * corePulse);
+        radGrad.addColorStop(0, '#FFFFFF');
+        radGrad.addColorStop(0.5, primaryColor);
+        radGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = radGrad;
+        ctx.beginPath();
+        ctx.arc(0, 0, 24 * corePulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 5. Motorized Heavy Dual-Barrel Plasma Turret Head (Aims dynamically!)
+        ctx.save();
+        ctx.rotate(targetAngle);
+
+        // Armored Mantlet Box
+        ctx.fillStyle = '#1E293B';
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(-16, -16, 32, 32, 6);
+        else ctx.rect(-16, -16, 32, 32);
+        ctx.fill();
+        ctx.stroke();
+
+        // Twin Heavy Plasma Cannons extending forward along targetAngle
+        ctx.fillStyle = primaryColor;
+        ctx.fillRect(8, -10, 28, 7);
+        ctx.fillRect(8, 3, 28, 7);
+
+        // Muzzle brakes
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(34, -12, 6, 11);
+        ctx.fillRect(34, 1, 6, 11);
+
+        // Laser targeting beam when enemy is locked
+        if (hasTarget) {
+            ctx.strokeStyle = isP1 ? 'rgba(0, 242, 254, 0.7)' : 'rgba(255, 42, 84, 0.7)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.moveTo(40, 0);
+            ctx.lineTo(130, 0);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        ctx.restore();
+
+        // Command Spire Tip Apex
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(0, 0, 5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    drawSentryTower(ctx, tower, isP1, primaryColor, targetAngle, hasTarget, nowMs) {
+        const baseRadius = 40;
+
+        // 1. Reinforced Hex Bunker Base
+        ctx.fillStyle = '#0B111D';
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const a = (i * Math.PI * 2) / 6;
+            const px = Math.cos(a) * baseRadius;
+            const py = Math.sin(a) * baseRadius;
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Neon armor edge segments
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, baseRadius - 8, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 2. Independent Rotating Radar Dish
+        const radarAngle = (nowMs * 0.003) % (Math.PI * 2);
+        ctx.save();
+        ctx.rotate(radarAngle);
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(baseRadius - 12, 0);
+        ctx.stroke();
+        ctx.fillStyle = primaryColor;
+        ctx.beginPath();
+        ctx.arc(baseRadius - 12, 0, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 3. Motorized Twin-Gatling Ball Turret (Aims dynamically!)
+        ctx.save();
+        ctx.rotate(targetAngle);
+
+        // Ball turret dome
+        ctx.fillStyle = '#1E293B';
+        ctx.strokeStyle = primaryColor;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Twin Gatling Barrels
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(8, -6, 20, 4);
+        ctx.fillRect(8, 2, 20, 4);
+
+        // Muzzle Glow if target locked
+        if (hasTarget) {
+            ctx.fillStyle = primaryColor;
+            ctx.beginPath();
+            ctx.arc(28, -4, 3, 0, Math.PI * 2);
+            ctx.arc(28, 4, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.restore();
+    }
+
+    drawDestroyedFortress(ctx, tower, isMain, nowMs) {
+        const rad = isMain ? 52 : 38;
+
+        // 1. Molten Scorched Crater
+        ctx.fillStyle = 'rgba(11, 15, 25, 0.95)';
+        ctx.beginPath();
+        ctx.arc(tower.x, tower.y, rad, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Fiery molten cracks
+        ctx.strokeStyle = 'rgba(255, 69, 0, 0.7)';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(tower.x - rad * 0.7, tower.y - rad * 0.2);
+        ctx.lineTo(tower.x + rad * 0.1, tower.y + rad * 0.3);
+        ctx.lineTo(tower.x + rad * 0.8, tower.y - rad * 0.4);
+        ctx.moveTo(tower.x - rad * 0.3, tower.y + rad * 0.6);
+        ctx.lineTo(tower.x + rad * 0.4, tower.y - rad * 0.5);
+        ctx.stroke();
+
+        // Shattered armor rim
+        ctx.strokeStyle = '#475569';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 12]);
+        ctx.beginPath();
+        ctx.arc(tower.x, tower.y, rad, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Rising smoke plume rings
+        const smokePhase = (nowMs * 0.002) % 1;
+        ctx.fillStyle = 'rgba(100, 116, 139, 0.25)';
+        ctx.beginPath();
+        ctx.arc(tower.x + Math.sin(nowMs * 0.003) * 6, tower.y - 12 - smokePhase * 24, 14 + smokePhase * 12, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Intermittent electrical short-circuit spark
+        if (Math.sin(nowMs * 0.02) > 0.85) {
+            ctx.strokeStyle = '#FF2A54';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(tower.x - 10, tower.y);
+            ctx.lineTo(tower.x, tower.y - 8);
+            ctx.lineTo(tower.x + 12, tower.y + 2);
+            ctx.stroke();
+        }
+
+        // Glitch Holographic Sign
+        const glitchAlpha = 0.6 + Math.sin(nowMs * 0.015) * 0.35;
+        ctx.save();
+        ctx.font = 'bold 13px "Rajdhani"';
+        ctx.fillStyle = `rgba(255, 42, 84, ${glitchAlpha})`;
+        ctx.textAlign = 'center';
+        ctx.fillText('⚡ CRITICAL OFFLINE ⚡', tower.x, tower.y + 4);
+        ctx.restore();
+    }
+
+    // --- UNIT SPRITES RENDERING ---
+    drawUnits(ctx, alpha, nowMs) {
+        if (!this.currentSnapshot) return;
+
+        const currentUnits = this.currentSnapshot.units;
+        const prevUnitsMap = new Map();
+        if (this.prevSnapshot) {
+            for (const u of this.prevSnapshot.units) prevUnitsMap.set(u.id, u);
+        }
+
+        // 1. Draw Nanite Healing Tether Beams (Aero-Medic Drones)
+        for (const unit of currentUnits) {
+            if (unit.healer && unit.healingTargetId) {
+                const target = currentUnits.find(u => u.id === unit.healingTargetId && u.alive);
+                if (target) {
+                    const prev = prevUnitsMap.get(unit.id) || unit;
+                    const uX = prev.x + (unit.x - prev.x) * alpha;
+                    const uY = prev.y + (unit.y - prev.y) * alpha;
+
+                    const tPrev = prevUnitsMap.get(target.id) || target;
+                    const tX = tPrev.x + (target.x - tPrev.x) * alpha;
+                    const tY = tPrev.y + (target.y - tPrev.y) * alpha;
+
+                    ctx.save();
+                    const tetherGrad = ctx.createLinearGradient(uX, uY, tX, tY);
+                    tetherGrad.addColorStop(0, '#10B981');
+                    tetherGrad.addColorStop(0.5, '#34D399');
+                    tetherGrad.addColorStop(1, '#00F2FE');
+
+                    // Outer glowing energy sheath
+                    ctx.strokeStyle = 'rgba(16, 185, 129, 0.35)';
+                    ctx.lineWidth = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(uX, uY);
+                    ctx.lineTo(tX, tY);
+                    ctx.stroke();
+
+                    // Central rippling nanite stream
+                    ctx.strokeStyle = tetherGrad;
+                    ctx.lineWidth = 2.5;
+                    const dist = Math.hypot(tX - uX, tY - uY);
+                    const steps = 14;
+                    ctx.beginPath();
+                    ctx.moveTo(uX, uY);
+                    for (let s = 1; s < steps; s++) {
+                        const prog = s / steps;
+                        const mx = uX + (tX - uX) * prog;
+                        const my = uY + (tY - uY) * prog;
+                        const wave = Math.sin(prog * 16 - nowMs * 0.015) * 5;
+                        const perpX = -(tY - uY) / (dist || 1) * wave;
+                        const perpY = (tX - uX) / (dist || 1) * wave;
+                        ctx.lineTo(mx + perpX, my + perpY);
+                    }
+                    ctx.lineTo(tX, tY);
+                    ctx.stroke();
+
+                    // Flowing nanite sparkle node
+                    const naniteProg = (nowMs * 0.0035) % 1;
+                    const nx = uX + (tX - uX) * naniteProg;
+                    const ny = uY + (tY - uY) * naniteProg;
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.beginPath();
+                    ctx.arc(nx, ny, 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+            }
+        }
+
+        // 1.5. Draw Continuous Ramping Heat Beams (Inferno Tower)
+        for (const unit of currentUnits) {
+            if (unit.isRamping && unit.beamTargetId) {
+                let targetPos = null;
+                const targetUnit = currentUnits.find(u => u.id === unit.beamTargetId && u.alive);
+                if (targetUnit) {
+                    const tPrev = prevUnitsMap.get(targetUnit.id) || targetUnit;
+                    targetPos = {
+                        x: tPrev.x + (targetUnit.x - tPrev.x) * alpha,
+                        y: tPrev.y + (targetUnit.y - tPrev.y) * alpha
+                    };
+                } else if (this.currentSnapshot) {
+                    const allTowers = [
+                        ...Object.values(this.currentSnapshot.p1.towers || {}),
+                        ...Object.values(this.currentSnapshot.p2.towers || {})
+                    ];
+                    const tTower = allTowers.find(t => t.id === unit.beamTargetId && t.alive);
+                    if (tTower) {
+                        targetPos = { x: tTower.x, y: tTower.y };
+                    }
+                }
+
+                if (targetPos) {
+                    const prev = prevUnitsMap.get(unit.id) || unit;
+                    const uX = prev.x + (unit.x - prev.x) * alpha;
+                    const uY = prev.y + (unit.y - prev.y) * alpha;
+
+                    ctx.save();
+                    const duration = unit.beamDuration || 0;
+                    const rampFactor = Math.min(1.0, duration / 4.0);
+                    const outerWidth = 4 + rampFactor * 14;
+                    const innerWidth = 1.5 + rampFactor * 6;
+
+                    const beamGrad = ctx.createLinearGradient(uX, uY, targetPos.x, targetPos.y);
+                    if (rampFactor < 0.4) {
+                        beamGrad.addColorStop(0, '#FF4500');
+                        beamGrad.addColorStop(0.6, '#FF8C00');
+                        beamGrad.addColorStop(1, '#FFD700');
+                    } else if (rampFactor < 0.8) {
+                        beamGrad.addColorStop(0, '#FF1493');
+                        beamGrad.addColorStop(0.5, '#FF4500');
+                        beamGrad.addColorStop(1, '#FFFA65');
+                    } else {
+                        beamGrad.addColorStop(0, '#FF0055');
+                        beamGrad.addColorStop(0.4, '#FFE600');
+                        beamGrad.addColorStop(0.8, '#00F2FE');
+                        beamGrad.addColorStop(1, '#FFFFFF');
+                    }
+
+                    // Outer intense heat aura
+                    ctx.strokeStyle = rampFactor > 0.7 ? 'rgba(255, 40, 0, 0.65)' : 'rgba(255, 69, 0, 0.4)';
+                    ctx.lineWidth = outerWidth;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(uX, uY);
+                    ctx.lineTo(targetPos.x, targetPos.y);
+                    ctx.stroke();
+
+                    // Inner plasma core beam
+                    ctx.strokeStyle = beamGrad;
+                    ctx.lineWidth = innerWidth;
+                    ctx.beginPath();
+                    ctx.moveTo(uX, uY);
+                    ctx.lineTo(targetPos.x, targetPos.y);
+                    ctx.stroke();
+
+                    // White superheated center filament
+                    if (rampFactor > 0.3) {
+                        ctx.strokeStyle = '#FFFFFF';
+                        ctx.lineWidth = Math.max(1, innerWidth * 0.4);
+                        ctx.beginPath();
+                        ctx.moveTo(uX, uY);
+                        ctx.lineTo(targetPos.x, targetPos.y);
+                        ctx.stroke();
+                    }
+
+                    // Target impact scorch flare
+                    const flareRadius = 8 + rampFactor * 18;
+                    const pulse = Math.sin(nowMs * 0.03) * 3;
+                    const flareGrad = ctx.createRadialGradient(targetPos.x, targetPos.y, 0, targetPos.x, targetPos.y, flareRadius + pulse);
+                    flareGrad.addColorStop(0, '#FFFFFF');
+                    flareGrad.addColorStop(0.3, rampFactor > 0.7 ? '#FFE600' : '#FF4500');
+                    flareGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                    ctx.fillStyle = flareGrad;
+                    ctx.beginPath();
+                    ctx.arc(targetPos.x, targetPos.y, flareRadius + pulse, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Emitter muzzle glow at tower top
+                    ctx.fillStyle = '#FFE600';
+                    ctx.beginPath();
+                    ctx.arc(uX, uY, 5 + rampFactor * 6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.restore();
+                }
+            }
+        }
+
+        // 2. Draw Each Tactical Unit
+        for (const unit of currentUnits) {
+            const prev = prevUnitsMap.get(unit.id) || unit;
+
+            const renderX = prev.x + (unit.x - prev.x) * alpha;
+            const renderY = prev.y + (unit.y - prev.y) * alpha;
+
+            // Angle interpolation
+            let unitAngle = unit.angle !== undefined ? unit.angle : (unit.owner === 1 ? -Math.PI / 2 : Math.PI / 2);
+            if (prev && prev.angle !== undefined) {
+                let diff = unit.angle - prev.angle;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                unitAngle = prev.angle + diff * alpha;
+            }
+
+            const isP1 = unit.owner === 1;
+            const teamColor = isP1 ? '#00F2FE' : '#FF2A54';
+
+            // Adrenaline Ghost Motion Trails
+            if (unit.adrenalineTimer > 0) {
+                ctx.save();
+                ctx.globalAlpha = 0.28;
+                ctx.translate(renderX - Math.cos(unitAngle) * 16, renderY - Math.sin(unitAngle) * 16);
+                ctx.rotate(unitAngle + Math.PI / 2);
+                this.renderUnitSprite(ctx, unit, '#FFB703', nowMs);
+                ctx.restore();
+            }
+
+            ctx.save();
+            ctx.translate(renderX, renderY);
+
+            // Ground shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.beginPath();
+            ctx.ellipse(0, 18, 22, 8, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Stun effect
+            if (unit.isStunned) {
+                ctx.strokeStyle = '#FFB703';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([6, 6]);
+                ctx.beginPath();
+                ctx.arc(0, 0, 42, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Frozen effect (Cryo Freeze Pulse)
+            if (unit.isFrozen) {
+                ctx.strokeStyle = '#A5F3FC';
+                ctx.fillStyle = 'rgba(165, 243, 252, 0.28)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, 38, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // 4 Ice crystal spikes
+                ctx.fillStyle = '#E0F2FE';
+                for (let k = 0; k < 4; k++) {
+                    const ia = (k * Math.PI / 2) + Math.PI / 4;
+                    const ix = Math.cos(ia) * 38;
+                    const iy = Math.sin(ia) * 38;
+                    ctx.beginPath();
+                    ctx.moveTo(ix, iy);
+                    ctx.lineTo(ix + Math.cos(ia) * 12, iy + Math.sin(ia) * 12);
+                    ctx.lineTo(ix + Math.cos(ia + 0.3) * 6, iy + Math.sin(ia + 0.3) * 6);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+
+            // Shield bubble
+            if (unit.shieldHp > 0) {
+                ctx.strokeStyle = 'rgba(0, 242, 254, 0.85)';
+                ctx.fillStyle = 'rgba(0, 242, 254, 0.15)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, 0, 36, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+            }
+
+            // Deployable structure remaining decay ring (Sentry Bunker)
+            if (unit.isBuilding && unit.decayTimer !== undefined) {
+                const decayPct = Math.max(0, unit.decayTimer / 35);
+                ctx.strokeStyle = 'rgba(255, 183, 3, 0.85)';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, 38, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * decayPct));
+                ctx.stroke();
+            }
+
+            // Stealth Optical Cloaking Shimmer
+            if (unit.isStealth) {
+                ctx.globalAlpha = 0.32;
+                ctx.strokeStyle = '#00F2FE';
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.arc(0, 0, 32, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Magnetic snap highlight during card drag
+            if (this.dragState.snappedUnitId === unit.id) {
+                ctx.strokeStyle = '#00F2FE';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(0, 0, 48 + Math.sin(nowMs * 0.01) * 5, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = '#00F2FE';
+                ctx.font = 'bold 20px "Rajdhani"';
+                ctx.textAlign = 'center';
+                ctx.fillText('FUSION READY', 0, -52);
+            }
+
+            // Rotate Mecha Vector to match dynamic facing direction!
+            ctx.save();
+            ctx.rotate(unitAngle + Math.PI / 2);
+            this.renderUnitSprite(ctx, unit, teamColor, nowMs);
+
+            // Muzzle Flash when attacking
+            if (unit.state === 'ATTACK') {
+                const flashY = -34;
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(0, flashY, 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 4-Point Star Muzzle Flare
+                ctx.fillStyle = teamColor;
+                ctx.beginPath();
+                ctx.moveTo(0, flashY - 14);
+                ctx.lineTo(3, flashY);
+                ctx.lineTo(14, flashY);
+                ctx.lineTo(3, flashY + 2);
+                ctx.lineTo(0, flashY + 14);
+                ctx.lineTo(-3, flashY + 2);
+                ctx.lineTo(-14, flashY);
+                ctx.lineTo(-3, flashY);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            ctx.restore();
+            ctx.restore();
+
+            // Low-HP Critical Damage Smoke & Sparks (<30% HP)
+            if (unit.hp / unit.maxHp < 0.3) {
+                ctx.save();
+                ctx.fillStyle = 'rgba(51, 65, 85, 0.4)';
+                const smokePhase = (nowMs * 0.003 + (unit.id || 0)) % 1;
+                ctx.beginPath();
+                ctx.arc(renderX + Math.sin(nowMs * 0.008) * 6, renderY - 12 - smokePhase * 20, 5 + smokePhase * 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                if (Math.sin(nowMs * 0.02 + (unit.id || 0)) > 0.8) {
+                    ctx.strokeStyle = '#FF2A54';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(renderX - 6, renderY - 8);
+                    ctx.lineTo(renderX + 2, renderY - 14);
+                    ctx.lineTo(renderX + 8, renderY - 6);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // Health Bar (drawn horizontally above the unit)
+            this.drawHealthBar(ctx, renderX, renderY - 44, unit.hp, unit.maxHp, 64, teamColor, false);
+
+            // Unit Level Badge (Lv.X)
+            const uLvl = unit.level || 1;
+            ctx.save();
+            ctx.fillStyle = 'rgba(6, 10, 20, 0.9)';
+            ctx.strokeStyle = teamColor;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            if (typeof ctx.roundRect === 'function') ctx.roundRect(renderX - 45, renderY - 50, 16, 12, 2);
+            else ctx.rect(renderX - 45, renderY - 50, 16, 12);
+            ctx.fill();
+            ctx.stroke();
+            ctx.font = 'bold 9px "Rajdhani", sans-serif';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(`${uLvl}`, renderX - 37, renderY - 44);
+            ctx.restore();
+        }
+    }
+
+    drawOvertimeSkyBanner(ctx, nowMs) {
+        if (!this.currentSnapshot || !this.currentSnapshot.isOvertime) return;
+
+        const bx = 540;
+        const by = 215; // Directly in the sky above enemy base (y = 330) and below top HUD
+        const bw = 500;
+        const bh = 64;
+
+        const overtimeSec = this.currentSnapshot.overtimeRemaining !== undefined
+            ? this.currentSnapshot.overtimeRemaining
+            : (this.currentSnapshot.timeRemaining || 0);
+
+        const isUrgent = overtimeSec <= 15;
+        const glowColor = isUrgent ? '#FF2A54' : '#FFB703';
+        const pulse = 0.5 + Math.sin(nowMs * 0.008) * 0.5;
+
+        ctx.save();
+        ctx.translate(bx, by);
+
+        // 1. Semi-translucent holographic dark panel with glow border
+        ctx.fillStyle = 'rgba(6, 8, 14, 0.90)';
+        ctx.strokeStyle = glowColor;
+        ctx.lineWidth = 2.5;
+
+        // Chamfered corner hexagon banner
+        const chamf = 14;
+        ctx.beginPath();
+        ctx.moveTo(-bw / 2 + chamf, -bh / 2);
+        ctx.lineTo(bw / 2 - chamf, -bh / 2);
+        ctx.lineTo(bw / 2, -bh / 2 + chamf);
+        ctx.lineTo(bw / 2, bh / 2 - chamf);
+        ctx.lineTo(bw / 2 - chamf, bh / 2);
+        ctx.lineTo(-bw / 2 + chamf, bh / 2);
+        ctx.lineTo(-bw / 2, bh / 2 - chamf);
+        ctx.lineTo(-bw / 2, -bh / 2 + chamf);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // 2. Neon Corner Tech Brackets
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        const bLen = 14;
+        // Top-left
+        ctx.beginPath();
+        ctx.moveTo(-bw / 2 - 4, -bh / 2 + bLen); ctx.lineTo(-bw / 2 - 4, -bh / 2 - 4); ctx.lineTo(-bw / 2 + bLen, -bh / 2 - 4);
+        ctx.stroke();
+        // Top-right
+        ctx.beginPath();
+        ctx.moveTo(bw / 2 + 4, -bh / 2 + bLen); ctx.lineTo(bw / 2 + 4, -bh / 2 - 4); ctx.lineTo(bw / 2 - bLen, -bh / 2 - 4);
+        ctx.stroke();
+        // Bottom-left
+        ctx.beginPath();
+        ctx.moveTo(-bw / 2 - 4, bh / 2 - bLen); ctx.lineTo(-bw / 2 - 4, bh / 2 + 4); ctx.lineTo(-bw / 2 + bLen, bh / 2 + 4);
+        ctx.stroke();
+        // Bottom-right
+        ctx.beginPath();
+        ctx.moveTo(bw / 2 + 4, bh / 2 - bLen); ctx.lineTo(bw / 2 + 4, bh / 2 + 4); ctx.lineTo(bw / 2 - bLen, bh / 2 + 4);
+        ctx.stroke();
+
+        // 3. Side warning chevrons
+        ctx.strokeStyle = glowColor;
+        ctx.lineWidth = 2.5;
+        // Left chevrons
+        ctx.beginPath();
+        ctx.moveTo(-bw / 2 + 20, -10); ctx.lineTo(-bw / 2 + 28, 0); ctx.lineTo(-bw / 2 + 20, 10);
+        ctx.moveTo(-bw / 2 + 32, -10); ctx.lineTo(-bw / 2 + 40, 0); ctx.lineTo(-bw / 2 + 32, 10);
+        ctx.stroke();
+        // Right chevrons
+        ctx.beginPath();
+        ctx.moveTo(bw / 2 - 20, -10); ctx.lineTo(bw / 2 - 28, 0); ctx.lineTo(bw / 2 - 20, 10);
+        ctx.moveTo(bw / 2 - 32, -10); ctx.lineTo(bw / 2 - 40, 0); ctx.lineTo(bw / 2 - 32, 10);
+        ctx.stroke();
+
+        // 4. Banner Text
+        ctx.textAlign = 'center';
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 12 * pulse;
+
+        // Title
+        ctx.font = 'bold 18px "Rajdhani", sans-serif';
+        ctx.fillStyle = glowColor;
+        const title = isUrgent
+            ? '⚠️ استنزاف حاسم للمباني (SUDDEN DEATH TIEBREAKER) ⚠️'
+            : '⚡ الوقت الإضافي - الهدف الذهبي (SUDDEN DEATH) ⚡';
+        ctx.fillText(title, 0, -6);
+
+        // Subtitle
+        ctx.font = '600 13px "Readex Pro", sans-serif';
+        ctx.fillStyle = '#F1F5F9';
+        ctx.shadowBlur = 0;
+        const sub = `أول قلعة تسقط تحسم الفوز فوراً | المتبقي: ${overtimeSec} ثانية`;
+        ctx.fillText(sub, 0, 19);
+
+        ctx.restore();
+    }
+
+    drawHazardSkyBanner(ctx, dt, nowMs) {
+        if (!this.activeHazardAlert) return;
+        this.activeHazardAlert.life -= dt;
+        if (this.activeHazardAlert.life <= 0) {
+            this.activeHazardAlert = null;
+            return;
+        }
+
+        const alert = this.activeHazardAlert;
+        const alpha = Math.min(1.0, alert.life / 0.5);
+        const isStorm = alert.hazardType === 'plasma_storm';
+        const glowColor = isStorm ? '#C084FC' : '#FBBF24';
+        const pulse = 0.6 + Math.sin(nowMs * 0.012) * 0.4;
+
+        const bx = 540;
+        const by = 820; // Exactly across the plasma river chasm
+        const bw = 580;
+        const bh = 76;
+
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.translate(bx, by);
+
+        // Semi-translucent cyber holographic plate
+        ctx.fillStyle = 'rgba(6, 8, 14, 0.94)';
+        ctx.strokeStyle = glowColor;
+        ctx.lineWidth = 3;
+
+        const chamf = 16;
+        ctx.beginPath();
+        ctx.moveTo(-bw / 2 + chamf, -bh / 2);
+        ctx.lineTo(bw / 2 - chamf, -bh / 2);
+        ctx.lineTo(bw / 2, -bh / 2 + chamf);
+        ctx.lineTo(bw / 2, bh / 2 - chamf);
+        ctx.lineTo(bw / 2 - chamf, bh / 2);
+        ctx.lineTo(-bw / 2 + chamf, bh / 2);
+        ctx.lineTo(-bw / 2, bh / 2 - chamf);
+        ctx.lineTo(-bw / 2, -bh / 2 + chamf);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Neon cyber bracket corners
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        const bLen = 12;
+        ctx.beginPath();
+        ctx.moveTo(-bw / 2 - 3, -bh / 2 + bLen); ctx.lineTo(-bw / 2 - 3, -bh / 2 - 3); ctx.lineTo(-bw / 2 + bLen, -bh / 2 - 3);
+        ctx.moveTo(bw / 2 + 3, -bh / 2 + bLen); ctx.lineTo(bw / 2 + 3, -bh / 2 - 3); ctx.lineTo(bw / 2 - bLen, -bh / 2 - 3);
+        ctx.moveTo(-bw / 2 - 3, bh / 2 - bLen); ctx.lineTo(-bw / 2 - 3, bh / 2 + 3); ctx.lineTo(-bw / 2 + bLen, bh / 2 + 3);
+        ctx.moveTo(bw / 2 + 3, bh / 2 - bLen); ctx.lineTo(bw / 2 + 3, bh / 2 + 3); ctx.lineTo(bw / 2 - bLen, bh / 2 + 3);
+        ctx.stroke();
+
+        // Hazard Banner Content
+        ctx.textAlign = 'center';
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 14 * pulse;
+
+        ctx.font = 'bold 20px "Rajdhani", sans-serif';
+        ctx.fillStyle = glowColor;
+        ctx.fillText(`⚠️ إنذار بيئي تكتيكي: ${alert.title} ⚠️`, 0, -8);
+
+        ctx.font = '600 13px "Readex Pro", sans-serif';
+        ctx.fillStyle = '#F8FAFC';
+        ctx.shadowBlur = 0;
+        ctx.fillText(alert.desc, 0, 19);
+
+        ctx.restore();
+    }
+
+    renderUnitSprite(ctx, unit, color, nowMs) {
+        if (unit.cardId === 'sentry_bunker' || unit.cardId === 'fortress_turret') {
+            // SENTRY BUNKER / FORTRESS BASTION: Deployable Heavy Ground Emplacement
+            const isFortress = unit.cardId === 'fortress_turret' || unit.fusionTier > 0;
+            const r = isFortress ? 34 : 28;
+            const isAttacking = unit.state === 'ATTACK';
+            const gatlingSpin = isAttacking ? (nowMs * 0.08) % (Math.PI * 2) : 0;
+
+            // 1. Reinforced Octagonal Concrete/Armor Foundation
+            ctx.fillStyle = '#0F172A';
+            ctx.strokeStyle = isFortress ? '#FFB703' : color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < 8; i++) {
+                const a = (i * Math.PI * 2) / 8 + Math.PI / 8;
+                const px = Math.cos(a) * r;
+                const py = Math.sin(a) * r;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 2. Heavy Corner Steel Brackets & Hazard Markings
+            ctx.fillStyle = '#1E293B';
+            [-r * 0.7, r * 0.7].forEach(bx => {
+                [-r * 0.7, r * 0.7].forEach(by => {
+                    ctx.fillRect(bx - 4, by - 4, 8, 8);
+                });
+            });
+
+            // Hazard stripe accents
+            ctx.strokeStyle = isFortress ? '#FFB703' : color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-r + 6, r - 6); ctx.lineTo(r - 6, r - 6);
+            ctx.stroke();
+
+            // 3. Central Armored Rotating Gatling Ball Turret
+            ctx.fillStyle = '#1E293B';
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.55, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Twin Rapid Gatling Barrels (extending forward)
+            ctx.save();
+            ctx.rotate(gatlingSpin * 0.2); // slight barrel vibration
+            ctx.fillStyle = '#334155';
+            ctx.strokeStyle = isFortress ? '#FFB703' : color;
+            ctx.lineWidth = 1.5;
+            // Left barrel
+            ctx.fillRect(-9, -r - 12, 5, 18);
+            ctx.strokeRect(-9, -r - 12, 5, 18);
+            // Right barrel
+            ctx.fillRect(4, -r - 12, 5, 18);
+            ctx.strokeRect(4, -r - 12, 5, 18);
+
+            // Muzzle flutes / flash suppressors
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(-10, -r - 14, 7, 3);
+            ctx.fillRect(3, -r - 14, 7, 3);
+            ctx.restore();
+
+            // 4. Central Optic Sensor Eye (pulsing red/amber)
+            const eyePulse = 0.7 + Math.sin(nowMs * 0.01) * 0.3;
+            ctx.fillStyle = isFortress ? `rgba(255, 183, 3, ${eyePulse})` : `rgba(255, 42, 84, ${eyePulse})`;
+            ctx.beginPath();
+            ctx.arc(0, -2, 5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cooling Exhaust Vents with subtle steam
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fillRect(-6, r * 0.4, 12, 3);
+        } else if (unit.cardId === 'mortar_cannon' || unit.cardId === 'hellfire_mortar') {
+            // CYBER SIEGE MORTAR / HELLFIRE MORTAR: Heavy Arced Artillery Emplacement
+            const isHellfire = unit.cardId === 'hellfire_mortar' || unit.fusionTier > 0;
+            const r = isHellfire ? 35 : 29;
+            const isAttacking = unit.state === 'ATTACK';
+            const recoilOffset = isAttacking ? 6 : 0;
+
+            // 1. Heavy Reinforced Circular Blast Plate
+            ctx.fillStyle = '#090D16';
+            ctx.strokeStyle = isHellfire ? '#FF4500' : '#FFB703';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, 0, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // 2. Heavy Outrigger Tripod Anchors with hydraulic jacks
+            ctx.fillStyle = '#1E293B';
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2;
+            [0, Math.PI * 0.67, Math.PI * 1.33].forEach(ang => {
+                ctx.save();
+                ctx.rotate(ang);
+                ctx.fillRect(-6, r - 3, 12, 14);
+                ctx.strokeRect(-6, r - 3, 12, 14);
+                ctx.fillStyle = isHellfire ? '#FF4500' : '#FFB703';
+                ctx.fillRect(-3, r + 7, 6, 4);
+                ctx.restore();
+            });
+
+            // 3. Hazard Warning Ring on Baseplate
+            ctx.strokeStyle = isHellfire ? '#FF4500' : '#FFB703';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.65, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // 4. Massive Cylindrical Siege Mortar Tube
+            ctx.save();
+            ctx.translate(0, recoilOffset);
+            // Hydraulic recoil dampers on sides
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(-14, -r * 0.8, 4, r * 0.9);
+            ctx.fillRect(10, -r * 0.8, 4, r * 0.9);
+
+            // Mortar main barrel
+            const barrelGrad = ctx.createLinearGradient(-10, 0, 10, 0);
+            barrelGrad.addColorStop(0, '#1E293B');
+            barrelGrad.addColorStop(0.5, '#475569');
+            barrelGrad.addColorStop(1, '#0F172A');
+            ctx.fillStyle = barrelGrad;
+            ctx.strokeStyle = isHellfire ? '#FF2A54' : '#00F2FE';
+            ctx.lineWidth = 2;
+            ctx.fillRect(-10, -r - 10, 20, r + 8);
+            ctx.strokeRect(-10, -r - 10, 20, r + 8);
+
+            // Muzzle Ring & Reinforced Choke
+            ctx.fillStyle = isHellfire ? '#FF4500' : '#FFB703';
+            ctx.fillRect(-12, -r - 14, 24, 6);
+
+            // Glowing Plasma Breach / Core inside barrel
+            ctx.fillStyle = isHellfire ? '#FF0055' : '#00F2FE';
+            ctx.shadowColor = isHellfire ? '#FF0055' : '#00F2FE';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.ellipse(0, -r - 14, 8, 3.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Warning targeting light
+            ctx.fillStyle = '#FF2A54';
+            ctx.fillRect(-2, -4, 4, 8);
+            ctx.restore();
+        } else if (unit.cardId === 'drone_factory') {
+            // DRONE FACTORY (DRONE SPAWNER HUB): Heavy Industrial Robotics Hangar
+            const r = 32;
+            const hangarPulse = (Math.sin(nowMs * 0.005) + 1) * 0.5;
+
+            // 1. Reinforced Hexagonal Foundation
+            ctx.fillStyle = '#0B1220';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const a = (i * Math.PI * 2) / 6;
+                const px = Math.cos(a) * r;
+                const py = Math.sin(a) * r;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 2. Heavy Corner Steel Rivets
+            ctx.fillStyle = '#334155';
+            for (let i = 0; i < 6; i++) {
+                const a = (i * Math.PI * 2) / 6;
+                ctx.beginPath();
+                ctx.arc(Math.cos(a) * (r - 4), Math.sin(a) * (r - 4), 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 3. Central Dual Launch Bay Hatch Doors
+            ctx.fillStyle = '#1E293B';
+            ctx.strokeStyle = '#00F2FE';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(-16, -14, 32, 28);
+            ctx.fillRect(-16, -14, 32, 28);
+
+            // Runway Arrows inside Launch Bay
+            ctx.fillStyle = `rgba(0, 242, 254, ${0.4 + hangarPulse * 0.6})`;
+            ctx.beginPath();
+            ctx.moveTo(0, -10);
+            ctx.lineTo(8, -2);
+            ctx.lineTo(3, -2);
+            ctx.lineTo(3, 8);
+            ctx.lineTo(-3, 8);
+            ctx.lineTo(-3, -2);
+            ctx.lineTo(-8, -2);
+            ctx.closePath();
+            ctx.fill();
+
+            // 4. Rotating Turbine Fan on top of Hangar
+            const fanAngle = (nowMs * 0.008) % (Math.PI * 2);
+            ctx.save();
+            ctx.rotate(fanAngle);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+            ctx.lineWidth = 2;
+            for (let b = 0; b < 3; b++) {
+                const ba = (b * Math.PI * 2) / 3;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(Math.cos(ba) * 12, Math.sin(ba) * 12);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            // 5. Dual Communication Aerial Antenna Spikes with blinking LEDs
+            ctx.strokeStyle = '#64748B';
+            ctx.lineWidth = 2;
+            // Left Antenna
+            ctx.beginPath();
+            ctx.moveTo(-r + 4, -8);
+            ctx.lineTo(-r - 4, -20);
+            ctx.stroke();
+            ctx.fillStyle = (nowMs % 600 < 300) ? '#10B981' : '#047857';
+            ctx.beginPath();
+            ctx.arc(-r - 4, -20, 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Right Antenna
+            ctx.beginPath();
+            ctx.moveTo(r - 4, -8);
+            ctx.lineTo(r + 4, -20);
+            ctx.stroke();
+            ctx.fillStyle = (nowMs % 600 >= 300) ? '#10B981' : '#047857';
+            ctx.beginPath();
+            ctx.arc(r + 4, -20, 3, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (unit.cardId === 'inferno_tower') {
+            // INFERNO TOWER: High-Tech Ramping Laser Citadel Pylon
+            const r = 30;
+            const rampFactor = unit.beamTargetId ? Math.min(1.0, (unit.beamDuration || 0) / 4.0) : 0;
+            const coreColor = rampFactor > 0.7 ? '#FF0055' : (rampFactor > 0.3 ? '#FF4500' : '#FFA500');
+
+            // 1. Reinforced Hexagonal Heat-Sinks Base
+            ctx.fillStyle = '#0F172A';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const a = (i * Math.PI * 2) / 6;
+                const px = Math.cos(a) * r;
+                const py = Math.sin(a) * r;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 2. Spinning Cooling Exhaust Rings
+            const ringSpin = (nowMs * (0.003 + rampFactor * 0.01)) % (Math.PI * 2);
+            ctx.save();
+            ctx.rotate(ringSpin);
+            ctx.strokeStyle = coreColor;
+            ctx.lineWidth = 2;
+            ctx.setLineDash([8, 8]);
+            ctx.beginPath();
+            ctx.arc(0, 0, r - 6, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+
+            // 3. Central Ramping Thermal Lens & Glowing Core
+            const corePulse = 1 + Math.sin(nowMs * (0.01 + rampFactor * 0.03)) * 0.25;
+            const coreRad = (8 + rampFactor * 8) * corePulse;
+            const lensGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRad);
+            lensGrad.addColorStop(0, '#FFFFFF');
+            lensGrad.addColorStop(0.4, coreColor);
+            lensGrad.addColorStop(1, 'rgba(255, 69, 0, 0)');
+            ctx.fillStyle = lensGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, coreRad, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 4. Heavy Focused Laser Emitter Nozzle
+            ctx.fillStyle = '#1E293B';
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(0, -r + 4, 6, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+        } else if (unit.cardId === 'electro_striker') {
+            // ELECTRO STRIKER: Mobile High-Voltage Shock Commando
+            const r = 21;
+
+            // 1. Dual High-Voltage Gauntlet Coils (drawn on sides)
+            ctx.fillStyle = '#00F2FE';
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 1.5;
+            // Left coil
+            ctx.fillRect(-r - 4, -12, 6, 16);
+            ctx.strokeRect(-r - 4, -12, 6, 16);
+            // Right coil
+            ctx.fillRect(r - 2, -12, 6, 16);
+            ctx.strokeRect(r - 2, -12, 6, 16);
+
+            // 2. Electric Shock Arcs dancing between wrists
+            ctx.strokeStyle = '#00F2FE';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            const sparkY = -6 + Math.sin(nowMs * 0.05) * 4;
+            ctx.moveTo(-r, sparkY);
+            ctx.lineTo(-6, sparkY - 5);
+            ctx.lineTo(6, sparkY + 5);
+            ctx.lineTo(r, sparkY);
+            ctx.stroke();
+
+            // 3. Armored Cyber Chassis
+            ctx.fillStyle = '#0F172A';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, r - 3, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // 4. Capacitive Dynamo Backpack / Battery Pack
+            ctx.fillStyle = '#1E293B';
+            ctx.fillRect(-8, 8, 16, 8);
+            ctx.fillStyle = '#00F2FE';
+            ctx.fillRect(-6, 10, 12, 4);
+
+            // 5. Electrified Combat Visor
+            ctx.fillStyle = '#00F2FE';
+            ctx.beginPath();
+            ctx.moveTo(-8, -6);
+            ctx.lineTo(8, -6);
+            ctx.lineTo(5, -12);
+            ctx.lineTo(-5, -12);
+            ctx.closePath();
+            ctx.fill();
+
+            // 6. Micro-lightning aura around body
+            this.drawElectricArcs(ctx, r + 4, '#00F2FE', nowMs);
+        } else if (unit.cardId === 'ghost_sniper' || unit.cardId === 'vortex_sniper') {
+            // GHOST SNIPER / VORTEX SNIPER: Stealth Assassin Cyber Marksman
+            const isVortex = unit.cardId === 'vortex_sniper' || unit.fusionTier > 0;
+            const r = isVortex ? 22 : 18;
+
+            // 1. Sleek Carbon Assassin Chassis (Angular Stealth Hull)
+            ctx.fillStyle = '#0A0F1D';
+            ctx.strokeStyle = isVortex ? '#A855F7' : (unit.isStealth ? '#00F2FE' : color);
+            ctx.lineWidth = 2.5;
+
+            ctx.beginPath();
+            ctx.moveTo(0, -r - 6);
+            ctx.lineTo(r, r * 0.5);
+            ctx.lineTo(r * 0.4, r);
+            ctx.lineTo(-r * 0.4, r);
+            ctx.lineTo(-r, r * 0.5);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 2. Ultra-Long Heavy Rail Sniper Rifle (Extends 44px forward!)
+            const gunLen = isVortex ? 46 : 38;
+            ctx.fillStyle = '#1E293B';
+            ctx.strokeStyle = isVortex ? '#C084FC' : '#64748B';
+            ctx.lineWidth = 1.5;
+            ctx.fillRect(-3, -gunLen, 6, gunLen);
+            ctx.strokeRect(-3, -gunLen, 6, gunLen);
+
+            // Barrel Induction Accelerator Coils
+            ctx.fillStyle = isVortex ? '#A855F7' : '#00F2FE';
+            for (let y = -gunLen + 8; y <= -12; y += 7) {
+                ctx.fillRect(-5, y, 10, 2.5);
+            }
+
+            // Vortex Rings (for Vortex Sniper)
+            if (isVortex) {
+                const ringPulse = 1 + Math.sin(nowMs * 0.015) * 0.2;
+                ctx.strokeStyle = '#E879F9';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.ellipse(0, -gunLen * 0.6, 9 * ringPulse, 4, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+
+            // 3. High-Magnification Scope with Optical Lens
+            ctx.fillStyle = '#334155';
+            ctx.fillRect(4, -20, 4, 14);
+            ctx.fillStyle = isVortex ? '#A855F7' : '#FF2A54';
+            ctx.beginPath();
+            ctx.arc(6, -21, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Forward Laser Guidance Line
+            ctx.strokeStyle = isVortex ? 'rgba(168, 85, 247, 0.6)' : 'rgba(0, 242, 254, 0.6)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.moveTo(0, -gunLen);
+            ctx.lineTo(0, -gunLen - 55);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 4. Rear Tripod Recoil Stabilizers
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(-r * 0.3, r * 0.6); ctx.lineTo(-r * 0.9, r * 1.3);
+            ctx.moveTo(r * 0.3, r * 0.6);  ctx.lineTo(r * 0.9, r * 1.3);
+            ctx.stroke();
+        } else if (unit.cardId === 'aero_repairer' || unit.cardId === 'overcharge_drone') {
+            // AERO-MEDIC DRONE / OVERCHARGE DRONE: Tactical Support Craft
+            const isOvercharge = unit.cardId === 'overcharge_drone' || unit.fusionTier > 0;
+            const r = isOvercharge ? 24 : 20;
+            const rotorAngle = (nowMs * 0.035) % (Math.PI * 2);
+
+            // 1. Aerodynamic Medical Fuselage
+            ctx.fillStyle = '#0B1220';
+            ctx.strokeStyle = isOvercharge ? '#FFB703' : '#10B981';
+            ctx.lineWidth = 2.5;
+
+            ctx.beginPath();
+            ctx.ellipse(0, 0, r * 0.85, r * 1.1, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // 2. Twin High-Lift Wing Nacelles with Spinning Rotors
+            const nacelles = [[-r - 8, -4], [r + 8, -4]];
+            for (const [nx, ny] of nacelles) {
+                // Nacelle wing strut
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(0, ny);
+                ctx.lineTo(nx, ny);
+                ctx.stroke();
+
+                // Spinning Rotor Disk Halo
+                ctx.strokeStyle = isOvercharge ? 'rgba(255, 183, 3, 0.6)' : 'rgba(16, 185, 129, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(nx, ny, 11, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Rotor Blades
+                ctx.save();
+                ctx.translate(nx, ny);
+                ctx.rotate(rotorAngle);
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // 3. Glowing Medical Insignia (Caduceus / Cross)
+            const medColor = isOvercharge ? '#FFB703' : '#10B981';
+            ctx.fillStyle = medColor;
+            // Vertical bar
+            ctx.fillRect(-2.5, -8, 5, 16);
+            // Horizontal bar
+            ctx.fillRect(-8, -2.5, 16, 5);
+
+            // 4. Underside Nanite Projection Emitter (Emerald Orb)
+            const emitterPulse = 1 + Math.sin(nowMs * 0.012) * 0.2;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(0, -r * 0.7, 4 * emitterPulse, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Forward ion headlights
+            ctx.fillStyle = medColor;
+            ctx.beginPath();
+            ctx.arc(-5, -r * 0.9, 2.5, 0, Math.PI * 2);
+            ctx.arc(5, -r * 0.9, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (unit.isHeavy) {
+            // MECH TITAN / SIEGE COLOSSUS: Heavy Cyber Tank
+            const isColossus = unit.fusionTier > 0;
+            const r = isColossus ? 36 : 30;
+            const recoil = unit.state === 'ATTACK' ? -4 : 0;
+
+            // 1. Caterpillar Treads (Left and Right)
+            const treadW = 10;
+            const treadH = r * 1.8;
+            const treadY = -treadH / 2;
+            const treadOffset = (nowMs * 0.04) % 8;
+
+            ctx.fillStyle = '#0B1220';
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+
+            // Left tread
+            ctx.fillRect(-r - treadW, treadY, treadW, treadH);
+            ctx.strokeRect(-r - treadW, treadY, treadW, treadH);
+            // Right tread
+            ctx.fillRect(r, treadY, treadW, treadH);
+            ctx.strokeRect(r, treadY, treadW, treadH);
+
+            // Tread links / segments
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            for (let y = treadY + treadOffset; y < treadY + treadH; y += 8) {
+                ctx.beginPath();
+                ctx.moveTo(-r - treadW, y); ctx.lineTo(-r, y);
+                ctx.moveTo(r, y); ctx.lineTo(r + treadW, y);
+                ctx.stroke();
+            }
+
+            // 2. Heavy Armored Octagonal Hull
+            ctx.fillStyle = '#0F172A';
+            ctx.strokeStyle = isColossus ? '#FFB703' : color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            const sides = 8;
+            for (let i = 0; i < sides; i++) {
+                const a = (i * Math.PI * 2) / sides;
+                const px = Math.cos(a) * r;
+                const py = Math.sin(a) * r;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 3. Frontal Armor Plating / Dozer Ram (Colossus)
+            if (isColossus) {
+                // Heavy Bulldozer Shield
+                ctx.fillStyle = '#1E293B';
+                ctx.strokeStyle = '#FFB703';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(-r - 12, -r - 6);
+                ctx.lineTo(r + 12, -r - 6);
+                ctx.lineTo(r + 8, -r + 6);
+                ctx.lineTo(-r - 8, -r + 6);
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Yellow/Black Hazard chevrons on shield
+                ctx.strokeStyle = '#FFB703';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-16, -r - 4); ctx.lineTo(-8, -r + 4);
+                ctx.moveTo(0, -r - 4); ctx.lineTo(8, -r + 4);
+                ctx.moveTo(16, -r - 4); ctx.lineTo(24, -r + 4);
+                ctx.stroke();
+
+                // Triple Heavy Siege Cannons
+                ctx.fillStyle = '#FFB703';
+                [-14, 0, 14].forEach(bx => {
+                    ctx.fillRect(bx - 3, -r - 18 + recoil, 6, 20);
+                    ctx.fillRect(bx - 5, -r - 22 + recoil, 10, 5); // muzzle brake
+                });
+
+                this.drawElectricArcs(ctx, r + 14, '#FFB703', nowMs);
+            } else {
+                // Mech Titan: Dual Heavy Autocannons
+                ctx.fillStyle = color;
+                // Left cannon
+                ctx.fillRect(-14, -r - 14 + recoil, 7, 20);
+                ctx.fillRect(-16, -r - 18 + recoil, 11, 4); // brake
+                // Right cannon
+                ctx.fillRect(7, -r - 14 + recoil, 7, 20);
+                ctx.fillRect(5, -r - 18 + recoil, 11, 4); // brake
+            }
+
+            // 4. Central Nuclear Reactor Core
+            const corePulse = 1 + Math.sin(nowMs * 0.008) * 0.15;
+            ctx.fillStyle = isColossus ? '#FFB703' : color;
+            ctx.beginPath();
+            ctx.arc(0, 0, (isColossus ? 12 : 9) * corePulse, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Rotating segmented reactor ring
+            ctx.save();
+            ctx.rotate(nowMs * 0.003);
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 6]);
+            ctx.beginPath();
+            ctx.arc(0, 0, 16, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        } else if (unit.cardId === 'plasma_caster' || unit.cardId === 'super_caster') {
+            // PLASMA CASTER / SUPER CASTER: Hovering Heavy Artillery
+            const isSuper = unit.cardId === 'super_caster' || unit.fusionTier > 0;
+            const r = isSuper ? 26 : 22;
+
+            // 1. Triangular Hover Chassis
+            ctx.fillStyle = '#0B1220';
+            ctx.strokeStyle = isSuper ? '#A855F7' : color;
+            ctx.lineWidth = 2.5;
+
+            ctx.beginPath();
+            ctx.moveTo(0, -r - 8);
+            ctx.lineTo(r + 10, r + 6);
+            ctx.lineTo(-r - 10, r + 6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 3 Corner Ion Hover Thrusters (cyan glow)
+            const thrusters = [[0, -r - 6], [r + 8, r + 4], [-r - 8, r + 4]];
+            ctx.fillStyle = '#00F2FE';
+            for (const [tx, ty] of thrusters) {
+                ctx.beginPath();
+                ctx.arc(tx, ty, 3.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 2. Long Magnetic Plasma Mortar Barrel
+            const barrelLen = isSuper ? 38 : 30;
+            ctx.fillStyle = '#1E293B';
+            ctx.fillRect(-5, -barrelLen, 10, barrelLen);
+            ctx.strokeStyle = isSuper ? '#A855F7' : color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(-5, -barrelLen, 10, barrelLen);
+
+            // Barrel Induction Coils / Rings
+            ctx.fillStyle = isSuper ? '#A855F7' : '#00F2FE';
+            ctx.fillRect(-7, -barrelLen + 6, 14, 3);
+            ctx.fillRect(-7, -barrelLen + 14, 14, 3);
+            ctx.fillRect(-7, -barrelLen + 22, 14, 3);
+
+            // 3. Central Swirling Plasma Chamber
+            const plasmaPulse = 9 + Math.sin(nowMs * 0.012) * 3;
+            const pGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, plasmaPulse);
+            pGrad.addColorStop(0, '#FFFFFF');
+            pGrad.addColorStop(0.5, isSuper ? '#C084FC' : '#00F2FE');
+            pGrad.addColorStop(1, 'rgba(0, 242, 254, 0)');
+            ctx.fillStyle = pGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, plasmaPulse, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 4. Orbiting Plasma Spheres
+            const orbCount = isSuper ? 4 : 3;
+            const orbRadius = isSuper ? 34 : 28;
+            for (let i = 0; i < orbCount; i++) {
+                const orbAngle = (nowMs * 0.005) + (i * (Math.PI * 2 / orbCount));
+                const ox = Math.cos(orbAngle) * orbRadius;
+                const oy = Math.sin(orbAngle) * orbRadius;
+
+                // Glowing tail arc
+                ctx.strokeStyle = isSuper ? 'rgba(168, 85, 247, 0.4)' : 'rgba(0, 242, 254, 0.4)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, orbRadius, orbAngle - 0.4, orbAngle);
+                ctx.stroke();
+
+                // Sphere
+                ctx.fillStyle = '#FFFFFF';
+                ctx.beginPath();
+                ctx.arc(ox, oy, isSuper ? 5 : 4, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = isSuper ? '#A855F7' : '#00F2FE';
+                ctx.beginPath();
+                ctx.arc(ox, oy, isSuper ? 3.5 : 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (unit.cardId === 'scout_drone' || unit.cardId === 'railgun_drone') {
+            // SCOUT DRONE / RAILGUN DRONE: Quad-Rotor Stealth Fighter
+            const isRailgun = unit.cardId === 'railgun_drone' || unit.fusionTier > 0;
+            const rotAngle = (nowMs * 0.03) % (Math.PI * 2);
+
+            // 1. Sleek Delta Stealth Wings
+            ctx.fillStyle = '#0F172A';
+            ctx.strokeStyle = isRailgun ? '#FFB703' : color;
+            ctx.lineWidth = 2.5;
+
+            ctx.beginPath();
+            ctx.moveTo(0, -24);  // Nose
+            ctx.lineTo(26, 12);  // Right wingtip
+            ctx.lineTo(12, 18);  // Right rear inner
+            ctx.lineTo(0, 10);   // Rear center
+            ctx.lineTo(-12, 18); // Left rear inner
+            ctx.lineTo(-26, 12); // Left wingtip
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 2. Quad-Rotor Nacelles & Spinning Halos
+            const rotorPods = [[-20, -8], [20, -8], [-16, 14], [16, 14]];
+            for (const [rx, ry] of rotorPods) {
+                // Rotor mount arm
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(rx * 0.4, ry * 0.4);
+                ctx.lineTo(rx, ry);
+                ctx.stroke();
+
+                // Glowing Halo
+                ctx.strokeStyle = isRailgun ? 'rgba(255, 183, 3, 0.7)' : 'rgba(0, 242, 254, 0.7)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(rx, ry, 9, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // Spinning rotor blade
+                ctx.save();
+                ctx.translate(rx, ry);
+                ctx.rotate(rotAngle);
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(-8, 0); ctx.lineTo(8, 0);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            if (isRailgun) {
+                // Long Electromagnetic Railgun Barrel extending out front
+                ctx.strokeStyle = '#FFB703';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(0, -18);
+                ctx.lineTo(0, -42);
+                ctx.stroke();
+
+                // Railgun acceleration coils
+                ctx.fillStyle = '#00F2FE';
+                for (let y = -22; y >= -38; y -= 5) {
+                    ctx.fillRect(-3, y, 6, 2);
+                }
+
+                // Twin Jet Afterburners at rear
+                ctx.fillStyle = '#00F2FE';
+                ctx.fillRect(-6, 12, 3, 7 + Math.random() * 4);
+                ctx.fillRect(3, 12, 3, 7 + Math.random() * 4);
+            } else {
+                // Scout Drone: Twin pulse blasters on wingtips
+                ctx.fillStyle = color;
+                ctx.fillRect(-22, -14, 3, 10);
+                ctx.fillRect(19, -14, 3, 10);
+
+                // Cockpit Sensory Visor
+                ctx.fillStyle = '#00F2FE';
+                ctx.beginPath();
+                ctx.ellipse(0, -8, 5, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else if (unit.cardId === 'cyber_trooper' || unit.cardId === 'shield_vanguard') {
+            // CYBER TROOPER / SHIELD VANGUARD: Armored Commando
+            const isVanguard = unit.cardId === 'shield_vanguard' || unit.fusionTier > 0;
+            const r = isVanguard ? 24 : 19;
+
+            // 1. Commando Armored Torso
+            ctx.fillStyle = '#0B1220';
+            ctx.strokeStyle = isVanguard ? '#00F2FE' : color;
+            ctx.lineWidth = 2.5;
+
+            // Hexagonal chestplate
+            ctx.beginPath();
+            ctx.moveTo(0, -r);
+            ctx.lineTo(r, -r * 0.4);
+            ctx.lineTo(r * 0.7, r * 0.8);
+            ctx.lineTo(-r * 0.7, r * 0.8);
+            ctx.lineTo(-r, -r * 0.4);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // Armored Pauldrons (Shoulders with power nodes)
+            ctx.fillStyle = color;
+            ctx.fillRect(-r - 4, -r * 0.5, 6, 12);
+            ctx.fillRect(r - 2, -r * 0.5, 6, 12);
+
+            // Glowing Visor Line on helmet
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(-8, -r * 0.5);
+            ctx.lineTo(8, -r * 0.5);
+            ctx.stroke();
+
+            if (isVanguard) {
+                // Heavy Riot Force Shield Arc in front
+                ctx.strokeStyle = '#00F2FE';
+                ctx.fillStyle = 'rgba(0, 242, 254, 0.2)';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(0, -6, r + 14, -Math.PI * 0.78, -Math.PI * 0.22);
+                ctx.stroke();
+
+                // Shield Hexagonal Energy Pattern
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.beginPath();
+                ctx.arc(0, -6, r + 10, -Math.PI * 0.7, -Math.PI * 0.3);
+                ctx.stroke();
+            } else {
+                // Cyber Trooper: Pulse Carbine held forward
+                ctx.fillStyle = '#334155';
+                ctx.fillRect(4, -r - 10, 5, 18);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(4, -r - 10, 5, 18);
+
+                // Laser Sight Targeting Beam extending forward onto the field!
+                ctx.strokeStyle = 'rgba(255, 42, 84, 0.65)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(6, -r - 10);
+                ctx.lineTo(6, -r - 45);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Small red dot at laser endpoint
+                ctx.fillStyle = '#FF2A54';
+                ctx.beginPath();
+                ctx.arc(6, -r - 45, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        } else {
+            // SWARM DROIDS: Fast cyber mantis / scarabs with scythe claws
+            const legWalk = Math.sin(nowMs * 0.03 + (unit.id || 0)) * 4;
+
+            // 1. Segmented Mecha Insect Abdomen & Thorax
+            ctx.fillStyle = '#0F172A';
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+
+            // Abdomen (rear)
+            ctx.beginPath();
+            ctx.ellipse(0, 10, 8, 12, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Thorax (front)
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(0, -3, 9, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Articulated Cyber Legs (4 legs)
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            // Left legs
+            ctx.beginPath();
+            ctx.moveTo(-6, -4); ctx.lineTo(-18, -10 + legWalk); ctx.lineTo(-24, -4 + legWalk);
+            ctx.moveTo(-6, 6);  ctx.lineTo(-18, 10 - legWalk);  ctx.lineTo(-24, 18 - legWalk);
+            // Right legs
+            ctx.moveTo(6, -4);  ctx.lineTo(18, -10 - legWalk);  ctx.lineTo(24, -4 - legWalk);
+            ctx.moveTo(6, 6);   ctx.lineTo(18, 10 + legWalk);   ctx.lineTo(24, 18 + legWalk);
+            ctx.stroke();
+
+            // 3. Twin Razor Mantis Scythe Claws (extended forward)
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2.5;
+            // Left claw
+            ctx.beginPath();
+            ctx.moveTo(-4, -8);
+            ctx.lineTo(-12, -20);
+            ctx.lineTo(-4, -26);
+            ctx.stroke();
+            // Right claw
+            ctx.beginPath();
+            ctx.moveTo(4, -8);
+            ctx.lineTo(12, -20);
+            ctx.lineTo(4, -26);
+            ctx.stroke();
+
+            // 4. Glowing Tri-Sensor Eyes
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(-3, -7, 2, 0, Math.PI * 2);
+            ctx.arc(3, -7, 2, 0, Math.PI * 2);
+            ctx.arc(0, -10, 1.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+    drawElectricArcs(ctx, radius, color, nowMs) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < 4; i++) {
+            const angle = (nowMs * 0.005 + i * 1.5) % (Math.PI * 2);
+            const x1 = Math.cos(angle) * radius;
+            const y1 = Math.sin(angle) * radius;
+            const x2 = Math.cos(angle + 0.3) * (radius + 10);
+            const y2 = Math.sin(angle + 0.3) * (radius + 10);
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+        }
+        ctx.stroke();
+    }
+
+    drawHealthBar(ctx, x, y, current, max, width, color, showText = false) {
+        const height = showText ? 10 : 7;
+        const pct = Math.max(0, Math.min(1, current / max));
+
+        ctx.fillStyle = 'rgba(4, 6, 10, 0.85)';
+        ctx.fillRect(x - width / 2, y - height / 2, width, height);
+
+        ctx.fillStyle = color;
+        ctx.fillRect(x - width / 2, y - height / 2, width * pct, height);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - width / 2, y - height / 2, width, height);
+
+        if (showText) {
+            ctx.font = 'bold 12px "Rajdhani"';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${current} / ${max}`, x, y - 8);
+        }
+    }
+
+    drawVisualEffects(ctx, dt) {
+        // Laser beams
+        for (let i = this.laserBeams.length - 1; i >= 0; i--) {
+            const b = this.laserBeams[i];
+            b.life -= dt;
+            if (b.life <= 0) {
+                this.laserBeams.splice(i, 1);
+                continue;
+            }
+
+            const alpha = b.life / b.maxLife;
+            ctx.strokeStyle = b.color;
+            ctx.lineWidth = 5 * alpha;
+            ctx.beginPath();
+            ctx.moveTo(b.fromX, b.fromY);
+            ctx.lineTo(b.toX, b.toY);
+            ctx.stroke();
+        }
+
+        // Lobbed Parabolic Mortar Shells in Flight
+        for (let i = this.mortarShells.length - 1; i >= 0; i--) {
+            const ms = this.mortarShells[i];
+            ms.elapsed += dt;
+            const progress = Math.min(1.0, ms.elapsed / ms.duration);
+            const currentX = ms.fromX + (ms.toX - ms.fromX) * progress;
+            const currentY = ms.fromY + (ms.toY - ms.fromY) * progress;
+            const arcHeight = Math.sin(progress * Math.PI) * 220; // High 2.5D flight arc
+            const shellY = currentY - arcHeight;
+
+            // Ground target shadow
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+            ctx.beginPath();
+            const shadowRadius = 8 + (1 - Math.sin(progress * Math.PI) * 0.5) * 8;
+            ctx.ellipse(currentX, currentY, shadowRadius * 1.6, shadowRadius * 0.9, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Arcing plasma explosive shell
+            const shellColor = ms.color || '#FFB703';
+            ctx.fillStyle = shellColor;
+            ctx.shadowColor = shellColor;
+            ctx.shadowBlur = 14;
+            ctx.beginPath();
+            ctx.arc(currentX, shellY, 9, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Shell glowing core
+            ctx.fillStyle = '#FFFFFF';
+            ctx.beginPath();
+            ctx.arc(currentX, shellY, 4.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Smoke/spark trail behind shell
+            if (Math.random() < 0.6) {
+                this.particles.push({
+                    x: currentX + (Math.random() - 0.5) * 6,
+                    y: shellY + (Math.random() - 0.5) * 6,
+                    vx: (Math.random() - 0.5) * 20,
+                    vy: 30 + Math.random() * 20,
+                    size: 3 + Math.random() * 3,
+                    color: Math.random() > 0.5 ? '#FF5500' : 'rgba(255, 183, 3, 0.7)',
+                    life: 0.35,
+                    maxLife: 0.35
+                });
+            }
+            ctx.restore();
+
+            // Impact!
+            if (progress >= 1.0) {
+                this.mortarShells.splice(i, 1);
+                this.empRings.push({
+                    x: ms.toX,
+                    y: ms.toY,
+                    radius: 10,
+                    maxRadius: ms.splashRadius || 130,
+                    color: shellColor,
+                    life: 0.38,
+                    maxLife: 0.38
+                });
+                this.createSparks(ms.toX, ms.toY, 28, '#FF4500');
+                this.createSparks(ms.toX, ms.toY, 18, '#FFD700');
+                this.screenShake = Math.max(this.screenShake, 10);
+                this.addFloatingText(ms.toX, ms.toY - 35, '💥 MORTAR IMPACT', '#FFB703', true);
+            }
+        }
+
+        // EMP Shockwave rings
+        for (let i = this.empRings.length - 1; i >= 0; i--) {
+            const ring = this.empRings[i];
+            ring.life -= dt;
+            if (ring.life <= 0) {
+                this.empRings.splice(i, 1);
+                continue;
+            }
+
+            const progress = 1 - (ring.life / ring.maxLife);
+            const currentR = ring.radius + (ring.maxRadius - ring.radius) * progress;
+            ctx.strokeStyle = ring.color;
+            ctx.lineWidth = 4 * (1 - progress);
+            ctx.beginPath();
+            ctx.arc(ring.x, ring.y, currentR, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // Particle pool
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.life -= dt;
+            if (p.life <= 0) {
+                this.particles.splice(i, 1);
+                continue;
+            }
+
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size * (p.life / p.maxLife), 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // Floating Damage Text
+        for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+            const ft = this.floatingTexts[i];
+            ft.life -= dt;
+            if (ft.life <= 0) {
+                this.floatingTexts.splice(i, 1);
+                continue;
+            }
+
+            ft.y += ft.vy * dt;
+            const alpha = ft.life / ft.maxLife;
+
+            ctx.save();
+            ctx.font = ft.isCrit ? 'bold 24px "Rajdhani"' : 'bold 18px "Rajdhani"';
+            ctx.fillStyle = ft.color;
+            ctx.globalAlpha = alpha;
+            ctx.textAlign = 'center';
+            ctx.shadowColor = ft.color;
+            ctx.shadowBlur = 8;
+            ctx.fillText(ft.text, ft.x, ft.y);
+            ctx.restore();
+        }
+    }
+
+    drawDragOverlay(ctx) {
+        // Mode 1: Active touch-drag reticle
+        if (this.dragState.active) {
+            const x = this.dragState.canvasX;
+            const y = this.dragState.canvasY;
+            const isSpell = this.dragState.isCatalyst;
+            const cardData = this.dragState.cardId ? TacticalGameRoom.CARD_DATABASE[this.dragState.cardId] : null;
+
+            if (isSpell) {
+                // Giant AoE Holographic Targeting Ring (320px radius)
+                const aoeRadius = 320;
+                const ringColor = this.dragState.snappedUnitId ? '#00F2FE' : '#FFB703';
+
+                // Outer scan ring
+                ctx.strokeStyle = ringColor;
+                ctx.lineWidth = 3;
+                ctx.setLineDash([14, 10]);
+                ctx.beginPath();
+                ctx.arc(x, y, aoeRadius, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Inner concentric range ring
+                ctx.strokeStyle = ringColor;
+                ctx.lineWidth = 1.5;
+                ctx.setLineDash([6, 6]);
+                ctx.beginPath();
+                ctx.arc(x, y, aoeRadius * 0.5, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Semi-transparent AoE zone fill
+                ctx.fillStyle = this.dragState.snappedUnitId ? 'rgba(0, 242, 254, 0.12)' : 'rgba(255, 183, 3, 0.09)';
+                ctx.beginPath();
+                ctx.arc(x, y, aoeRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Crosshair azimuth lines spanning the 320px perimeter
+                ctx.strokeStyle = ringColor;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.moveTo(x - aoeRadius, y); ctx.lineTo(x + aoeRadius, y);
+                ctx.moveTo(x, y - aoeRadius); ctx.lineTo(x, y + aoeRadius);
+                ctx.stroke();
+
+                // Center targeting reticle
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(x, y, 32, 0, Math.PI * 2);
+                ctx.stroke();
+
+                // --- DYNAMIC MULTI-UNIT TARGET HIGHLIGHTING ---
+                // Highlights and locks onto ALL units caught inside the 320px circle!
+                if (this.currentSnapshot && this.currentSnapshot.units) {
+                    for (const u of this.currentSnapshot.units) {
+                        if (!u.alive) continue;
+                        const d = Math.hypot(u.x - x, u.y - y);
+                        if (d <= aoeRadius) {
+                            ctx.save();
+                            const isFriendly = u.owner === 1;
+                            const highlightColor = isFriendly ? '#10B981' : '#FF2A54';
+                            ctx.strokeStyle = highlightColor;
+                            ctx.lineWidth = 2.5;
+                            ctx.setLineDash([4, 4]);
+                            ctx.beginPath();
+                            ctx.arc(u.x, u.y, 28, 0, Math.PI * 2);
+                            ctx.stroke();
+
+                            // Corner lock brackets
+                            const s = 15;
+                            ctx.lineWidth = 2;
+                            ctx.setLineDash([]);
+                            ctx.beginPath();
+                            // Top-left
+                            ctx.moveTo(u.x - s, u.y - s + 6); ctx.lineTo(u.x - s, u.y - s); ctx.lineTo(u.x - s + 6, u.y - s);
+                            // Top-right
+                            ctx.moveTo(u.x + s - 6, u.y - s); ctx.lineTo(u.x + s, u.y - s); ctx.lineTo(u.x + s, u.y - s + 6);
+                            // Bottom-left
+                            ctx.moveTo(u.x - s, u.y + s - 6); ctx.lineTo(u.x - s, u.y + s); ctx.lineTo(u.x - s + 6, u.y + s);
+                            // Bottom-right
+                            ctx.moveTo(u.x + s - 6, u.y + s); ctx.lineTo(u.x + s, u.y + s); ctx.lineTo(u.x + s, u.y + s - 6);
+                            ctx.stroke();
+
+                            ctx.font = 'bold 12px "Rajdhani"';
+                            ctx.fillStyle = highlightColor;
+                            ctx.textAlign = 'center';
+                            ctx.fillText(isFriendly ? '✓ BUFF' : '🎯 TARGET', u.x, u.y - 32);
+                            ctx.restore();
+                        }
+                    }
+                }
+
+                // --- TOWER LOCK HIGHLIGHTING ---
+                // Highlights any towers caught inside the 320px circle!
+                if (this.currentSnapshot) {
+                    const allTowers = [
+                        ...Object.values(this.currentSnapshot.p1.towers || {}),
+                        ...Object.values(this.currentSnapshot.p2.towers || {})
+                    ];
+                    for (const t of allTowers) {
+                        if (!t.alive) continue;
+                        if (Math.hypot(t.x - x, t.y - y) <= aoeRadius) {
+                            ctx.save();
+                            const isFriendly = t.owner === 1;
+                            const towerColor = isFriendly ? '#10B981' : '#FFB703';
+                            ctx.strokeStyle = towerColor;
+                            ctx.lineWidth = 2.5;
+                            ctx.setLineDash([6, 6]);
+                            ctx.beginPath();
+                            ctx.arc(t.x, t.y, 48, 0, Math.PI * 2);
+                            ctx.stroke();
+
+                            ctx.font = 'bold 13px "Rajdhani"';
+                            ctx.fillStyle = towerColor;
+                            ctx.textAlign = 'center';
+                            ctx.fillText(isFriendly ? '💚 REPAIR LOCK' : '⚡ TOWER STUN LOCK', t.x, t.y - 54);
+                            ctx.restore();
+                        }
+                    }
+                }
+
+                // Dynamic Status Text
+                ctx.font = 'bold 22px "Rajdhani"';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = ringColor;
+                if (this.dragState.snappedUnitId) {
+                    ctx.fillText('⚡ اندماج فوري (FUSION READY)', x, y - aoeRadius - 15);
+                } else {
+                    ctx.fillText('💥 إطلاق تعويذة شاملة 320px (GIANT AOE CAST)', x, y - aoeRadius - 15);
+                }
+            } else if (cardData && cardData.isBuilding) {
+                // Defense / Siege Building Placement with Range Circles & Blind-spot
+                ctx.save();
+                // Outer range circle
+                ctx.strokeStyle = cardData.id === 'mortar_cannon' ? 'rgba(255, 183, 3, 0.45)' : 'rgba(0, 242, 254, 0.4)';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([10, 6]);
+                ctx.beginPath();
+                ctx.arc(x, y, cardData.range, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = cardData.id === 'mortar_cannon' ? 'rgba(255, 183, 3, 0.04)' : 'rgba(0, 242, 254, 0.04)';
+                ctx.fill();
+
+                // Inner blind spot circle if exists
+                if (cardData.minRange) {
+                    ctx.strokeStyle = 'rgba(255, 42, 84, 0.7)';
+                    ctx.fillStyle = 'rgba(255, 42, 84, 0.12)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([6, 4]);
+                    ctx.beginPath();
+                    ctx.arc(x, y, cardData.minRange, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                }
+                ctx.restore();
+
+                // Center reticle
+                const reticleColor = cardData.id === 'mortar_cannon' ? '#FFB703' : '#00F2FE';
+                ctx.strokeStyle = reticleColor;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(x, y, 36, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.font = 'bold 18px "Rajdhani"';
+                ctx.fillStyle = reticleColor;
+                ctx.textAlign = 'center';
+                const label = cardData.id === 'mortar_cannon'
+                    ? '🎯 مدفع الهاون: قصف بعيد المدى (650px)'
+                    : '🛡️ بنكر دفاعي: تغطية شاملة 360° للمنطقة';
+                ctx.fillText(label, x, y - 48);
+            } else {
+                // Standard Unit Deployment Reticle with directional trajectory to nearest bridge
+                const nearestBridgeX = x < 385 ? 230 : (x > 695 ? 850 : 540);
+                const bridgeY = 820;
+
+                // Tactical trajectory line to bridge
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0, 242, 254, 0.45)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([8, 8]);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(nearestBridgeX, bridgeY);
+                ctx.stroke();
+                ctx.restore();
+
+                // Reticle rings
+                ctx.strokeStyle = '#00F2FE';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(x, y, 38, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = 'rgba(0, 242, 254, 0.25)';
+                ctx.beginPath();
+                ctx.arc(x, y, 28, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Small bridge marker icon at destination
+                ctx.fillStyle = '#00F2FE';
+                ctx.beginPath();
+                ctx.arc(nearestBridgeX, bridgeY, 8, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.font = 'bold 18px "Rajdhani"';
+                ctx.fillStyle = '#00F2FE';
+                ctx.textAlign = 'center';
+                ctx.fillText('إنزال حر ➔ أقرب جسر', x, y - 48);
+            }
+        }
+        // Mode 2: Card is selected via Tap Mode (waiting for field tap)
+        else if (this.selectedCardId) {
+            const cardData = TacticalGameRoom.CARD_DATABASE[this.selectedCardId];
+            if (!cardData) return;
+
+            ctx.save();
+            const color = cardData.isSpell ? 'rgba(168, 85, 247, 0.5)' : 'rgba(0, 242, 254, 0.45)';
+            const txtColor = cardData.isSpell ? '#D8B4FE' : '#00F2FE';
+
+            // Glowing deployment zone outline in player territory
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2.5;
+            ctx.setLineDash([12, 8]);
+            ctx.strokeRect(50, 860, this.V_WIDTH - 100, 520);
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = cardData.isSpell ? 'rgba(168, 85, 247, 0.06)' : 'rgba(0, 242, 254, 0.05)';
+            ctx.fillRect(50, 860, this.V_WIDTH - 100, 520);
+
+            // In-world guide banner
+            ctx.textAlign = 'center';
+            ctx.font = 'bold 22px "Rajdhani", sans-serif';
+            ctx.fillStyle = txtColor;
+            ctx.shadowColor = txtColor;
+            ctx.shadowBlur = 10;
+            const promptMsg = cardData.isSpell
+                ? '⚡ المس أي مسار لإلقاء التعويذة أو المس وحدة لدمجها ⚡'
+                : '⚡ المس أي مكان في نصف ساحتك لإنزال الوحدة فوراً ⚡';
+            ctx.fillText(promptMsg, 540, 1120);
+
+            // Show cursor preview everywhere on arena with dynamic valid/invalid status
+            if (this.hoverCanvasPos) {
+                const isValid = cardData.isSpell 
+                    ? (this.hoverCanvasPos.y >= 180 && this.hoverCanvasPos.y <= 1650)
+                    : (this.hoverCanvasPos.y >= 860 && this.hoverCanvasPos.y <= 1380);
+
+                ctx.strokeStyle = isValid ? txtColor : 'rgba(255, 42, 84, 0.85)';
+                ctx.fillStyle = isValid ? 'rgba(0, 242, 254, 0.12)' : 'rgba(255, 42, 84, 0.18)';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(this.hoverCanvasPos.x, this.hoverCanvasPos.y, 34, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                if (cardData.isBuilding && isValid) {
+                    ctx.save();
+                    ctx.strokeStyle = cardData.id === 'mortar_cannon' ? 'rgba(255, 183, 3, 0.45)' : 'rgba(0, 242, 254, 0.4)';
+                    ctx.lineWidth = 2;
+                    ctx.setLineDash([8, 6]);
+                    ctx.beginPath();
+                    ctx.arc(this.hoverCanvasPos.x, this.hoverCanvasPos.y, cardData.range, 0, Math.PI * 2);
+                    ctx.stroke();
+                    if (cardData.minRange) {
+                        ctx.strokeStyle = 'rgba(255, 42, 84, 0.6)';
+                        ctx.fillStyle = 'rgba(255, 42, 84, 0.08)';
+                        ctx.setLineDash([5, 4]);
+                        ctx.beginPath();
+                        ctx.arc(this.hoverCanvasPos.x, this.hoverCanvasPos.y, cardData.minRange, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                    ctx.restore();
+                }
+
+                if (cardData.isSpell && isValid) {
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(168, 85, 247, 0.55)';
+                    ctx.lineWidth = 2.5;
+                    ctx.setLineDash([12, 8]);
+                    ctx.beginPath();
+                    ctx.arc(this.hoverCanvasPos.x, this.hoverCanvasPos.y, 320, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.fillStyle = 'rgba(168, 85, 247, 0.08)';
+                    ctx.fill();
+                    ctx.restore();
+                }
+
+                if (!isValid) {
+                    ctx.strokeStyle = '#FF2A54';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.moveTo(this.hoverCanvasPos.x - 14, this.hoverCanvasPos.y - 14);
+                    ctx.lineTo(this.hoverCanvasPos.x + 14, this.hoverCanvasPos.y + 14);
+                    ctx.stroke();
+                }
+            }
+
+            ctx.restore();
+        }
+    }
+
+    drawRedlineGlow(ctx, nowMs) {
+        const pulse = 0.35 + Math.sin(nowMs * 0.009) * 0.25;
+        ctx.strokeStyle = `rgba(255, 42, 84, ${pulse})`;
+        ctx.lineWidth = 16;
+        ctx.strokeRect(0, 0, this.V_WIDTH, this.V_HEIGHT);
+    }
+
+    // --- ACCURATE TOUCH & MOUSE COORDINATES ---
+    getCanvasCoords(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        let clientX = 0, clientY = 0;
+
+        if (e.touches && e.touches.length > 0) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else if (e.changedTouches && e.changedTouches.length > 0) {
+            clientX = e.changedTouches[0].clientX;
+            clientY = e.changedTouches[0].clientY;
+        } else if (e.clientX !== undefined) {
+            clientX = e.clientX;
+            clientY = e.clientY;
+        }
+
+        const normX = rect.width > 0 ? (clientX - rect.left) / rect.width : 0.5;
+        const normY = rect.height > 0 ? (clientY - rect.top) / rect.height : 0.6;
+
+        return {
+            x: Math.max(0, Math.min(this.V_WIDTH, normX * this.V_WIDTH)),
+            y: Math.max(0, Math.min(this.V_HEIGHT, normY * this.V_HEIGHT)),
+            rawX: clientX,
+            rawY: clientY
+        };
+    }
+
+    handleCardPointerDown(cardId, isCatalyst, clientX, clientY) {
+        const now = performance.now();
+        if (this.cardTouchSession && (now - this.cardTouchSession.timestamp < 120)) {
+            return;
+        }
+        this.cardTouchSession = {
+            cardId: cardId,
+            isCatalyst: isCatalyst,
+            startX: clientX,
+            startY: clientY,
+            isDragging: false,
+            timestamp: now
+        };
+    }
+
+    // --- MOUSE & TOUCH EVENT BINDINGS (Mobile-First) ---
+    bindEvents() {
+        const onMove = (e) => {
+            let clientX = e.clientX, clientY = e.clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            // Check if user is initiating drag from card
+            if (this.cardTouchSession && !this.cardTouchSession.isDragging) {
+                const dist = Math.hypot(clientX - this.cardTouchSession.startX, clientY - this.cardTouchSession.startY);
+                if (dist > 18) {
+                    this.cardTouchSession.isDragging = true;
+                    this.dragState.active = true;
+                    this.dragState.cardId = this.cardTouchSession.cardId;
+                    this.dragState.isCatalyst = this.cardTouchSession.isCatalyst;
+                    this.selectedCardId = this.cardTouchSession.cardId;
+                    this.notifyCardSelected(this.cardTouchSession.cardId);
+                }
+            }
+
+            if (this.dragState.active) {
+                if (e.cancelable) e.preventDefault(); // Stop mobile browser scrolling during drag
+                const pos = this.getCanvasCoords(e);
+                this.dragState.canvasX = pos.x;
+                this.dragState.canvasY = pos.y;
+
+                if (pos.x < 380) this.dragState.hoveredLane = 0;
+                else if (pos.x < 700) this.dragState.hoveredLane = 1;
+                else this.dragState.hoveredLane = 2;
+
+                if (this.dragState.isCatalyst && this.currentSnapshot) {
+                    let nearestUnit = null;
+                    let minDist = 140;
+                    for (const u of this.currentSnapshot.units) {
+                        if (u.owner === 1) {
+                            const dist = Math.hypot(u.x - pos.x, u.y - pos.y);
+                            if (dist < minDist) {
+                                minDist = dist;
+                                nearestUnit = u;
+                            }
+                        }
+                    }
+                    this.dragState.snappedUnitId = nearestUnit ? nearestUnit.id : null;
+                }
+            } else if (this.selectedCardId) {
+                this.hoverCanvasPos = this.getCanvasCoords(e);
+            }
+        };
+
+        const onUp = (e) => {
+            let clientX = e.clientX, clientY = e.clientY;
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            }
+
+            if (this.cardTouchSession) {
+                if (this.cardTouchSession.isDragging) {
+                    // Finger was dragging card onto arena
+                    const pos = this.getCanvasCoords(e);
+                    const cardData = TacticalGameRoom.CARD_DATABASE[this.cardTouchSession.cardId];
+                    const isSpell = cardData && cardData.isSpell;
+                    const isValidY = isSpell ? (pos.y >= 180 && pos.y <= 1600) : (pos.y >= 840 && pos.y <= 1400);
+
+                    // Deployed if released inside valid placement zone
+                    if (isValidY) {
+                        if (this.dragState.snappedUnitId) {
+                            this.room.attemptFusion(1, this.cardTouchSession.cardId, this.dragState.snappedUnitId);
+                        } else {
+                            const deployY = isSpell ? pos.y : Math.max(860, Math.min(1380, pos.y));
+                            this.room.deployCard(1, this.cardTouchSession.cardId, pos.x, deployY);
+                        }
+                        this.clearCardSelection();
+                    } else {
+                        // Cancelled
+                        this.clearCardSelection();
+                    }
+                } else {
+                    // Tap on card: toggle selection!
+                    const tappedId = this.cardTouchSession.cardId;
+                    if (this.selectedCardId === tappedId) {
+                        this.clearCardSelection();
+                    } else {
+                        this.selectedCardId = tappedId;
+                        this.dragState.active = false;
+                        this.dragState.cardId = tappedId;
+                        this.dragState.isCatalyst = this.cardTouchSession.isCatalyst;
+                        this.notifyCardSelected(tappedId);
+                    }
+                }
+
+                this.cardTouchSession = null;
+                this.dragState.active = false;
+                return;
+            }
+
+            if (this.dragState.active) {
+                this.dragState.active = false;
+            }
+        };
+
+        // Pointer event listeners on canvas for tap-to-deploy
+        const handleCanvasPointerDown = (e) => {
+            if (!this.selectedCardId) return;
+
+            const pos = this.getCanvasCoords(e);
+            const cardData = TacticalGameRoom.CARD_DATABASE[this.selectedCardId];
+            if (!cardData) return;
+            const isSpell = cardData.isSpell;
+            const isValidY = isSpell ? (pos.y >= 180 && pos.y <= 1600) : (pos.y >= 840 && pos.y <= 1400);
+
+            if (isValidY) {
+                if (isSpell && this.currentSnapshot) {
+                    let nearestUnit = null;
+                    for (const u of this.currentSnapshot.units) {
+                        if (u.owner === 1 && Math.hypot(u.x - pos.x, u.y - pos.y) < 140) {
+                            nearestUnit = u;
+                            break;
+                        }
+                    }
+                    if (nearestUnit) {
+                        this.room.attemptFusion(1, this.selectedCardId, nearestUnit.id);
+                        this.clearCardSelection();
+                        return;
+                    }
+                }
+
+                const deployY = isSpell ? pos.y : Math.max(860, Math.min(1380, pos.y));
+                this.room.deployCard(1, this.selectedCardId, pos.x, deployY);
+                this.clearCardSelection();
+            }
+        };
+
+        this.canvas.addEventListener('pointerdown', handleCanvasPointerDown);
+        this.canvas.addEventListener('click', handleCanvasPointerDown);
+
+        window.addEventListener('pointermove', onMove, { passive: false });
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('mousemove', onMove);
+
+        window.addEventListener('pointerup', onUp);
+        window.addEventListener('touchend', onUp);
+        window.addEventListener('mouseup', onUp);
+    }
+
+    notifyCardSelected(cardId) {
+        if (this.options.onCardSelected) {
+            this.options.onCardSelected(cardId);
+        }
+    }
+
+    clearCardSelection() {
+        this.selectedCardId = null;
+        this.hoverCanvasPos = null;
+        this.dragState.active = false;
+        this.dragState.cardId = null;
+        this.dragState.snappedUnitId = null;
+        this.dragState.hoveredLane = null;
+        if (this.options.onCardDeselected) {
+            this.options.onCardDeselected();
+        }
+        if (this.options.onDragEnd) {
+            this.options.onDragEnd();
+        }
+    }
+
+    startCardDrag(cardId, isCatalyst = false) {
+        this.selectedCardId = cardId;
+        this.dragState.active = true;
+        this.dragState.cardId = cardId;
+        this.dragState.isCatalyst = isCatalyst;
+        this.dragState.canvasX = 540;
+        this.dragState.canvasY = 1160;
+        this.dragState.hoveredLane = 1;
+        this.dragState.snappedUnitId = null;
+        this.notifyCardSelected(cardId);
+    }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = TacticalRenderer;
+} else {
+    window.TacticalRenderer = TacticalRenderer;
+}
