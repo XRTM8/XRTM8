@@ -127,12 +127,12 @@
         },
         plasma_mod: {
             id: 'plasma_mod',
-            name: 'Plasma Catalyst',
+            name: 'Plasma Strike',
             role: 'catalyst',
-            cost: 2,
+            cost: 3,
             isSpell: true,
-            rarity: 'common',
-            description: 'تعويذة محفز البلازما (دائرة عملاقة 320px): تندمج مع الطائرة أو القاذف أو القناص أو الهاون، أو تُلقى لتحرق جميع الأعداء بـ 180 ضرر وتمنح جميع الحلفاء تسريع هجوم قتالي.',
+            rarity: 'rare',
+            description: 'تعويذة ضربة البلازما المتفجرة (نطاق 340px): تفجير فوري بقوة 420 ضرر يطيح بالمشاة الخفيفة، مع إشعال الأرض بنيران البلازما الحارقة التي تستمر 3 ثوانٍ وتصهر الأسراب، وتسريع هجوم الحلفاء.',
             catalystFor: ['scout_drone', 'plasma_caster', 'ghost_sniper', 'mortar_cannon']
         },
         nano_repair: {
@@ -142,17 +142,17 @@
             cost: 2,
             isSpell: true,
             rarity: 'rare',
-            description: 'تعويذة درع النانو (دائرة عملاقة 320px): تندمج مع المقاتل أو البرج أو الدرون، أو تُلقى لتمنح درع 480 نقطة وتزيل الصعق لجميع جنودك وترمم القلاع القريبة.',
+            description: 'تعويذة درع النانو الفائق (نطاق 340px): إزالة فورية لأي تجميد أو صعق عن جنودك، ومنح درع نانوي صلب 650 نقطة وتسريع، وترميم 450 نقطة للأبراج المتضررة.',
             catalystFor: ['cyber_trooper', 'sentry_bunker', 'aero_repairer']
         },
         emp_overcharge: {
             id: 'emp_overcharge',
-            name: 'EMP Strike',
+            name: 'EMP Cascade',
             role: 'tactical_spell',
             cost: 3,
             isSpell: true,
             rarity: 'legendary',
-            description: 'تعويذة الصعقة الكهرومغناطيسية (دائرة عملاقة 320px): تندمج مع العملاق، أو تُلقى لتصعق وتلغي دروع جميع الأعداء وتلحق 240 ضرر وتعطل الأبراج.',
+            description: 'تعويذة العاصفة الكهرومغناطيسية (نطاق 340px): صعقة فتاكة بـ 320 ضرر تشل حركة الأعداء لمدة 2.8 ثانية، تدمر جميع دروعهم فوراً، وتعطل أبراج العدو وتعيد ضبط شحنها لمدة 3 ثوانٍ.',
             catalystFor: ['mech_titan']
         },
         ghost_sniper: {
@@ -220,12 +220,12 @@
         },
         orbital_salvo: {
             id: 'orbital_salvo',
-            name: 'Orbital Salvo',
+            name: 'Orbital Barrage',
             role: 'tactical_spell',
             cost: 4,
             isSpell: true,
             rarity: 'epic',
-            description: 'تعويذة القصف المداري (دائرة عملاقة 320px): إطلاق وابل من 6 صواريخ مدارية موجهة تنهمر على منطقة واسعة بضرر AoE وهزة عنيفة.',
+            description: 'تعويذة القصف الصاروخي المداري (نطاق 340px): انهمار وابل من 6 صواريخ حرارية عالية الانفجار تلحق 160 ضرر لكل صاروخ (إجمالي 960 ضرر) مع مضاعف ضرر تدميري للمباني وهزة عنيفة.',
             catalystFor: []
         },
         aero_repairer: {
@@ -271,14 +271,14 @@
         },
         cryo_freeze: {
             id: 'cryo_freeze',
-            name: 'Cryo Freeze',
+            name: 'Absolute Zero Freeze',
             role: 'tactical_spell',
             cost: 3,
             isSpell: true,
-            freezeDuration: 3.5,
-            freezeRadius: 160,
-            damage: 90,
-            description: 'تعويذة نبضة التجميد الكريستالية (نطاق 320px): تشل حركة وهجوم وتصويب جميع جنود وأبراج الخصم بالكامل لمدة 3.5 ثوانٍ وتحدث ضرراً كهرومغناطيسياً.',
+            freezeDuration: 4.0,
+            freezeRadius: 170,
+            damage: 160,
+            description: 'تعويذة التجميد المطلق (نطاق 340px): تجميد كامل وفوري لجميع جنود وأبراج الخصم لمدة 4.0 ثوانٍ، يسحق الأسراب الضعيفة أقل من 250 HP لشظايا ثلجية، ويترك الأعداء بطيئين بنسبة 40% لمدة ثانيتين بعد الذوبان.',
             rarity: 'epic',
             catalystFor: []
         },
@@ -1620,7 +1620,7 @@
             const isP1 = playerNum === 1;
             const effectX = targetX !== null ? targetX : lane.x;
             const effectY = targetY !== null ? targetY : (isP1 ? 680 : 960);
-            const SPELL_RADIUS = 320; // Giant 320px tactical impact circle!
+            const SPELL_RADIUS = 340; // Overhauled 340px tactical impact circle!
             const enemyPlayer = playerNum === 1 ? this.p2 : this.p1;
             const friendlyPlayer = playerNum === 1 ? this.p1 : this.p2;
 
@@ -1630,52 +1630,63 @@
             const mult = 1 + (spellLevel - 1) * 0.10;
 
             if (spellCard.id === 'emp_overcharge') {
-                // Stun ALL enemy units in 320px circle, strip shield barriers, and deal damage
-                const empDmg = Math.round(240 * mult);
+                // EMP Cascade: 320 burst dmg + 2.8s stun + strips all shields + 3s tower shutdown
+                const empDmg = Math.round(320 * mult);
                 for (const u of this.units) {
                     if (!u.alive || u.owner === playerNum) continue;
                     const dist = Math.hypot(u.x - effectX, u.y - effectY);
                     if (dist <= SPELL_RADIUS) {
-                        u.stunTimer = 2.4;
-                        u.shieldHp = 0; // Strip all shield barriers!
+                        u.stunTimer = Math.max(u.stunTimer || 0, 2.8);
+                        u.shieldHp = 0; // Completely strip shields!
+                        if (u.isRamping) {
+                            u.beamTargetId = null;
+                            u.beamDuration = 0;
+                        }
                         this.applyDamage(u, empDmg, null);
                     }
                 }
-                // Also zap and stun enemy towers if caught in the 320px radius!
-                const towerEmpDmg = Math.round(160 * mult);
+                const towerEmpDmg = Math.round(220 * mult);
                 for (const t of Object.values(enemyPlayer.towers)) {
                     if (t.alive && Math.hypot(t.x - effectX, t.y - effectY) <= SPELL_RADIUS) {
                         this.applyDamage(t, towerEmpDmg, null);
-                        t.attackCooldown = Math.max(t.attackCooldown, 2.0); // 2s tower EMP stun!
+                        t.attackCooldown = Math.max(t.attackCooldown, 3.0); // 3.0s tower EMP shutdown!
+                        t.freezeTimer = 0; // EMP clears freeze to establish electric stun
                     }
                 }
                 this.emitEvent('emp_blast', { x: effectX, y: effectY, radius: SPELL_RADIUS });
-                this.addCombatLog(`[صعقة EMP Lv.${spellLevel}] صعق وتجريد دروع جميع جنود وأبراج العدو داخل نطاق 320px!`);
+                this.addCombatLog(`[العاصفة الكهرومغناطيسية Lv.${spellLevel}] صعق وتجريد دروع وتعطيل أبراج العدو (320 ضرر) بنطاق 340px!`);
             } else if (spellCard.id === 'nano_repair') {
-                // Shield ALL nearby friendly units, cleanse stun, grant 4s adrenaline
-                const shieldAmount = Math.round(480 * mult);
+                // Nano Aegis: Cleanses stun & freeze + 650 shield + 200 heal + 4s +35% attack speed + repairs tower 450 HP
+                const shieldAmount = Math.round(650 * mult);
+                const unitHeal = Math.round(200 * mult);
                 for (const u of this.units) {
                     if (!u.alive || u.owner !== playerNum) continue;
                     const dist = Math.hypot(u.x - effectX, u.y - effectY);
                     if (dist <= SPELL_RADIUS) {
                         u.shieldHp = (u.shieldHp || 0) + shieldAmount;
                         u.stunTimer = 0; // Cleanse EMP stun
+                        u.freezeTimer = 0; // Cleanse cryo freeze
+                        u.slowTimer = 0; // Cleanse slow
+                        u.hp = Math.min(u.maxHp, u.hp + unitHeal);
                         u.adrenalineTimer = Math.max(u.adrenalineTimer || 0, 4.0); // Overdrive attack speed!
+                        this.emitEvent('damage_dealt', { x: u.x, y: u.y, amount: unitHeal, isShield: true });
                     }
                 }
-                // Also repair friendly towers if caught in the 320px circle!
-                const towerHeal = Math.round(300 * mult);
+                // Repair friendly towers in radius
+                const towerHeal = Math.round(450 * mult);
                 for (const t of Object.values(friendlyPlayer.towers)) {
                     if (t.alive && Math.hypot(t.x - effectX, t.y - effectY) <= SPELL_RADIUS) {
                         t.hp = Math.min(t.maxHp, t.hp + towerHeal);
+                        t.freezeTimer = 0; // Cleanse tower freeze
                         this.emitEvent('damage_dealt', { x: t.x, y: t.y, amount: towerHeal, isShield: true, isTower: true });
                     }
                 }
                 this.emitEvent('nano_shield_aoe', { x: effectX, y: effectY, radius: SPELL_RADIUS });
-                this.addCombatLog(`[درع النانو Lv.${spellLevel}] درع +${shieldAmount} وتسريع هجوم لجميع جنود الحلفاء وترميم الأبراج بنطاق 320px!`);
+                this.addCombatLog(`[درع النانو Lv.${spellLevel}] درع +${shieldAmount} وشفاء الأبراج +${towerHeal} وإزالة الصعق والتجميد بنطاق 340px!`);
             } else if (spellCard.id === 'plasma_mod') {
-                // Deal dmg to ALL enemies and give ALL friendly units in 320px 4s adrenaline overdrive!
-                const plasmaDmg = Math.round(180 * mult);
+                // Plasma Strike: Instant 420 burst damage + knockback light units + 3s lingering fire + ally overdrive
+                const plasmaDmg = Math.round(420 * mult);
+                const knockbackDir = playerNum === 1 ? -1 : 1;
                 for (const u of this.units) {
                     if (!u.alive) continue;
                     const dist = Math.hypot(u.x - effectX, u.y - effectY);
@@ -1684,42 +1695,51 @@
                             u.adrenalineTimer = Math.max(u.adrenalineTimer || 0, 4.0);
                         } else {
                             this.applyDamage(u, plasmaDmg, null);
+                            // Knockback light units
+                            if (!u.isHeavy && !u.isBuilding) {
+                                u.y = Math.max(200, Math.min(1700, u.y + knockbackDir * 40));
+                            }
+                            // Burn effect slow
+                            u.slowTimer = Math.max(u.slowTimer || 0, 3.0);
                         }
                     }
                 }
-                // Also burn enemy towers in radius
-                const towerBurn = Math.round(140 * mult);
+                // Tower Burn Damage
+                const towerBurn = Math.round(320 * mult);
                 for (const t of Object.values(enemyPlayer.towers)) {
                     if (t.alive && Math.hypot(t.x - effectX, t.y - effectY) <= SPELL_RADIUS) {
                         this.applyDamage(t, towerBurn, null);
                     }
                 }
                 this.emitEvent('plasma_blast', { x: effectX, y: effectY, radius: SPELL_RADIUS });
-                this.addCombatLog(`[محفز البلازما Lv.${spellLevel}] حرق جميع أعداء الدائرة بـ ${plasmaDmg} ضرر وتسريع هجوم الحلفاء بنطاق 320px!`);
+                this.addCombatLog(`[ضربة البلازما Lv.${spellLevel}] تفجير فوري بقوة ${plasmaDmg} ضرر ونيران حارقة ودفع للأعداء بنطاق 340px!`);
             } else if (spellCard.id === 'orbital_salvo') {
-                // Orbital Salvo: 6 micro-missiles impacting over 1.2s dealing heavy burst damage across 320px
+                // Orbital Barrage: 6 tactical warheads dealing 160 each (960 total) + 1.5x structural demolition
                 const impactCount = 6;
-                const baseDmg = Math.round(105 * mult);
+                const baseDmg = Math.round(160 * mult);
                 for (let i = 0; i < impactCount; i++) {
-                    const delayMs = i * 180;
+                    const delayMs = i * 150;
                     setTimeout(() => {
                         if (this.state !== 'RUNNING') return;
-                        const randOffsetX = (Math.random() - 0.5) * 260;
-                        const randOffsetY = (Math.random() - 0.5) * 260;
+                        const randOffsetX = (Math.random() - 0.5) * 280;
+                        const randOffsetY = (Math.random() - 0.5) * 280;
                         const hitX = effectX + randOffsetX;
                         const hitY = effectY + randOffsetY;
 
                         for (const u of this.units) {
                             if (!u.alive || u.owner === playerNum) continue;
                             const dist = Math.hypot(u.x - hitX, u.y - hitY);
-                            if (dist <= 180) {
-                                this.applyDamage(u, baseDmg, null);
+                            if (dist <= 190) {
+                                const unitDmg = u.isBuilding ? Math.round(baseDmg * 1.5) : baseDmg;
+                                this.applyDamage(u, unitDmg, null);
                             }
                         }
 
                         for (const t of Object.values(enemyPlayer.towers)) {
-                            if (t.alive && Math.hypot(t.x - hitX, t.y - hitY) <= 170) {
-                                t.hp = Math.max(0, t.hp - (baseDmg * 0.75));
+                            if (t.alive && Math.hypot(t.x - hitX, t.y - hitY) <= 180) {
+                                const towerDmg = Math.round(baseDmg * 1.15);
+                                t.hp = Math.max(0, t.hp - towerDmg);
+                                this.emitEvent('damage_dealt', { x: t.x, y: t.y, amount: towerDmg, isTower: true });
                                 if (t.hp === 0) {
                                     t.alive = false;
                                     this.emitEvent('tower_destroyed', { towerId: t.id, x: t.x, y: t.y, owner: t.owner });
@@ -1731,26 +1751,35 @@
                     }, delayMs);
                 }
                 this.emitEvent('orbital_target_locked', { x: effectX, y: effectY, radius: SPELL_RADIUS });
-                this.addCombatLog(`[قصف مداري Lv.${spellLevel}] وابل صواريخ مدارية مكثف يغطي دائرة 320px!`);
+                this.addCombatLog(`[القصف المداري Lv.${spellLevel}] وابل صواريخ مدارية مكثف (6 قذائف x ${baseDmg}) يغطي دائرة 340px!`);
             } else if (spellCard.id === 'cryo_freeze') {
-                const freezeDur = 3.5;
-                const baseDmg = Math.round(90 * mult);
+                // Absolute Zero Freeze: 4.0s freeze + 160 dmg + shatter light swarms <= 250 HP instantly + 40% slow after thaw
+                const freezeDur = 4.0;
+                const baseDmg = Math.round(160 * mult);
                 for (const u of this.units) {
                     if (!u.alive || u.owner === playerNum) continue;
                     const dist = Math.hypot(u.x - effectX, u.y - effectY);
                     if (dist <= SPELL_RADIUS) {
                         u.freezeTimer = Math.max(u.freezeTimer || 0, freezeDur);
+                        u.slowTimer = Math.max(u.slowTimer || 0, freezeDur + 2.0); // Slow persists after freeze
                         this.applyDamage(u, baseDmg, null);
+
+                        // Instant Shatter for swarms under 250 HP
+                        if (u.alive && u.hp <= 250 && !u.isBuilding && !u.isHeavy) {
+                            u.alive = false;
+                            u.hp = 0;
+                            this.emitEvent('cryo_shatter', { x: u.x, y: u.y, id: u.id });
+                        }
                     }
                 }
                 for (const t of Object.values(enemyPlayer.towers)) {
                     if (t.alive && Math.hypot(t.x - effectX, t.y - effectY) <= SPELL_RADIUS) {
                         t.freezeTimer = Math.max(t.freezeTimer || 0, freezeDur);
-                        this.applyDamage(t, Math.round(baseDmg * 0.65), null);
+                        this.applyDamage(t, Math.round(baseDmg * 0.8), null);
                     }
                 }
                 this.emitEvent('cryo_freeze_pulse', { x: effectX, y: effectY, radius: SPELL_RADIUS, duration: freezeDur });
-                this.addCombatLog(`[نبضة تجميد Lv.${spellLevel}] تجميد كامل للأعداء والأبراج لمدة ${freezeDur} ثوانٍ بنطاق 320px!`);
+                this.addCombatLog(`[التجميد المطلق Lv.${spellLevel}] تجميد كامل للأعداء والأبراج لمدة ${freezeDur} ثوانٍ مع تفتيت الأسراب!`);
             }
         }
 

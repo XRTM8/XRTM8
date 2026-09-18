@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hyper-Lane Tactics Online - Tactical Command</title>
+    <title>CyberClash | سايبر كلاش - ساحة المعارك التكتيكية</title>
     <!-- High-Tech Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -319,11 +319,14 @@
 
         .cr-page-container {
             width: 100%;
-            max-width: 500px;
+            max-width: 440px;
+            margin: 0 auto;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            align-items: center;
+            gap: 12px;
             touch-action: pan-x pan-y !important;
+            box-sizing: border-box;
         }
 
         .cr-deck-box,
@@ -635,34 +638,59 @@
         }
 
         .cr-deck-slot {
-            aspect-ratio: 1 / 1.22;
-            max-height: 96px;
+            aspect-ratio: 1 / 1.32;
+            min-height: 104px;
+            max-height: 115px;
             background: linear-gradient(180deg, #131f3b 0%, #090f1d 100%);
             border: 1.5px solid rgba(0, 242, 254, 0.35);
-            border-radius: 10px;
-            padding: 3px 2px;
+            border-radius: 12px;
+            padding: 4px 3px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
             position: relative;
             cursor: pointer;
-            transition: all 0.18s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             box-sizing: border-box;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
         }
 
         .cr-deck-slot:hover {
-            border-color: var(--cyan-glow);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 14px rgba(0, 242, 254, 0.35);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 6px 18px rgba(0, 242, 254, 0.35);
+        }
+
+        .cr-deck-slot.rarity-common {
+            border-color: rgba(148, 163, 184, 0.55);
+            box-shadow: 0 3px 12px rgba(148, 163, 184, 0.15);
+        }
+        .cr-deck-slot.rarity-rare {
+            border-color: rgba(245, 158, 11, 0.75);
+            box-shadow: 0 3px 14px rgba(245, 158, 11, 0.25);
+        }
+        .cr-deck-slot.rarity-epic {
+            border-color: rgba(168, 85, 247, 0.8);
+            box-shadow: 0 3px 16px rgba(168, 85, 247, 0.28);
+        }
+        .cr-deck-slot.rarity-legendary {
+            border-color: #F59E0B;
+            box-shadow: 0 3px 18px rgba(245, 158, 11, 0.4);
+            animation: legendary-deck-glow 2.5s infinite alternate;
+        }
+
+        @keyframes legendary-deck-glow {
+            0% { border-color: #38BDF8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
+            50% { border-color: #F59E0B; box-shadow: 0 0 14px rgba(245, 158, 11, 0.5); }
+            100% { border-color: #EC4899; box-shadow: 0 0 12px rgba(236, 72, 153, 0.4); }
         }
 
         .cr-deck-slot .cr-card-art-frame {
-            width: 44px;
-            height: 44px;
-            margin-top: 4px;
-            border-radius: 8px;
-            background: radial-gradient(circle, rgba(0, 242, 254, 0.14) 0%, rgba(8, 14, 26, 0.95) 80%);
+            width: 48px;
+            height: 48px;
+            margin-top: 5px;
+            border-radius: 10px;
+            background: radial-gradient(circle, rgba(0, 242, 254, 0.16) 0%, rgba(8, 14, 26, 0.95) 80%);
             border: 1.2px solid rgba(0, 242, 254, 0.35);
             display: flex;
             align-items: center;
@@ -677,33 +705,92 @@
             display: block;
         }
 
-        .cr-deck-slot .cr-card-elixir {
+        .cr-card-elixir {
             position: absolute;
-            top: -4px;
-            right: -4px;
-            width: 19px;
-            height: 19px;
-            font-size: 9.5px;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            background: radial-gradient(circle at 35% 30%, #E9D5FF 0%, #A855F7 45%, #6B21A8 100%);
+            border: 1.5px solid #F3E8FF;
+            border-radius: 50% 50% 50% 12%;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 8px rgba(107, 33, 168, 0.75), inset 0 1px 2px rgba(255, 255, 255, 0.7);
+            z-index: 5;
         }
 
-        .cr-deck-slot .cr-card-level {
+        .cr-card-elixir span {
+            transform: rotate(45deg);
+            color: #FFFFFF;
+            font-size: 11.5px;
+            font-weight: 900;
+            font-family: var(--font-tactical);
+            line-height: 1;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .cr-card-level {
             position: absolute;
-            top: 2px;
-            left: 2px;
+            top: 4px;
+            left: 4px;
+            font-size: 9px;
+            font-weight: 800;
+            color: #FFDE59;
+            background: rgba(8, 14, 26, 0.92);
+            padding: 1px 5px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 183, 3, 0.5);
+            z-index: 4;
+            font-family: var(--font-tactical);
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .cr-deck-slot .cr-card-elixir {
+            top: 3px;
+            right: 3px;
+            width: 20px;
+            height: 20px;
+        }
+        .cr-deck-slot .cr-card-elixir span {
+            font-size: 10px;
+        }
+        .cr-deck-slot .cr-card-level {
+            top: 3px;
+            left: 3px;
             font-size: 8px;
-            padding: 0 3px;
+            padding: 1px 3.5px;
+        }
+
+        .cr-deck-slot .cr-deck-card-name {
+            font-size: 10.5px;
+            font-weight: 800;
+            color: #FFFFFF;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            padding: 1px 2px 2px;
+            line-height: 1.2;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
         }
 
         .cr-deck-slot.empty {
             border: 1.5px dashed rgba(255, 255, 255, 0.25);
             justify-content: center;
-            gap: 2px;
+            gap: 4px;
             color: #64748B;
+            background: rgba(15, 23, 42, 0.4);
         }
 
         .cr-deck-slot.empty:hover {
             border-color: var(--cyan-glow);
             color: var(--cyan-glow);
+            background: rgba(0, 242, 254, 0.05);
         }
 
         /* Swap Mode Candidate Pulse for Active Deck Slots */
@@ -724,7 +811,7 @@
             inset: 0;
             background: rgba(10, 16, 30, 0.85);
             backdrop-filter: blur(2px);
-            border-radius: 9px;
+            border-radius: 11px;
             color: #FFDE59;
             font-size: 11px;
             font-weight: 900;
@@ -762,32 +849,32 @@
             color: #FFFFFF;
         }
 
-        /* Clean Collectible Cards Collection Grid */
+        /* Clean Collectible Cards Collection Grid - Strictly 3 Centered Columns (Clash Royale standard) */
         .cr-collection-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(3, 1fr) !important;
             gap: 8px;
             width: 100%;
-        }
-
-        @media (min-width: 440px) {
-            .cr-collection-grid {
-                grid-template-columns: repeat(4, 1fr);
-                gap: 8px;
-            }
+            max-width: 430px;
+            margin: 0 auto;
+            justify-content: center;
+            justify-items: center;
+            box-sizing: border-box;
         }
 
         .cr-card-clean {
-            aspect-ratio: 1 / 1.38;
+            aspect-ratio: 1 / 1.34;
+            width: 100%;
+            max-width: 136px;
             background: linear-gradient(180deg, #131f38 0%, #0a1120 100%);
-            border: 1.8px solid rgba(0, 242, 254, 0.28);
+            border: 2px solid rgba(148, 163, 184, 0.45);
             border-radius: 12px;
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            padding: 6px 5px 6px;
+            padding: 5px 4px 5px;
             box-sizing: border-box;
             position: relative;
             cursor: pointer;
@@ -795,82 +882,121 @@
         }
 
         .cr-card-clean:hover {
-            transform: translateY(-4px) scale(1.02);
+            transform: translateY(-3px) scale(1.02);
             box-shadow: 0 8px 24px rgba(0, 242, 254, 0.35);
-            border-color: var(--cyan-glow);
         }
 
         .cr-card-clean:active {
             transform: scale(0.97);
         }
 
+        /* In-active-deck: KEEP native rarity border color, add subtle emerald outline glow */
         .cr-card-clean.in-active-deck {
-            border-color: #10B981;
-            box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+            outline: 2px solid rgba(16, 185, 129, 0.75);
+            outline-offset: -1px;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.35), 0 4px 14px rgba(0, 0, 0, 0.6);
         }
 
-        .cr-card-clean.in-active-deck::after {
-            content: '✓ بالتشكيلة';
+        /* Dedicated In-Active-Deck Floating Pill */
+        .cr-card-in-deck-pill {
             position: absolute;
-            top: 5px;
-            left: 5px;
-            background: rgba(16, 185, 129, 0.95);
-            color: #050811;
-            font-size: 8.5px;
+            top: 56px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95));
+            color: #FFFFFF;
+            font-size: 7.5px;
             font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 7px;
+            border: 1px solid #34D399;
+            box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+            z-index: 6;
+            white-space: nowrap;
+            letter-spacing: 0.2px;
+            pointer-events: none;
+        }
+
+        /* Rarity Styles for Collection Cards - Clean, authentic & faithful to each rarity tier */
+        .cr-card-clean.rarity-common {
+            background: linear-gradient(180deg, #101c33 0%, #080e1a 100%);
+            border-color: rgba(148, 163, 184, 0.55);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(148, 163, 184, 0.12);
+        }
+        .cr-card-clean.rarity-common:hover {
+            border-color: #CBD5E1;
+            box-shadow: 0 6px 20px rgba(148, 163, 184, 0.4);
+        }
+
+        .cr-card-clean.rarity-rare {
+            background: linear-gradient(180deg, #221808 0%, #0a0d18 100%);
+            border-color: rgba(245, 158, 11, 0.75);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6), inset 0 0 12px rgba(245, 158, 11, 0.15);
+        }
+        .cr-card-clean.rarity-rare:hover {
+            border-color: #F59E0B;
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+        }
+
+        .cr-card-clean.rarity-epic {
+            background: linear-gradient(180deg, #200d2b 0%, #090c17 100%);
+            border-color: rgba(168, 85, 247, 0.8);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), inset 0 0 14px rgba(168, 85, 247, 0.2);
+        }
+        .cr-card-clean.rarity-epic:hover {
+            border-color: #A855F7;
+            box-shadow: 0 6px 22px rgba(168, 85, 247, 0.5);
+        }
+
+        .cr-card-clean.rarity-legendary {
+            background: linear-gradient(180deg, #260f1f 0%, #0a0d1c 100%);
+            border-color: #F59E0B;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.6), inset 0 0 16px rgba(245, 158, 11, 0.25);
+            animation: legendary-deck-glow 2.5s infinite alternate;
+        }
+        .cr-card-clean.rarity-legendary:hover {
+            box-shadow: 0 6px 24px rgba(245, 158, 11, 0.6);
+        }
+
+        .cr-card-clean .cr-card-level {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            font-size: 8px;
+            font-weight: 800;
+            color: #FFDE59;
+            background: rgba(8, 14, 26, 0.92);
             padding: 1px 4px;
             border-radius: 4px;
-            z-index: 3;
+            border: 1px solid rgba(255, 183, 3, 0.5);
+            z-index: 5;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6);
         }
 
-        /* Elixir Droplet */
-        .cr-card-elixir {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            width: 22px;
-            height: 22px;
-            background: linear-gradient(135deg, #A855F7 0%, #7C3AED 100%);
-            border: 1.5px solid #E9D5FF;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #FFFFFF;
-            font-size: 11px;
-            font-weight: 900;
-            font-family: var(--font-tactical);
-            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.7);
-            z-index: 4;
+        .cr-card-clean .cr-card-elixir {
+            top: 3px;
+            right: 3px;
+            width: 20px;
+            height: 20px;
         }
-
-        .cr-card-level {
-            position: absolute;
-            top: 4px;
-            left: 6px;
-            font-size: 9.5px;
-            font-weight: 800;
-            color: var(--amber-gold);
-            background: rgba(0, 0, 0, 0.6);
-            padding: 1px 5px;
-            border-radius: 4px;
-            border: 1px solid rgba(255, 183, 3, 0.35);
+        .cr-card-clean .cr-card-elixir span {
+            font-size: 10px;
         }
 
         .cr-card-art-frame {
-            width: calc(100% - 12px);
+            width: calc(100% - 6px);
             max-width: 72px;
-            aspect-ratio: 1;
-            margin: 10px auto 4px;
-            border-radius: 12px;
-            background: radial-gradient(circle, rgba(0, 242, 254, 0.14) 0%, rgba(8, 14, 26, 0.95) 80%);
+            height: 64px;
+            margin: 3px auto 2px;
+            border-radius: 10px;
+            background: radial-gradient(circle, rgba(0, 242, 254, 0.16) 0%, rgba(8, 14, 26, 0.95) 80%);
             border: 1.5px solid rgba(0, 242, 254, 0.35);
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
             position: relative;
-            box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.6), 0 4px 10px rgba(0, 0, 0, 0.4);
+            box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.7), 0 3px 8px rgba(0, 0, 0, 0.45);
             transition: all 0.2s ease;
         }
 
@@ -881,8 +1007,8 @@
         }
 
         .cr-card-clean.spell-type .cr-card-art-frame {
-            border-color: rgba(255, 183, 3, 0.4);
-            background: radial-gradient(circle, rgba(255, 183, 3, 0.15) 0%, rgba(8, 14, 26, 0.95) 80%);
+            border-color: rgba(245, 158, 11, 0.5);
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, rgba(8, 14, 26, 0.95) 80%);
         }
         .cr-card-clean:hover .cr-card-art-frame {
             border-color: var(--cyan-glow);
@@ -894,36 +1020,54 @@
         }
 
         .cr-card-title {
-            font-size: 11.5px;
-            font-weight: 800;
+            font-size: 10.5px;
+            font-weight: 700;
             color: #FFFFFF;
             text-align: center;
-            white-space: nowrap;
+            width: 98%;
+            min-height: 22px;
+            max-height: 25px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
-            width: 95%;
-            margin-top: 2px;
+            line-height: 1.15;
+            padding: 0 1px;
+            margin-top: 1px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+        }
+
+        .cr-card-meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            margin-top: 1px;
+            margin-bottom: 2px;
+            width: 100%;
         }
 
         .cr-card-role-tag {
-            font-size: 9px;
+            font-size: 8px;
             color: #94A3B8;
-            margin-top: -2px;
+            white-space: nowrap;
         }
 
         /* Card Progress Bar */
         .cr-card-upgrade-track {
             width: 92%;
             height: 11px;
-            background: rgba(0, 0, 0, 0.6);
-            border-radius: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 0, 0, 0.75);
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
             position: relative;
             overflow: hidden;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-top: 2px;
+            margin-top: 1px;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.8);
         }
 
         .cr-card-upgrade-fill {
@@ -931,24 +1075,24 @@
             left: 0;
             top: 0;
             bottom: 0;
-            background: linear-gradient(90deg, #10B981, #34D399);
-            border-radius: 6px;
+            background: linear-gradient(90deg, #0284C7, #38BDF8);
+            border-radius: 5px;
             transition: width 0.3s;
         }
 
         .cr-card-upgrade-text {
             position: relative;
             z-index: 2;
-            font-size: 8px;
-            font-weight: 800;
+            font-size: 7.5px;
+            font-weight: 900;
             color: #FFFFFF;
             text-shadow: 0 1px 2px #000;
             font-family: var(--font-tactical);
+            letter-spacing: 0.3px;
         }
 
         .cr-card-clean.can-upgrade {
-            border-color: #10B981 !important;
-            box-shadow: 0 0 14px rgba(16, 185, 129, 0.45);
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.5), 0 4px 14px rgba(0, 0, 0, 0.6);
         }
 
         .cr-card-upgrade-track.ready-glow {
@@ -957,8 +1101,8 @@
         }
 
         .cr-card-upgrade-fill.ready {
-            background: linear-gradient(90deg, #059669, #10B981);
-            box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+            background: linear-gradient(90deg, #059669, #10B981, #34D399);
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.8);
         }
 
         /* TAB 2: BATTLE (CENTER STAGE) */
@@ -1504,8 +1648,8 @@
         }
 
         #modal-card-action .modal-card.modal-rarity-rare {
-            border: 2.5px solid #00F2FE !important;
-            box-shadow: 0 0 30px rgba(0, 242, 254, 0.5), 0 0 50px rgba(14, 165, 233, 0.3), inset 0 0 16px rgba(0, 242, 254, 0.1) !important;
+            border: 2.5px solid #F59E0B !important;
+            box-shadow: 0 0 30px rgba(245, 158, 11, 0.55), 0 0 50px rgba(217, 119, 6, 0.35), inset 0 0 16px rgba(245, 158, 11, 0.12) !important;
         }
 
         #modal-card-action .modal-card.modal-rarity-common {
@@ -4781,8 +4925,8 @@
             border-color: rgba(148, 163, 184, 0.45);
         }
         .rarity-rare {
-            border-color: rgba(56, 189, 248, 0.55);
-            box-shadow: 0 0 6px rgba(56, 189, 248, 0.15);
+            border-color: rgba(245, 158, 11, 0.75);
+            box-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
         }
         .rarity-epic {
             border-color: rgba(192, 132, 252, 0.55);
@@ -4877,19 +5021,19 @@
             }
         }
 
-        /* 3. Rare: Cyan Plasma Energy Aura (وهج طاقة سماوي ساطع) */
+        /* 3. Rare: Amber Solar Energy Aura (وهج طاقة عنبري ذهبي نادر) */
         .card-slot.rarity-rare.selected,
         .card-slot.rarity-rare:active,
         .cr-deck-slot.rarity-rare:active,
         .cr-deck-slot.rarity-rare.selected,
         .cr-card-clean.rarity-rare:active,
         .cr-card-clean.rarity-rare.selected {
-            border-color: #00F2FE !important;
+            border-color: #F59E0B !important;
             box-shadow: 
-                0 0 0 1px #00F2FE,
-                0 0 16px rgba(0, 242, 254, 0.95),
-                0 0 28px rgba(56, 189, 248, 0.8),
-                0 0 40px rgba(2, 132, 199, 0.5) !important;
+                0 0 0 1px #D97706,
+                0 0 16px rgba(245, 158, 11, 0.95),
+                0 0 28px rgba(251, 191, 36, 0.8),
+                0 0 40px rgba(217, 119, 6, 0.5) !important;
             animation: rareEnergyGlow 1.4s ease-in-out infinite alternate !important;
             transform: translateY(-8px) scale(1.03);
             z-index: 10;
@@ -4898,16 +5042,16 @@
         @keyframes rareEnergyGlow {
             0% {
                 box-shadow: 
-                    0 0 0 1px #0284C7,
-                    0 0 14px rgba(0, 242, 254, 0.85),
-                    0 0 24px rgba(56, 189, 248, 0.65);
+                    0 0 0 1px #D97706,
+                    0 0 14px rgba(245, 158, 11, 0.85),
+                    0 0 24px rgba(251, 191, 36, 0.65);
             }
             100% {
                 box-shadow: 
-                    0 0 0 1.5px #BAE6FD,
-                    0 0 20px rgba(0, 242, 254, 1),
-                    0 0 34px rgba(56, 189, 248, 0.9),
-                    0 0 48px rgba(14, 165, 233, 0.6);
+                    0 0 0 1.5px #FDE68A,
+                    0 0 20px rgba(245, 158, 11, 1),
+                    0 0 34px rgba(251, 191, 36, 0.9),
+                    0 0 48px rgba(217, 119, 6, 0.6);
             }
         }
 
@@ -4947,10 +5091,10 @@
             display: inline-flex;
             align-items: center;
             gap: 3px;
-            font-size: 9.5px;
+            font-size: 8.5px;
             font-weight: 800;
-            padding: 2px 8px;
-            border-radius: 6px;
+            padding: 1.5px 6px;
+            border-radius: 5px;
             letter-spacing: 0.3px;
         }
         .rarity-badge-common {
@@ -4959,19 +5103,19 @@
             border: 1px solid rgba(148, 163, 184, 0.35);
         }
         .rarity-badge-rare {
-            background: rgba(56, 189, 248, 0.15);
-            color: #38BDF8;
-            border: 1px solid rgba(56, 189, 248, 0.4);
-            text-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
+            background: rgba(245, 158, 11, 0.18);
+            color: #FBBF24;
+            border: 1px solid rgba(245, 158, 11, 0.5);
+            text-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
         }
         .rarity-badge-epic {
-            background: rgba(192, 132, 252, 0.15);
+            background: rgba(192, 132, 252, 0.18);
             color: #C084FC;
-            border: 1px solid rgba(192, 132, 252, 0.4);
+            border: 1px solid rgba(192, 132, 252, 0.45);
             text-shadow: 0 0 6px rgba(192, 132, 252, 0.4);
         }
         .rarity-badge-legendary {
-            background: linear-gradient(135deg, rgba(250, 204, 21, 0.28), rgba(255, 0, 85, 0.22));
+            background: linear-gradient(135deg, rgba(250, 204, 21, 0.28), rgba(245, 158, 11, 0.22));
             color: #FACC15;
             border: 1px solid #FACC15;
             text-shadow: 0 0 8px rgba(250, 204, 21, 0.6);
@@ -5478,29 +5622,338 @@
             border-color: rgba(255, 183, 3, 0.35);
         }
 
-        /* Battle Stage Zero-Scroll Layout (Bottom Crates Docking) */
+        /* Battle Stage Zero-Scroll Layout (Centered Battle Stage with No Dead Void) */
         .cr-battle-stage {
             display: flex !important;
             flex-direction: column !important;
             height: 100% !important;
             justify-content: space-between !important;
-            gap: 8px !important;
-            padding: 4px 0 4px !important;
+            gap: 6px !important;
+            padding: 4px 6px !important;
             box-sizing: border-box !important;
             overflow: hidden !important;
         }
-        .cr-battle-stage .cr-battle-btn-large {
-            max-width: 440px !important;
-            padding: 12px 20px !important;
-            border-radius: 14px !important;
-            margin: 2px 0 !important;
+
+        .cr-stage-top-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+            max-width: 440px;
+            flex-shrink: 0;
         }
-        .cr-battle-stage .cr-chests-container {
+
+        .cr-stage-center-hero {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 440px;
+            flex: 1;
+            margin: auto 0;
+        }
+
+        .cr-arena-showcase-card {
+            width: 100%;
+            background: radial-gradient(circle at 50% 30%, rgba(0, 242, 254, 0.12) 0%, rgba(14, 23, 42, 0.95) 100%);
+            border: 1.5px solid rgba(0, 242, 254, 0.35);
+            border-radius: 14px;
+            padding: 8px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), inset 0 0 14px rgba(0, 242, 254, 0.1);
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+            box-sizing: border-box;
+        }
+        .cr-arena-showcase-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--cyan-glow);
+            box-shadow: 0 8px 24px rgba(0, 242, 254, 0.3);
+        }
+
+        .arena-showcase-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .arena-showcase-icon {
+            font-size: 26px;
+            filter: drop-shadow(0 0 8px rgba(0, 242, 254, 0.6));
+        }
+        .arena-showcase-title {
+            font-family: var(--font-tactical);
+            font-size: 14px;
+            font-weight: 800;
+            color: #FFFFFF;
+            letter-spacing: 0.5px;
+        }
+        .arena-showcase-sub {
+            font-size: 11px;
+            color: #94A3B8;
+        }
+        .arena-showcase-pill {
+            background: rgba(0, 242, 254, 0.15);
+            border: 1px solid rgba(0, 242, 254, 0.4);
+            color: var(--cyan-glow);
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 10.5px;
+            font-weight: 800;
+            font-family: var(--font-tactical);
+        }
+
+        .cr-stage-center-hero .cr-battle-btn-large {
+            max-width: 440px !important;
+            padding: 14px 22px !important;
+            border-radius: 16px !important;
+            margin: 2px 0 !important;
+            box-shadow: 0 8px 30px rgba(245, 158, 11, 0.55), 0 0 20px rgba(254, 240, 138, 0.3);
+            animation: pulse-battle-btn 2.2s infinite ease-in-out;
+        }
+        @keyframes pulse-battle-btn {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.02); filter: brightness(1.08); box-shadow: 0 10px 36px rgba(245, 158, 11, 0.7), 0 0 26px rgba(254, 240, 138, 0.5); }
+        }
+
+        .cr-ai-battle-btn-compact {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 6px 14px;
+            background: rgba(14, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 10px;
+            color: #94A3B8;
+            font-size: 11.5px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .cr-ai-battle-btn-compact:hover {
+            color: var(--cyan-glow);
+            border-color: var(--cyan-glow);
+            background: rgba(0, 242, 254, 0.1);
+        }
+
+        .cr-stage-bottom-block {
+            width: 100%;
+            max-width: 440px;
+            flex-shrink: 0;
+            margin-top: auto;
+        }
+        .cr-stage-bottom-block .cr-chests-container {
             max-width: 440px !important;
             padding: 8px 12px !important;
             gap: 6px !important;
             border-radius: 14px !important;
-            margin-top: auto !important;
+        }
+
+        /* 2-Step Battle Mode & Wager Selector Styles */
+        .wager-step-section {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .wager-step-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .wager-step-badge {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--cyan-glow);
+            color: #050811;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 900;
+            font-family: var(--font-tactical);
+            box-shadow: 0 0 8px rgba(0, 242, 254, 0.4);
+            flex-shrink: 0;
+        }
+        .battle-modes-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            width: 100%;
+        }
+        .battle-mode-card {
+            background: rgba(14, 23, 42, 0.8);
+            border: 1.5px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 10px 8px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 4px;
+            position: relative;
+            box-sizing: border-box;
+        }
+        .battle-mode-card:hover {
+            border-color: var(--cyan-glow);
+            transform: translateY(-2px);
+            background: rgba(0, 242, 254, 0.08);
+        }
+        .battle-mode-card.selected {
+            border-color: #FFB703 !important;
+            background: linear-gradient(135deg, rgba(255, 183, 3, 0.18) 0%, rgba(14, 23, 42, 0.95) 100%);
+            box-shadow: 0 0 16px rgba(255, 183, 3, 0.35);
+        }
+        .battle-mode-card-icon {
+            font-size: 24px;
+            line-height: 1;
+        }
+        .battle-mode-card-title {
+            font-size: 12.5px;
+            font-weight: 800;
+            color: #FFFFFF;
+        }
+        .battle-mode-card-badge {
+            font-size: 9.5px;
+            font-weight: 900;
+            font-family: var(--font-tactical);
+            padding: 1px 6px;
+            border-radius: 6px;
+            background: rgba(0, 242, 254, 0.2);
+            color: var(--cyan-glow);
+            border: 1px solid rgba(0, 242, 254, 0.4);
+        }
+        .battle-mode-card.selected .battle-mode-card-badge {
+            background: #FFB703;
+            color: #050811;
+            border-color: #FFB703;
+        }
+        .battle-mode-card-desc {
+            font-size: 10px;
+            color: #94A3B8;
+            line-height: 1.3;
+        }
+
+        /* 8-Ball Pool Wager Arenas Modal Styles */
+        .wager-arena-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+            max-height: 40vh;
+            overflow-y: auto;
+            padding-right: 2px;
+        }
+        .wager-arena-card {
+            background: rgba(11, 17, 33, 0.95);
+            border: 1.5px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        .wager-arena-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--cyan-glow);
+            box-shadow: 0 6px 20px rgba(0, 242, 254, 0.25);
+        }
+        .wager-arena-card.selected {
+            border-color: #FFB703 !important;
+            background: linear-gradient(135deg, rgba(255, 183, 3, 0.14) 0%, rgba(14, 23, 42, 0.98) 100%);
+            box-shadow: 0 0 20px rgba(255, 183, 3, 0.35);
+        }
+        .wager-arena-card.locked {
+            opacity: 0.55;
+            cursor: not-allowed;
+            filter: grayscale(0.6);
+        }
+        .wager-arena-icon-wrap {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            flex-shrink: 0;
+        }
+        .wager-arena-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1;
+        }
+        .wager-arena-title {
+            font-family: var(--font-tactical);
+            font-size: 14px;
+            font-weight: 800;
+            color: #FFFFFF;
+        }
+        .wager-arena-desc {
+            font-size: 10.5px;
+            color: #94A3B8;
+        }
+        .wager-tags-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 3px;
+        }
+        .wager-fee-tag {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 6px;
+            background: rgba(239, 68, 68, 0.15);
+            color: #FCA5A5;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+            font-weight: 700;
+        }
+        .wager-prize-tag {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 6px;
+            background: rgba(255, 183, 3, 0.15);
+            color: #FEF08A;
+            border: 1px solid rgba(255, 183, 3, 0.35);
+            font-weight: 800;
+            font-family: var(--font-tactical);
+        }
+        .wager-select-btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 11.5px;
+            font-weight: 800;
+            font-family: var(--font-tactical);
+            cursor: pointer;
+            border: none;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+        .wager-arena-card.selected .wager-select-btn {
+            background: #FFB703;
+            color: #050811;
+        }
+        .wager-arena-card:not(.selected) .wager-select-btn {
+            background: rgba(0, 242, 254, 0.15);
+            color: var(--cyan-glow);
+            border: 1px solid rgba(0, 242, 254, 0.35);
         }
 
         /* Ensure Tab 2 has zero vertical scrollbar */
@@ -5628,6 +6081,124 @@
             border-color: #EF4444;
             color: #FFFFFF;
         }
+
+        /* ==========================================================================
+           GOOGLE ACCOUNTS CHOOSER MODAL & HEADER BADGE STYLING
+           ========================================================================== */
+        .google-auth-card {
+            background: #181c24 !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 20px !important;
+            box-shadow: 0 12px 50px rgba(0, 0, 0, 0.9) !important;
+            animation: modalFadeIn 0.22s ease-out;
+        }
+
+        .google-account-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1.5px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 100%;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        .google-account-item:hover {
+            background: rgba(66, 133, 244, 0.12);
+            border-color: rgba(66, 133, 244, 0.45);
+            transform: translateY(-1px);
+        }
+
+        .google-account-item.active {
+            background: rgba(16, 185, 129, 0.12);
+            border-color: #10B981;
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.25);
+        }
+
+        .google-account-item.add-new-btn {
+            border: 1.5px dashed rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .google-account-item.add-new-btn:hover {
+            border-color: var(--cyan-glow);
+            background: rgba(0, 242, 254, 0.08);
+        }
+
+        .google-avatar-circle {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 15px;
+            color: #FFFFFF;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+        }
+
+        .google-active-pill {
+            background: rgba(16, 185, 129, 0.2);
+            border: 1px solid #10B981;
+            color: #34D399;
+            font-size: 8.5px;
+            font-weight: 800;
+            padding: 1px 6px;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+
+        .btn-remove-google-acc {
+            background: none;
+            border: none;
+            color: #64748B;
+            font-size: 14px;
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.15s;
+        }
+        .btn-remove-google-acc:hover {
+            color: #EF4444;
+            background: rgba(239, 68, 68, 0.15);
+        }
+
+        .header-google-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            flex-shrink: 0;
+            position: relative;
+        }
+        .header-google-badge:hover {
+            transform: scale(1.18);
+            box-shadow: 0 0 10px rgba(66, 133, 244, 0.6);
+        }
+        .header-google-badge.linked::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: -2px;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #10B981;
+            border: 1.5px solid #050811;
+        }
     </style>
 </head>
 <body>
@@ -5733,7 +6304,17 @@
                     <span class="cr-level-badge" id="player-level-badge">11</span>
                 </div>
                 <div class="cr-profile-info">
-                    <span class="cr-profile-name">COMMANDER PRIME</span>
+                    <div style="display: flex; align-items: center; gap: 5px;">
+                        <span class="cr-profile-name">COMMANDER PRIME</span>
+                        <div id="btn-header-google-auth" class="header-google-badge" title="تسجيل الدخول / اختيار حساب Google">
+                            <svg viewBox="0 0 48 48" style="width: 13px; height: 13px;">
+                                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                            </svg>
+                        </div>
+                    </div>
                     <div class="cr-xp-track" title="خبرة القائد XP">
                         <div class="cr-xp-fill" id="player-xp-fill"></div>
                     </div>
@@ -5758,7 +6339,7 @@
 
         <!-- 5-Tab Viewport and Slider -->
         <main class="cr-tabs-viewport" id="tabs-viewport">
-            <div class="cr-tabs-slider" id="tabs-slider">
+            <div class="cr-tabs-slider" id="tabs-slider" style="transform: translateX(-40%);">
                 <!-- ================= TAB 0: المتجر (SHOP) ================= -->
                 <section class="cr-tab-page" id="tab-page-0" data-tab-index="0">
                     <div class="cr-page-container">
@@ -5853,8 +6434,8 @@
                         </div>
 
                         <!-- Card Collection Vault -->
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <div style="display: flex; flex-direction: column; gap: 8px; width: 100%; max-width: 430px; margin: 0 auto; align-items: center; box-sizing: border-box;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; width: 100%; box-sizing: border-box;">
                                 <h4 style="margin: 0; font-family: var(--font-tactical); color: #FFFFFF; font-size: 14px;">
                                     مستودع بطاقاتك (<span id="cr-vault-count-lbl">12</span>)
                                 </h4>
@@ -5875,96 +6456,124 @@
                     </div>
                 </section>
 
-                <!-- ================= TAB 2: المعركة (BATTLE - MAIN CENTER TAB) ================= -->
+                <!-- ================= TAB 2: المعركة (MAIN CENTER TAB) ================= -->
                 <section class="cr-tab-page" id="tab-page-2" data-tab-index="2">
                     <div class="cr-page-container cr-battle-stage">
-                        <!-- Compact Tactical Header Strip (Zero-Scroll Cyberpunk Hub) -->
-                        <div class="cr-stage-header-strip">
-                            <!-- Right (1st child in RTL): Challenges Independent Button -->
-                            <button type="button" id="btn-open-challenges-hub" class="btn-challenges-compact" title="المهام والتحديات اليومية 🎯" onclick="openDailyBountiesModal()">
-                                <span class="btn-challenges-icon">🎯</span>
-                                <span class="btn-challenges-text">التحديات</span>
-                                <span id="challenges-notify-dot" class="challenges-notify-dot"></span>
-                            </button>
+                        <!-- Top Block: Header Strip & Cyber Pass -->
+                        <div class="cr-stage-top-block">
+                            <!-- Compact Tactical Header Strip -->
+                            <div class="cr-stage-header-strip">
+                                <!-- Right (1st child in RTL): Challenges Independent Button -->
+                                <button type="button" id="btn-open-challenges-hub" class="btn-challenges-compact" title="المهام والتحديات اليومية 🎯" onclick="openDailyBountiesModal()">
+                                    <span class="btn-challenges-icon">🎯</span>
+                                    <span class="btn-challenges-text" data-i18n="nav_challenges">التحديات</span>
+                                    <span id="challenges-notify-dot" class="challenges-notify-dot"></span>
+                                </button>
 
-                            <!-- Middle-Right: Dedicated Tournaments Button -->
-                            <button type="button" id="btn-open-tournaments" class="btn-challenges-compact tournament-btn" title="البطولة الكوانتية الكبرى ⚔️" onclick="openGrandChallengeModal()">
-                                <span class="btn-challenges-icon">⚔️</span>
-                                <span class="btn-challenges-text">البطولات</span>
-                            </button>
+                                <!-- Middle-Right: Dedicated Tournaments Button -->
+                                <button type="button" id="btn-open-tournaments" class="btn-challenges-compact tournament-btn" title="البطولة الكبرى ⚔️" onclick="openGrandChallengeModal()">
+                                    <span class="btn-challenges-icon">⚔️</span>
+                                    <span class="btn-challenges-text" data-i18n="nav_tournaments">البطولات</span>
+                                </button>
 
-                            <!-- Center: Sleek Cyber Title & Season Tag -->
-                            <div class="compact-game-logo">
-                                <h1 class="compact-logo-title">HYPER-LANE</h1>
-                                <span class="compact-season-tag">CYBER ARENA</span>
-                            </div>
-
-                            <!-- Left (Last child in RTL): Battle Log Button -->
-                            <button type="button" id="btn-open-battle-log" class="btn-battle-log-compact" title="سجل المعارك والمواجهات 📜" onclick="openBattleLogModal()">
-                                <span style="font-size: 14px;">📜</span>
-                                <span class="btn-battle-log-text">السجل</span>
-                            </button>
-                        </div>
-
-                        <!-- Inline Cyber Pass Banner (Directly on Main Menu) -->
-                        <div class="cr-inline-cyber-pass" id="btn-inline-cyber-pass" onclick="openCyberPassModal()" title="فتح مسار بطاقة الموسم الكامل 👑">
-                            <div class="inline-pass-left">
-                                <div class="inline-pass-icon-badge">👑</div>
-                                <div class="inline-pass-info">
-                                    <div class="inline-pass-title-row">
-                                        <span class="inline-pass-title">بطاقة الموسم 1</span>
-                                        <span class="inline-pass-tag">CYBER PASS</span>
-                                    </div>
-                                    <div class="inline-pass-bar-wrap">
-                                        <div class="inline-pass-bar-fill" id="inline-pass-progress-fill" style="width: 20%;"></div>
-                                        <span class="inline-pass-bar-text" id="inline-pass-progress-text">👑 0 / 50</span>
-                                    </div>
+                                <!-- Center: CyberClash Brand Title -->
+                                <div class="compact-game-logo">
+                                    <h1 class="compact-logo-title">CYBERCLASH</h1>
+                                    <span class="compact-season-tag" data-i18n="brand_subtitle">سايبر كلاش • الموسم 1</span>
                                 </div>
-                            </div>
-                            <div class="inline-pass-reward-preview">
-                                <span class="inline-pass-next-lbl">المحطة القادمة</span>
-                                <span class="inline-pass-next-val" id="inline-pass-next-val">محطة 1 🎁</span>
-                            </div>
-                        </div>
 
-                        <!-- Single Sleek Battle Mode Switcher Button -->
-                        <button type="button" id="btn-toggle-battle-mode" class="cr-mode-single-toggle" onclick="toggleBattleModeAction()" title="انقر للتبديل بين النمط الكلاسيكي ونمط جنون الإكسير">
-                            <div class="mode-single-badge">
-                                <span class="mode-single-icon" id="mode-single-icon">🛡️</span>
-                                <div class="mode-single-text">
-                                    <span class="mode-single-name" id="mode-single-name">النمط الكلاسيكي (1X)</span>
-                                    <span class="mode-single-detail" id="mode-single-detail">1X طاقة ➜ 2X حسم تكتيكي</span>
-                                </div>
-                            </div>
-                            <div class="mode-single-switch-hint">
-                                <span>تبديل النمط</span>
-                                <span style="font-size: 14px;">⇄</span>
-                            </div>
-                        </button>
-
-                        <!-- Giant BATTLE Button (Compact & Ultra Punchy) -->
-                        <button type="button" id="btn-start-battle" class="cr-battle-btn-large" onclick="startBattleAction()">
-                            <div class="cr-battle-btn-sweep"></div>
-                            <svg class="icon" style="width: 28px; height: 28px;"><use href="#icon-bolt"/></svg>
-                            <div style="display: flex; flex-direction: column; align-items: flex-start; text-align: right;">
-                                <span style="font-size: 20px; font-weight: 900; line-height: 1.1; font-family: var(--font-tactical);">بدء المعركة (BATTLE)</span>
-                                <span style="font-size: 10.5px; opacity: 0.9; font-weight: 600;">قتال فوري في ساحة الممرات</span>
-                            </div>
-                        </button>
-
-                        <!-- 4 Cyber Chest Slots Box -->
-                        <div class="cr-chests-container" id="cr-chests-wrapper">
-                            <div class="cr-chests-top-header">
-                                <div style="display: flex; align-items: center; gap: 6px;">
-                                    <span style="font-size: 14px;">📦</span>
-                                    <span style="font-size: 12.5px; font-weight: 800; color: #FFFFFF; font-family: var(--font-tactical);">حاويات الإمداد (CRATES)</span>
-                                </div>
-                                <button type="button" id="btn-open-all-chests" class="btn-open-all-chests">
-                                    <span>فتح الكل الآن 🚀</span>
+                                <!-- Left (Last child in RTL): Battle Log Button -->
+                                <button type="button" id="btn-open-battle-log" class="btn-battle-log-compact" title="سجل المعارك والمواجهات 📜" onclick="openBattleLogModal()">
+                                    <span style="font-size: 14px;">📜</span>
+                                    <span class="btn-battle-log-text" data-i18n="nav_battle_log">السجل</span>
                                 </button>
                             </div>
-                            <div class="cr-chests-grid" id="cr-chests-grid">
-                                <!-- Rendered dynamically by renderChestsUI() -->
+
+                            <!-- Inline Cyber Pass Banner -->
+                            <div class="cr-inline-cyber-pass" id="btn-inline-cyber-pass" onclick="openCyberPassModal()" title="فتح مسار بطاقة الموسم 👑">
+                                <div class="inline-pass-left">
+                                    <div class="inline-pass-icon-badge">👑</div>
+                                    <div class="inline-pass-info">
+                                        <div class="inline-pass-title-row">
+                                            <span class="inline-pass-title" data-i18n="pass_title">بطاقة الموسم</span>
+                                            <span class="inline-pass-tag">CYBER PASS</span>
+                                        </div>
+                                        <div class="inline-pass-bar-wrap">
+                                            <div class="inline-pass-bar-fill" id="inline-pass-progress-fill" style="width: 20%;"></div>
+                                            <span class="inline-pass-bar-text" id="inline-pass-progress-text">👑 0 / 50</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="inline-pass-reward-preview">
+                                    <span class="inline-pass-next-lbl" data-i18n="pass_next">المحطة القادمة</span>
+                                    <span class="inline-pass-next-val" id="inline-pass-next-val">محطة 1 🎁</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Center Hero Block: Arena Card + Mode/Wager Selector + Centered Battle Button -->
+                        <div class="cr-stage-center-hero">
+                            <!-- Arena Showcase Badge (Clickable to view Trophy Road) -->
+                            <div class="cr-arena-showcase-card" id="cr-arena-showcase" onclick="openTrophyRoadModal()" title="انقر لفتح طريق الكؤوس والساحات">
+                                <div class="arena-showcase-left">
+                                    <span class="arena-showcase-icon" id="arena-showcase-icon">🏟️</span>
+                                    <div>
+                                        <div class="arena-showcase-title" id="arena-showcase-title">الساحة 1: معسكر التدريب</div>
+                                        <div class="arena-showcase-sub" id="arena-showcase-sub">طريق الكؤوس التنافسي</div>
+                                    </div>
+                                </div>
+                                <div class="arena-showcase-pill" id="arena-showcase-pill">
+                                    <span id="arena-showcase-trophies">0 🏆</span>
+                                </div>
+                            </div>
+
+                            <!-- 8-Ball Pool Style Mode & Wager Switcher Button -->
+                            <button type="button" id="btn-toggle-battle-mode" class="cr-mode-single-toggle" onclick="openModeSelectorModal()" title="انقر لتغيير طور اللعب وتحديد قيمة الرهان">
+                                <div class="mode-single-badge">
+                                    <span class="mode-single-icon" id="mode-single-icon">🛡️</span>
+                                    <div class="mode-single-text">
+                                        <span class="mode-single-name" id="mode-single-name">النمط الكلاسيكي</span>
+                                        <span class="mode-single-detail" id="mode-single-detail">طاقة 1X ➜ 2X • مجاناً (بدون رهان)</span>
+                                    </div>
+                                </div>
+                                <div class="mode-single-switch-hint">
+                                    <span data-i18n="mode_change_hint">تغيير الساحة والرهان</span>
+                                    <span style="font-size: 14px;">⇄</span>
+                                </div>
+                            </button>
+
+                            <!-- Giant BATTLE Button (Perfect Center Placement) -->
+                            <button type="button" id="btn-start-battle" class="cr-battle-btn-large" onclick="startBattleAction()">
+                                <div class="cr-battle-btn-sweep"></div>
+                                <svg class="icon" style="width: 30px; height: 30px;"><use href="#icon-bolt"/></svg>
+                                <div style="display: flex; flex-direction: column; align-items: flex-start; text-align: right;">
+                                    <span style="font-size: 22px; font-weight: 900; line-height: 1.1; font-family: var(--font-tactical);" id="battle-btn-main-text" data-i18n="btn_battle_main">بدء المعركة</span>
+                                    <span style="font-size: 11px; opacity: 0.95; font-weight: 700;" id="battle-btn-sub-text" data-i18n="btn_battle_sub">قتال تكتيكي فوري في الساحة</span>
+                                </div>
+                            </button>
+
+                            <!-- Quick AI Bot Training Mode -->
+                            <button type="button" id="btn-start-ai-battle" class="cr-ai-battle-btn-compact" onclick="startBattleAction(event, null)" title="تدريب محاكي سريع بدون رهان أو كؤوس">
+                                <span>🤖</span>
+                                <span data-i18n="btn_ai_practice">تدريب فوري ضد البوت (مجاني)</span>
+                            </button>
+                        </div>
+
+                        <!-- Bottom Block: Supply Crates Dock -->
+                        <div class="cr-stage-bottom-block">
+                            <div class="cr-chests-container" id="cr-chests-wrapper">
+                                <div class="cr-chests-top-header">
+                                    <div style="display: flex; align-items: center; gap: 6px;">
+                                        <span style="font-size: 14px;">📦</span>
+                                        <span style="font-size: 12.5px; font-weight: 800; color: #FFFFFF; font-family: var(--font-tactical);" data-i18n="chests_title">حاويات الإمداد</span>
+                                    </div>
+                                    <button type="button" id="btn-open-all-chests" class="btn-open-all-chests">
+                                        <span data-i18n="btn_open_all">فتح الكل الآن 🚀</span>
+                                    </button>
+                                </div>
+                                <div class="cr-chests-grid" id="cr-chests-grid">
+                                    <!-- Rendered dynamically by renderChestsUI() -->
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -6034,11 +6643,16 @@
                         <div class="cr-settings-section">
                             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                                 <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: 0 0 14px rgba(16, 185, 129, 0.3);">
-                                        🎮
+                                    <div style="width: 44px; height: 44px; border-radius: 12px; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 14px rgba(66, 133, 244, 0.35); flex-shrink: 0;">
+                                        <svg viewBox="0 0 48 48" style="width: 24px; height: 24px;">
+                                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                                        </svg>
                                     </div>
                                     <div>
-                                        <h4 style="margin: 0; font-family: var(--font-tactical); color: #FFFFFF; font-size: 15px;">Google Play Games & السحابة</h4>
+                                        <h4 style="margin: 0; font-family: var(--font-tactical); color: #FFFFFF; font-size: 15px;">حساب Google والمزامنة السحابية</h4>
                                         <div id="gp-status-badge" class="cr-gp-badge unlinked" style="margin-top: 4px;">
                                             <span id="gp-status-dot">●</span>
                                             <span id="gp-status-text">غير مرتبط بحساب Google</span>
@@ -6046,7 +6660,7 @@
                                     </div>
                                 </div>
                                 <button type="button" id="btn-open-gp-modal" class="btn-cyber-action gold">
-                                    <span id="btn-gp-action-text">ربط الحساب 🔗</span>
+                                    <span id="btn-gp-action-text">اختيار حساب Google 🔄</span>
                                 </button>
                             </div>
 
@@ -6083,8 +6697,19 @@
 
                             <div class="cr-setting-item" style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0;">
                                 <div>
-                                    <div style="font-weight: 700; color: #FFFFFF; font-size: 13.5px;">معدل الفريمات الأقصى (Target FPS)</div>
-                                    <div style="font-size: 11px; color: #94A3B8;">دعم الشاشات السريعة 120Hz</div>
+                                    <div style="font-weight: 700; color: #FFFFFF; font-size: 13.5px;" data-i18n="settings_lang_title">لغة الواجهة (Language)</div>
+                                    <div style="font-size: 11px; color: #94A3B8;" data-i18n="settings_lang_desc">التبديل بين العربية والإنجليزية لجميع القوائم والشاشات</div>
+                                </div>
+                                <select id="sel-lang-cr" class="cyber-select" onchange="setGameLanguage(this.value)">
+                                    <option value="ar">العربية (Arabic)</option>
+                                    <option value="en">English (الإنجليزية)</option>
+                                </select>
+                            </div>
+
+                            <div class="cr-setting-item" style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0;">
+                                <div>
+                                    <div style="font-weight: 700; color: #FFFFFF; font-size: 13.5px;" data-i18n="settings_fps_title">معدل الفريمات الأقصى (Target FPS)</div>
+                                    <div style="font-size: 11px; color: #94A3B8;" data-i18n="settings_fps_desc">دعم الشاشات السريعة 120Hz</div>
                                 </div>
                                 <select id="sel-fps-cr" class="cyber-select">
                                     <option value="60">60 FPS (توفير طاقة)</option>
@@ -6344,14 +6969,14 @@
                         <span class="grand-challenge-icon">🏆</span>
                         <div class="grand-challenge-text-col">
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <span class="grand-challenge-title">البطولة الكوانتية الكبرى (GRAND CHALLENGE)</span>
-                                <span id="grand-challenge-status-badge" class="grand-challenge-badge">مستوى 5 موحد</span>
+                                <span class="grand-challenge-title" data-i18n="grand_challenge_title">البطولة الكبرى</span>
+                                <span id="grand-challenge-status-badge" class="grand-challenge-badge" data-i18n="level_5_cap">مستوى 5 موحد</span>
                             </div>
-                            <span class="grand-challenge-sub" id="grand-challenge-banner-sub">6 انتصارات • خروج بعد خسارتين • جوائز أسطورية</span>
+                            <span class="grand-challenge-sub" id="grand-challenge-banner-sub" data-i18n="grand_challenge_sub">6 انتصارات • خروج بعد خسارتين • جوائز أسطورية</span>
                         </div>
                     </div>
                     <div id="grand-challenge-action-pill" class="grand-challenge-action-pill">
-                        <span id="grand-challenge-btn-text">دخول البطولة ⚔️</span>
+                        <span id="grand-challenge-btn-text" data-i18n="btn_enter_tournament">دخول البطولة ⚔️</span>
                         <span>➜</span>
                     </div>
                 </div>
@@ -6362,7 +6987,7 @@
                         <span class="cyber-pass-icon">👑</span>
                         <div class="cyber-pass-text-col">
                             <div style="display: flex; align-items: center; gap: 6px;">
-                                <span class="cyber-pass-title">بطاقة الموسم (CYBER PASS)</span>
+                                <span class="cyber-pass-title" data-i18n="pass_title">بطاقة الموسم</span>
                                 <span id="cyber-pass-tier-badge" class="cyber-pass-tier-badge">محطة 1</span>
                             </div>
                             <div class="cyber-pass-bar-wrap">
@@ -6372,7 +6997,7 @@
                         </div>
                     </div>
                     <div id="cyber-pass-action-pill" class="cyber-pass-action-pill">
-                        <span id="cyber-pass-claim-count">المحطات 🎁</span>
+                        <span id="cyber-pass-claim-count" data-i18n="pass_tiers_pill">المحطات 🎁</span>
                         <span>➜</span>
                     </div>
                 </div>
@@ -6382,12 +7007,12 @@
                     <div class="bounties-info">
                         <span class="bounties-icon">🎯</span>
                         <div class="bounties-text-col">
-                            <span class="bounties-title">المهام التكتيكية اليومية (BOUNTIES)</span>
-                            <span class="bounties-sub" id="daily-bounties-banner-sub">3 مهام نشطة • تتجدد يومياً</span>
+                            <span class="bounties-title" data-i18n="bounties_title">المهام اليومية</span>
+                            <span class="bounties-sub" id="daily-bounties-banner-sub" data-i18n="bounties_sub">3 مهام نشطة • تتجدد يومياً</span>
                         </div>
                     </div>
                     <div id="daily-bounties-action-pill" class="bounties-action-pill">
-                        <span id="daily-bounties-claim-count">المهام 🎯</span>
+                        <span id="daily-bounties-claim-count" data-i18n="bounties_pill">المهام 🎯</span>
                         <span>➜</span>
                     </div>
                 </div>
@@ -6397,19 +7022,19 @@
                     <div class="trophy-road-info">
                         <span class="trophy-road-icon">🏆</span>
                         <div class="trophy-road-text-col">
-                            <span class="trophy-road-title">طريق الكؤوس (TROPHY ROAD)</span>
+                            <span class="trophy-road-title" data-i18n="trophy_road_title">طريق الكؤوس</span>
                             <span class="trophy-road-sub" id="trophy-road-banner-sub">مكافآت كوانتية قادمة</span>
                         </div>
                     </div>
                     <div id="trophy-road-action-pill" class="trophy-road-action-pill">
-                        <span id="trophy-road-claim-count">مكافآت 🎁</span>
+                        <span id="trophy-road-claim-count" data-i18n="rewards_pill">مكافآت 🎁</span>
                         <span>➜</span>
                     </div>
                 </div>
             </div>
 
             <button type="button" id="btn-close-challenges-hub" class="btn-cyber-action primary" style="width: 100%; margin-top: 10px;">
-                <span>إغلاق المركز ✓</span>
+                <span data-i18n="btn_close_hub">إغلاق المركز ✓</span>
             </button>
         </div>
     </div>
@@ -6421,8 +7046,8 @@
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 8px;">
                 <span style="font-size: 28px; filter: drop-shadow(0 0 10px rgba(255, 183, 3, 0.7));">🏆</span>
                 <div>
-                    <h3 style="margin: 0; font-family: var(--font-tactical); color: var(--amber-gold); font-size: 16px;">
-                        مسار طريق الكؤوس (TROPHY ROAD)
+                    <h3 style="margin: 0; font-family: var(--font-tactical); color: var(--amber-gold); font-size: 16px;" data-i18n="trophy_road_title">
+                        مسار طريق الكؤوس
                     </h3>
                     <span id="trophy-road-modal-count-lbl" style="font-size: 11.5px; color: #94A3B8; font-weight: 700;">رصيدك الحالي: 0 🏆</span>
                 </div>
@@ -6704,16 +7329,75 @@
         </div>
     </div>
 
+    <!-- ==================== 8-BALL POOL STYLE MODE & WAGER ARENAS MODAL (2-STEP FLOW) ==================== -->
+    <div id="modal-mode-selector" class="modal-overlay">
+        <div class="modal-card" style="max-width: 480px; max-height: 90vh; display: flex; flex-direction: column;">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 26px;">⚔️</span>
+                    <div>
+                        <h3 class="modal-title" style="margin: 0; font-size: 16px; color: #FFFFFF;" data-i18n="wager_modal_title">طور المعركة وفئة الرهان</h3>
+                        <span style="font-size: 11px; color: #94A3B8;" data-i18n="wager_modal_sub">حدد طور اللعب أولاً ثم اختر فئة الرهان ببساطة</span>
+                    </div>
+                </div>
+                <button type="button" id="btn-close-mode-selector" class="btn-close" onclick="closeModeSelectorModal()">
+                    <svg class="icon"><use href="#icon-cross"/></svg>
+                </button>
+            </div>
+
+            <div style="overflow-y: auto; padding-right: 2px; display: flex; flex-direction: column; gap: 10px; margin-top: 8px;">
+                <!-- STEP 1: CHOOSE BATTLE MODE -->
+                <div class="wager-step-section">
+                    <div class="wager-step-header">
+                        <span class="wager-step-badge">1</span>
+                        <span style="font-weight: 800; font-size: 13px; color: #E2E8F0;" data-i18n="wager_step1_lbl">تحديد طور المعركة:</span>
+                    </div>
+                    <div class="battle-modes-grid" id="battle-modes-container">
+                        <!-- Injected by renderModeSelectorUI() -->
+                    </div>
+                </div>
+
+                <!-- STEP 2: CHOOSE WAGER TIER -->
+                <div class="wager-step-section">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;">
+                        <div class="wager-step-header" style="margin: 0;">
+                            <span class="wager-step-badge">2</span>
+                            <span style="font-weight: 800; font-size: 13px; color: #E2E8F0;" data-i18n="wager_step2_lbl">اختر فئة الرهان (جائزة 2X):</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 4px; font-family: var(--font-tactical); font-weight: 800; color: #FFDE59; font-size: 12.5px; background: rgba(255, 183, 3, 0.12); border: 1px solid rgba(255, 183, 3, 0.3); border-radius: 8px; padding: 2px 8px;">
+                            <span>🪙</span>
+                            <span id="wager-modal-gold-display">12,450</span>
+                        </div>
+                    </div>
+                    <div class="wager-arena-grid" id="wager-arenas-container">
+                        <!-- Injected by renderModeSelectorUI() -->
+                    </div>
+                </div>
+            </div>
+
+            <button type="button" class="btn-cyber primary" style="width: 100%; margin-top: 10px;" onclick="closeModeSelectorModal()">
+                <span data-i18n="btn_confirm_arena">تأكيد الإعدادات والعودة للساحة ✓</span>
+            </button>
+        </div>
+    </div>
+
     <!-- ==================== 4. SETTINGS MODAL ==================== -->
     <div id="modal-settings" class="modal-overlay">
         <div class="modal-card" style="max-width: 440px;">
             <div class="modal-header">
-                <h3 class="modal-title">إعدادات النظام (SYSTEM CONFIG)</h3>
+                <h3 class="modal-title" data-i18n="settings_title">إعدادات النظام</h3>
                 <button id="btn-close-settings" class="btn-close">
                     <svg class="icon"><use href="#icon-cross"/></svg>
                 </button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 16px;">
+                <label style="display: flex; justify-content: space-between; align-items: center;">
+                    <span data-i18n="settings_lang_title">لغة الواجهة (Language)</span>
+                    <select id="sel-lang-modal" onchange="setGameLanguage(this.value)" style="background: #06080E; color: #FFF; border: 1px solid var(--glass-border); padding: 4px 8px; border-radius: 4px;">
+                        <option value="ar">العربية (Arabic)</option>
+                        <option value="en">English (الإنجليزية)</option>
+                    </select>
+                </label>
                 <label style="display: flex; justify-content: space-between; align-items: center;">
                     <span>المؤثرات الصوتية الإجرائية (Web Audio Synth)</span>
                     <input type="checkbox" id="chk-sound" checked>
@@ -6760,7 +7444,7 @@
                     اختر اسماً يعكس هيبتك في لوحة الشرف وساحات القتال التكتيكية عبر الإنترنت.
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <label style="font-size: 11.5px; color: var(--cyan-glow); font-weight: 700;">اسم القائد (COMMANDER CALLSIGN):</label>
+                    <label style="font-size: 11.5px; color: var(--cyan-glow); font-weight: 700;" data-i18n="commander_name_lbl">اسم القائد:</label>
                     <input type="text" id="input-commander-name" class="cyber-input" maxlength="20" placeholder="اكتب اسم القائد..." style="font-size: 14px; text-align: center;">
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 4px;">
@@ -6775,40 +7459,86 @@
         </div>
     </div>
 
-    <!-- ==================== 7. GOOGLE PLAY LINK MODAL ==================== -->
+    <!-- ==================== 7. GOOGLE ACCOUNTS CHOOSER MODAL ==================== -->
     <div id="modal-google-play" class="modal-overlay">
-        <div class="modal-card" style="max-width: 420px;">
-            <div class="modal-header">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <svg viewBox="0 0 24 24" style="width: 22px; height: 22px; fill: #34A853;">
-                        <path d="M21.19 2.11L3.46.03c-.73-.09-1.4.37-1.57 1.09L.03 16.48c-.09.73.37 1.4 1.09 1.57l17.73 2.08c.73.09 1.4-.37 1.57-1.09l1.86-15.36c.09-.73-.37-1.4-1.09-1.57zM8.5 13.5l-3-3 1.41-1.41L8.5 10.67l5.59-5.59L15.5 6.5l-7 7z"/>
+        <div class="modal-card google-auth-card" style="max-width: 440px; padding: 22px 20px 18px; border-radius: 20px;">
+            <!-- Modal Header with Google G Logo -->
+            <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; margin-bottom: 14px; position: relative;">
+                <button type="button" id="btn-close-gp-modal" class="modal-close-corner" title="إغلاق" style="top: -6px; left: -6px;">✕</button>
+                
+                <div style="width: 44px; height: 44px; border-radius: 50%; background: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 3px 12px rgba(0,0,0,0.45);">
+                    <svg viewBox="0 0 48 48" style="width: 26px; height: 26px;">
+                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
                     </svg>
-                    <h3 class="modal-title" style="margin: 0; font-size: 16px;">ربط Google Play Games</h3>
                 </div>
-                <button type="button" id="btn-close-gp-modal" class="btn-close">
-                    <svg class="icon"><use href="#icon-cross"/></svg>
+                
+                <div>
+                    <h3 class="modal-title" style="margin: 0; font-size: 17px; color: #FFFFFF; font-family: var(--font-tactical); letter-spacing: 0.3px;">
+                        تسجيل الدخول باستخدام Google
+                    </h3>
+                    <p style="margin: 3px 0 0; font-size: 12px; color: #94A3B8;">
+                        اختر حسابك للمتابعة إلى <span style="color: var(--cyan-glow); font-weight: 700;">CyberClash</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Dynamic Status Alert (feedback when choosing/switching) -->
+            <div id="google-auth-status" style="display: none; padding: 8px 12px; border-radius: 10px; font-size: 12px; text-align: center; margin-bottom: 8px;"></div>
+
+            <!-- Stored Google Accounts List -->
+            <div style="font-size: 11.5px; color: #94A3B8; font-weight: 700; margin-bottom: 6px;">حسابات Google المسجلة على هذا الجهاز:</div>
+            <div id="google-accounts-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 240px; overflow-y: auto; padding: 2px;">
+                <!-- Populated dynamically via renderGoogleAccountsList() -->
+            </div>
+
+            <!-- Use Another Account Option -->
+            <div style="border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 10px; margin-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                <button type="button" id="btn-toggle-add-account" class="google-account-item add-new-btn">
+                    <div class="google-avatar-circle" style="background: rgba(255, 255, 255, 0.08); color: #FFFFFF; font-size: 18px;">
+                        +
+                    </div>
+                    <div style="display: flex; flex-direction: column; text-align: right; flex: 1;">
+                        <span style="font-size: 13px; font-weight: 700; color: #E2E8F0;">استخدام حساب Google آخر</span>
+                        <span style="font-size: 11px; color: #94A3B8;">إضافة عنوان بريد إلكتروني جديد</span>
+                    </div>
+                </button>
+
+                <!-- Inline Add Account Form -->
+                <div id="form-add-google-account" style="display: none; flex-direction: column; gap: 10px; background: rgba(0, 0, 0, 0.35); border: 1.5px solid rgba(0, 242, 254, 0.3); border-radius: 12px; padding: 12px; margin-top: 4px;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 11px; color: #94A3B8; font-weight: 700;">البريد الإلكتروني (Gmail):</label>
+                        <input type="email" id="input-new-google-email" class="cyber-input" placeholder="name@gmail.com" style="direction: ltr; text-align: left; height: 36px; font-size: 13px;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 11px; color: #94A3B8; font-weight: 700;">اسم صاحب الحساب:</label>
+                        <input type="text" id="input-new-google-name" class="cyber-input" placeholder="اسمك على Google" style="height: 36px; font-size: 13px;">
+                    </div>
+                    <div style="display: flex; gap: 8px; margin-top: 2px;">
+                        <button type="button" id="btn-submit-add-account" class="btn-cyber primary" style="flex: 1; padding: 8px 12px; font-size: 12px; background: linear-gradient(135deg, #059669, #10B981);">
+                            <span>تسجيل الدخول بالحساب ➜</span>
+                        </button>
+                        <button type="button" id="btn-cancel-add-account" class="btn-cyber secondary" style="padding: 8px 12px; font-size: 12px;">
+                            <span>إلغاء</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer: Sign Out Action & Privacy Note -->
+            <div id="google-signed-in-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+                <span id="google-current-email-txt" style="font-size: 11px; color: #94A3B8; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; direction: ltr;">
+                    متصل كـ: user@gmail.com
+                </span>
+                <button type="button" id="btn-google-signout" style="background: none; border: 1px solid rgba(239, 68, 68, 0.4); color: #FCA5A5; font-size: 11px; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                    تسجيل الخروج
                 </button>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 6px;">
-                <div style="background: rgba(52, 168, 83, 0.1); border: 1px solid rgba(52, 168, 83, 0.35); border-radius: 10px; padding: 12px; font-size: 12px; color: #D1FAE5; line-height: 1.5;">
-                    🔗 <strong>مزامنة سحابية مؤمنة:</strong> يتيح لك ربط حساب Google Play حفظ مستواك، كؤوسك، كروتك، ومشترياتك السحابية واسترجاعها على أي جهاز أو سيرفر.
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 6px;">
-                    <label style="font-size: 11.5px; color: #94A3B8; font-weight: 700;">بريد حساب Google المسجل:</label>
-                    <input type="email" id="input-gp-email" class="cyber-input" placeholder="commander@gmail.com" style="direction: ltr; text-align: left;">
-                </div>
-                <div id="gp-connected-info" style="display: none; background: rgba(0, 0, 0, 0.4); border-radius: 8px; padding: 10px; font-size: 11.5px; color: #94A3B8;">
-                    حالة الربط الحالية: <span style="color: #34D399; font-weight: 700;">متصل ومزامن سحابياً</span><br>
-                    معرف الحساب السحابي: <code id="gp-cloud-id-display" style="color: var(--cyan-glow);">--</code>
-                </div>
-                <div style="display: flex; gap: 10px; margin-top: 4px;">
-                    <button type="button" id="btn-confirm-gp-link" class="btn-cyber primary" style="flex: 1; background: linear-gradient(135deg, #059669, #10B981);">
-                        <span>تأكيد الربط والمزامنة ☁️</span>
-                    </button>
-                    <button type="button" id="btn-unlink-gp" class="btn-cyber secondary" style="display: none;">
-                        <span>إلغاء الربط</span>
-                    </button>
-                </div>
+
+            <div style="font-size: 10px; color: #64748B; text-align: center; margin-top: 10px; line-height: 1.4;">
+                🔒 للمتابعة، تشارك Google اسمك وعنوان بريدك الإلكتروني وصورة ملفك الشخصي لحفظ تقدمك السحابي بأمان.
             </div>
         </div>
     </div>
@@ -6828,16 +7558,16 @@
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 6px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-size: 11.5px; color: var(--amber-gold); font-weight: 700;">شفرة بياناتك الحالية (Export Code):</span>
-                        <button type="button" id="btn-copy-backup-code" class="btn-cyber-action gold" style="padding: 3px 8px; font-size: 10.5px;">نسخ الشفرة 📋</button>
+                        <span style="font-size: 11.5px; color: var(--amber-gold); font-weight: 700;" data-i18n="backup_export_lbl">شفرة بياناتك الحالية:</span>
+                        <button type="button" id="btn-copy-backup-code" class="btn-cyber-action gold" style="padding: 3px 8px; font-size: 10.5px;" data-i18n="btn_copy_code">نسخ الشفرة 📋</button>
                     </div>
                     <textarea id="ta-backup-export" class="cyber-input" rows="3" readonly style="font-family: monospace; font-size: 10px; resize: none; direction: ltr;"></textarea>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 6px; border-top: 1px dashed var(--glass-border); padding-top: 10px;">
-                    <span style="font-size: 11.5px; color: var(--cyan-glow); font-weight: 700;">استرجاع تقدم سابق (Restore Code):</span>
+                    <span style="font-size: 11.5px; color: var(--cyan-glow); font-weight: 700;" data-i18n="backup_import_lbl">استرجاع حساب سابق:</span>
                     <textarea id="ta-backup-import" class="cyber-input" rows="2" placeholder="الصق شفرة النسخ الاحتياطي هنا..." style="font-family: monospace; font-size: 10px; resize: none; direction: ltr;"></textarea>
                     <button type="button" id="btn-restore-backup-code" class="btn-cyber primary" style="margin-top: 4px; padding: 8px;">
-                        <span>استعادة الحساب فوراً 🔄</span>
+                        <span data-i18n="btn_restore_code">استعادة الحساب فوراً 🔄</span>
                     </button>
                 </div>
             </div>
@@ -6853,18 +7583,18 @@
                     🛰️
                 </div>
             </div>
-            <h3 class="modal-title" style="font-size: 18px; margin-bottom: 6px;">جاري مسح ساحات القتال...</h3>
-            <div id="mm-status-text" style="font-size: 13px; color: var(--cyan-glow); font-weight: 700; margin-bottom: 4px;">
+            <h3 class="modal-title" style="font-size: 18px; margin-bottom: 6px;" data-i18n="mm_title">جاري مسح ساحات القتال...</h3>
+            <div id="mm-status-text" style="font-size: 13px; color: var(--cyan-glow); font-weight: 700; margin-bottom: 4px;" data-i18n="mm_searching">
                 البحث عن قائد منافس في السيرفر
             </div>
             <div style="font-size: 11.5px; color: #94A3B8; margin-bottom: 18px;">
-                الوقت المنقضي: <span id="mm-timer-val" style="color: #FFFFFF; font-weight: 700; font-family: var(--font-tactical);">00:00</span>
+                <span data-i18n="mm_elapsed">الوقت المنقضي:</span> <span id="mm-timer-val" style="color: #FFFFFF; font-weight: 700; font-family: var(--font-tactical);">00:00</span>
             </div>
             <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
                 <button type="button" id="btn-cancel-mm-ai" class="btn-cyber secondary" style="width: 100%; border-color: #FFB703; color: #FEF08A; background: rgba(255, 183, 3, 0.15); font-weight: 800; font-size: 13px;">
-                    <span>🤖 قتال البوت التكتيكي فوراً</span>
+                    <span data-i18n="btn_instant_bot">🤖 قتال البوت التكتيكي فوراً</span>
                 </button>
-                <button type="button" id="btn-cancel-mm" class="btn-close-text" style="align-self: center;">
+                <button type="button" id="btn-cancel-mm" class="btn-close-text" style="align-self: center;" data-i18n="btn_cancel_mm">
                     إلغاء والعودة للقائمة
                 </button>
             </div>
@@ -6878,10 +7608,10 @@
                 <div style="width: 60px; height: 60px; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center;" id="loot-chest-icon">
                     📦
                 </div>
-                <h3 class="modal-title" id="loot-chest-title" style="font-size: 20px; color: var(--amber-gold); margin: 4px 0 2px;">
+                <h3 class="modal-title" id="loot-chest-title" style="font-size: 20px; color: var(--amber-gold); margin: 4px 0 2px;" data-i18n="loot_title">
                     تم فك تشفير حاوية الإمداد!
                 </h3>
-                <span id="loot-chest-subtitle" style="font-size: 12px; color: #94A3B8;">غنائم تكتيكية معززة للقوات</span>
+                <span id="loot-chest-subtitle" style="font-size: 12px; color: #94A3B8;" data-i18n="loot_subtitle">غنائم تكتيكية معززة للقوات</span>
             </div>
 
             <div class="loot-items-container" id="loot-items-container" style="display: flex; flex-direction: column; gap: 8px; width: 100%; margin: 16px 0;">
@@ -6889,7 +7619,7 @@
             </div>
 
             <button type="button" id="btn-claim-loot" class="btn-card-pop upgrade" style="width: 100%; font-size: 14.5px; padding: 11px;">
-                <span>استلام كافة الغنائم (COLLECT) 🎁</span>
+                <span data-i18n="btn_claim_loot">استلام كافة الغنائم 🎁</span>
             </button>
         </div>
     </div>
@@ -6898,10 +7628,10 @@
     <div id="modal-level-up" class="modal-overlay">
         <div class="modal-card" style="max-width: 380px; text-align: center; align-items: center; padding: 24px 20px;">
             <div style="font-size: 46px; animation: bounce-drop 0.4s ease;">👑</div>
-            <h3 class="modal-title" style="font-size: 22px; color: var(--cyan-glow); margin: 6px 0 4px;">
+            <h3 class="modal-title" style="font-size: 22px; color: var(--cyan-glow); margin: 6px 0 4px;" data-i18n="levelup_title">
                 ارتقاء رتبة القائد!
             </h3>
-            <span style="font-size: 13px; color: #CBD5E1; font-weight: 600;">COMMANDER LEVEL UP</span>
+            <span style="font-size: 13px; color: #CBD5E1; font-weight: 600;" data-i18n="levelup_sub">ترقية رتبة القائد</span>
             
             <div style="background: rgba(0, 242, 254, 0.12); border: 1.5px solid var(--cyan-glow); border-radius: 12px; padding: 14px 16px; margin: 16px 0; width: 100%; box-sizing: border-box;">
                 <div style="font-size: 34px; font-weight: 900; color: #FFFFFF; font-family: var(--font-tactical);" id="levelup-new-level-text">
@@ -7355,6 +8085,138 @@
                     });
                 } catch (_) {}
             }
+
+            playEmpBlast() {
+                if (!this.enabled) return;
+                try {
+                    this.init();
+                    if (!this.ctx || this.ctx.state === 'suspended') return;
+                    const now = this.ctx.currentTime;
+                    const osc1 = this.ctx.createOscillator();
+                    const gain1 = this.ctx.createGain();
+                    osc1.type = 'sawtooth';
+                    osc1.frequency.setValueAtTime(480, now);
+                    osc1.frequency.exponentialRampToValueAtTime(45, now + 0.35);
+                    gain1.gain.setValueAtTime(0.35, now);
+                    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc1.connect(gain1);
+                    gain1.connect(this.ctx.destination);
+                    osc1.start(now);
+                    osc1.stop(now + 0.42);
+
+                    [0.02, 0.08, 0.14].forEach((t, i) => {
+                        const osc2 = this.ctx.createOscillator();
+                        const gain2 = this.ctx.createGain();
+                        osc2.type = 'square';
+                        osc2.frequency.setValueAtTime(1400 - i * 300, now + t);
+                        gain2.gain.setValueAtTime(0.18, now + t);
+                        gain2.gain.exponentialRampToValueAtTime(0.01, now + t + 0.05);
+                        osc2.connect(gain2);
+                        gain2.connect(this.ctx.destination);
+                        osc2.start(now + t);
+                        osc2.stop(now + t + 0.06);
+                    });
+                } catch (_) {}
+            }
+
+            playNanoShield() {
+                if (!this.enabled) return;
+                try {
+                    this.init();
+                    if (!this.ctx || this.ctx.state === 'suspended') return;
+                    const now = this.ctx.currentTime;
+                    const freqs = [523.25, 659.25, 783.99, 987.77, 1174.66];
+                    freqs.forEach((f, idx) => {
+                        const t = now + idx * 0.035;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(f, t);
+                        osc.frequency.linearRampToValueAtTime(f * 1.05, t + 0.28);
+                        gain.gain.setValueAtTime(0.12, t);
+                        gain.gain.exponentialRampToValueAtTime(0.005, t + 0.32);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(t);
+                        osc.stop(t + 0.35);
+                    });
+                } catch (_) {}
+            }
+
+            playPlasmaBlast() {
+                if (!this.enabled) return;
+                try {
+                    this.init();
+                    if (!this.ctx || this.ctx.state === 'suspended') return;
+                    const now = this.ctx.currentTime;
+                    const osc1 = this.ctx.createOscillator();
+                    const gain1 = this.ctx.createGain();
+                    osc1.type = 'sawtooth';
+                    osc1.frequency.setValueAtTime(240, now);
+                    osc1.frequency.exponentialRampToValueAtTime(32, now + 0.45);
+                    gain1.gain.setValueAtTime(0.4, now);
+                    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    osc1.connect(gain1);
+                    gain1.connect(this.ctx.destination);
+                    osc1.start(now);
+                    osc1.stop(now + 0.52);
+
+                    const osc2 = this.ctx.createOscillator();
+                    const gain2 = this.ctx.createGain();
+                    osc2.type = 'triangle';
+                    osc2.frequency.setValueAtTime(800, now);
+                    osc2.frequency.exponentialRampToValueAtTime(120, now + 0.25);
+                    gain2.gain.setValueAtTime(0.25, now);
+                    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.28);
+                    osc2.connect(gain2);
+                    gain2.connect(this.ctx.destination);
+                    osc2.start(now);
+                    osc2.stop(now + 0.3);
+                } catch (_) {}
+            }
+
+            playOrbitalImpact() {
+                if (!this.enabled) return;
+                try {
+                    this.init();
+                    if (!this.ctx || this.ctx.state === 'suspended') return;
+                    const now = this.ctx.currentTime;
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(360, now);
+                    osc.frequency.exponentialRampToValueAtTime(28, now + 0.38);
+                    gain.gain.setValueAtTime(0.45, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.42);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                } catch (_) {}
+            }
+
+            playUpgradeSuccess() {
+                if (!this.enabled) return;
+                try {
+                    this.init();
+                    if (!this.ctx || this.ctx.state === 'suspended') return;
+                    const now = this.ctx.currentTime;
+                    const freqs = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+                    freqs.forEach((f, idx) => {
+                        const t = now + idx * 0.055;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(f, t);
+                        gain.gain.setValueAtTime(0.22, t);
+                        gain.gain.exponentialRampToValueAtTime(0.01, t + 0.22);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(t);
+                        osc.stop(t + 0.25);
+                    });
+                } catch (_) {}
+            }
         }
 
         const audio = new TacticalAudioEngine();
@@ -7388,6 +8250,367 @@
 
         const p1HpIndicator = document.getElementById('p1-hp-indicator');
         const p2HpIndicator = document.getElementById('p2-hp-indicator');
+
+        // ==================== I18N BILINGUAL TRANSLATION SYSTEM ====================
+        let currentLang = localStorage.getItem('clah_lang') || 'ar';
+
+        const TRANSLATIONS = {
+            ar: {
+                tab_shop: 'المتجر',
+                tab_cards: 'البطاقات',
+                tab_battle: 'المعركة',
+                tab_clan: 'التحالف',
+                tab_settings: 'الإعدادات',
+                nav_challenges: 'التحديات',
+                nav_tournaments: 'البطولات',
+                brand_subtitle: 'سايبر كلاش • الموسم 1',
+                nav_battle_log: 'السجل',
+                pass_title: 'بطاقة الموسم',
+                pass_next: 'المحطة القادمة',
+                mode_change_hint: 'تغيير الساحة والرهان',
+                btn_battle_main: 'بدء المعركة',
+                btn_battle_sub: 'قتال تكتيكي فوري في الساحة',
+                btn_ai_practice: 'تدريب فوري ضد البوت (مجاني)',
+                chests_title: 'حاويات الإمداد',
+                btn_open_all: 'فتح الكل الآن 🚀',
+                wager_modal_title: 'طور المعركة والرهان التكتيكي',
+                wager_modal_sub: 'حدد طور اللعب أولاً ثم اختر فئة الرهان ببساطة',
+                wager_step1_lbl: 'تحديد طور المعركة:',
+                wager_step2_lbl: 'اختر فئة الرهان (جائزة 2X):',
+                wager_player_gold_lbl: 'رصيد الذهب المتوفر لديك:',
+                btn_confirm_arena: 'تأكيد الإعدادات والعودة للساحة ✓',
+                settings_title: 'إعدادات النظام وتخصيص الأداء',
+                settings_lang_title: 'لغة الواجهة (Language)',
+                settings_lang_desc: 'التبديل بين العربية والإنجليزية لجميع القوائم والشاشات',
+                settings_fps_title: 'معدل الفريمات الأقصى (Target FPS)',
+                settings_fps_desc: 'دعم الشاشات السريعة 120Hz',
+                mm_title: 'جاري مسح ساحات القتال...',
+                mm_searching: 'البحث عن قائد منافس في السيرفر',
+                mm_elapsed: 'الوقت المنقضي:',
+                btn_instant_bot: '🤖 قتال البوت التكتيكي فوراً',
+                btn_cancel_mm: 'إلغاء والعودة للقائمة',
+                loot_title: 'تم فك تشفير حاوية الإمداد!',
+                loot_subtitle: 'غنائم تكتيكية معززة للقوات',
+                btn_claim_loot: 'استلام كافة الغنائم 🎁',
+                levelup_title: 'ارتقاء رتبة القائد!',
+                levelup_sub: 'ترقية رتبة القائد',
+                commander_name_lbl: 'اسم القائد:',
+                backup_export_lbl: 'شفرة بياناتك الحالية:',
+                btn_copy_code: 'نسخ الشفرة 📋',
+                backup_import_lbl: 'استرجاع حساب سابق:',
+                btn_restore_code: 'استعادة الحساب فوراً 🔄'
+            },
+            en: {
+                tab_shop: 'Shop',
+                tab_cards: 'Cards',
+                tab_battle: 'Battle',
+                tab_clan: 'Clan',
+                tab_settings: 'Settings',
+                nav_challenges: 'Bounties',
+                nav_tournaments: 'Tournaments',
+                brand_subtitle: 'CyberClash • Season 1',
+                nav_battle_log: 'Log',
+                pass_title: 'Cyber Pass',
+                pass_next: 'Next Tier',
+                mode_change_hint: 'Change Arena & Wager',
+                btn_battle_main: 'START BATTLE',
+                btn_battle_sub: 'Instant Tactical Arena Combat',
+                btn_ai_practice: 'Practice vs AI Bot (Free)',
+                chests_title: 'Supply Crates',
+                btn_open_all: 'Unlock All Now 🚀',
+                wager_modal_title: 'Battle Mode & Tactical Wager',
+                wager_modal_sub: 'Choose game mode first, then pick your wager stake',
+                wager_step1_lbl: 'Select Battle Mode:',
+                wager_step2_lbl: 'Select Wager Stake (2X Prize):',
+                wager_player_gold_lbl: 'Your Available Gold:',
+                btn_confirm_arena: 'Confirm Settings & Back to Arena ✓',
+                settings_title: 'System Settings & Performance',
+                settings_lang_title: 'Interface Language',
+                settings_lang_desc: 'Switch between Arabic and English across all UI screens',
+                settings_fps_title: 'Target Frame Rate (FPS)',
+                settings_fps_desc: 'High refresh rate 120Hz monitor support',
+                mm_title: 'Scanning Battle Arenas...',
+                mm_searching: 'Searching for opponent commander on server',
+                mm_elapsed: 'Elapsed Time:',
+                btn_instant_bot: '🤖 Fight AI Bot Instantly',
+                btn_cancel_mm: 'Cancel & Return to Menu',
+                loot_title: 'Supply Crate Decrypted!',
+                loot_subtitle: 'Tactical rewards boosting your forces',
+                btn_claim_loot: 'Claim All Loot 🎁',
+                levelup_title: 'Commander Rank Promoted!',
+                levelup_sub: 'Commander Rank Promoted',
+                commander_name_lbl: 'Commander Callsign:',
+                backup_export_lbl: 'Current Progress Code:',
+                btn_copy_code: 'Copy Code 📋',
+                backup_import_lbl: 'Restore Previous Account:',
+                btn_restore_code: 'Restore Account Now 🔄'
+            }
+        };
+
+        // ==================== CARD LOCALIZED NAMES & ROLES ====================
+        const CARD_LOCALIZED_NAMES = {
+            scout_drone: { ar: 'درون الاستطلاع', en: 'Scout Drone', roleAr: 'مشاة استطلاع', roleEn: 'Fast Striker' },
+            cyber_trooper: { ar: 'جندي السايبر', en: 'Cyber Trooper', roleAr: 'مشاة هجومية', roleEn: 'Assault Trooper' },
+            mech_titan: { ar: 'الآلي المدرع (تيتان)', en: 'Mech Titan', roleAr: 'مدرعة حصار', roleEn: 'Siege Vanguard' },
+            plasma_caster: { ar: 'مدفعي البلازما', en: 'Plasma Caster', roleAr: 'مدفعية ميدان', roleEn: 'Splash Ranged' },
+            swarm_droids: { ar: 'سرب الدرويدات', en: 'Swarm Droids', roleAr: 'أسراب قاطعة', roleEn: 'Swarm Units' },
+            plasma_mod: { ar: 'ضربة البلازما', en: 'Plasma Strike', roleAr: 'تعويذة نارية', roleEn: 'Damage Spell' },
+            nano_repair: { ar: 'درع النانو الإسعافي', en: 'Nano Aegis', roleAr: 'تعويذة دفاعية', roleEn: 'Shield Spell' },
+            emp_overcharge: { ar: 'عاصفة EMP الكهرومغناطيسية', en: 'EMP Cascade', roleAr: 'تعويذة صعق', roleEn: 'Stun Spell' },
+            ghost_sniper: { ar: 'القناص الشبحي', en: 'Ghost Marksman', roleAr: 'قناص مموه', roleEn: 'Stealth Sniper' },
+            sentry_bunker: { ar: 'خندق الحراسة 360°', en: 'Sentry Bunker', roleAr: 'برج رشاش', roleEn: 'Omni Turret' },
+            mortar_cannon: { ar: 'مدفع الهاون الثقيل', en: 'Mortar Cannon', roleAr: 'مدفعية حصار', roleEn: 'Siege Mortar' },
+            orbital_salvo: { ar: 'القصف الصاروخي المداري', en: 'Orbital Barrage', roleAr: 'تعويذة تدمير', roleEn: 'Siege Spell' },
+            aero_repairer: { ar: 'طائرة الإصلاح الجوي', en: 'Aero Repairer', roleAr: 'دعم جوي', roleEn: 'Support Flyer' },
+            drone_factory: { ar: 'مصنع درويدات السايبر', en: 'Drone Factory', roleAr: 'مبنى إنتاج', roleEn: 'Spawner Building' },
+            cryo_freeze: { ar: 'نبضة الصقيع الكريستالية', en: 'Cryo Freeze', roleAr: 'تعويذة تجميد', roleEn: 'Freeze Spell' },
+            inferno_tower: { ar: 'برج الصهر الحراري', en: 'Inferno Tower', roleAr: 'برج حارق', roleEn: 'Beam Tower' },
+            electro_striker: { ar: 'صاعق الكوانتوم المكهرب', en: 'Electro Striker', roleAr: 'مشاة صعق', roleEn: 'Chain Striker' }
+        };
+
+        function getCardDisplayName(cardId) {
+            if (!cardId) return '';
+            const loc = CARD_LOCALIZED_NAMES[cardId];
+            if (loc) {
+                return (typeof currentLang !== 'undefined' && currentLang === 'en') ? loc.en : loc.ar;
+            }
+            if (typeof TacticalGameRoom !== 'undefined' && TacticalGameRoom.CARD_DATABASE && TacticalGameRoom.CARD_DATABASE[cardId]) {
+                return TacticalGameRoom.CARD_DATABASE[cardId].name;
+            }
+            return cardId;
+        }
+
+        function getCardDisplayRole(cardId) {
+            if (!cardId) return '';
+            const loc = CARD_LOCALIZED_NAMES[cardId];
+            if (loc) {
+                return (typeof currentLang !== 'undefined' && currentLang === 'en') ? loc.roleEn : loc.roleAr;
+            }
+            return (typeof currentLang !== 'undefined' && currentLang === 'en') ? 'Combat Unit' : 'وحدة قتالية';
+        }
+
+        // ==================== CYBER PASS TIERS DEFINITION ====================
+        const CYBER_PASS_TIERS = [
+            { tier: 1, crowns: 5, rewardType: 'currency', gold: 300, gems: 0, xp: 50, title: 'إمداد نقدي تمهيدي', desc: '+300 🪙 ذهب + 50 XP' },
+            { tier: 2, crowns: 10, rewardType: 'chest', chestType: 'silver', title: 'حاوية كوانتية فضية', desc: 'صندوق كوانتي فضي (Silver Chest)' },
+            { tier: 3, crowns: 15, rewardType: 'currency', gold: 0, gems: 20, xp: 50, title: 'بلورات طاقة مشحونة', desc: '+20 💎 جوهرة + 50 XP' },
+            { tier: 4, crowns: 20, rewardType: 'cards', count: 15, title: 'حزمة كروت مضاعفة', desc: '15 بطاقة عشوائية للترقية التكتيكية' },
+            { tier: 5, crowns: 25, rewardType: 'chest', chestType: 'gold', title: 'حاوية ذهبية مدرعة', desc: 'صندوق ذهبي مدرع (Gold Chest)' },
+            { tier: 6, crowns: 30, rewardType: 'currency', gold: 600, gems: 0, xp: 100, title: 'شحنة ذهب ميدانية', desc: '+600 🪙 ذهب + 100 XP' },
+            { tier: 7, crowns: 35, rewardType: 'currency', gold: 0, gems: 35, xp: 100, title: 'محفظة بلورات سيبرانية', desc: '+35 💎 جوهرة + 100 XP' },
+            { tier: 8, crowns: 40, rewardType: 'chest', chestType: 'quantum', title: 'صندوق كوانتي فائق', desc: 'صندوق كوانتي فائق (Quantum Chest)' },
+            { tier: 9, crowns: 45, rewardType: 'currency', gold: 1000, gems: 0, xp: 150, title: 'منحة قيادة عليا', desc: '+1000 🪙 ذهب + 150 XP' },
+            { tier: 10, crowns: 50, rewardType: 'elite', gold: 2000, gems: 100, xp: 300, cardsCount: 30, title: 'صندوق النواة الأسطوري الفائق', desc: 'صندوق النواة الأسطوري (+2000 🪙 | +100 💎 | +30 بطاقة | +300 XP)' }
+        ];
+
+        // ==================== BATTLE MODES (SEPARATED STEP 1) ====================
+        const BATTLE_MODES = [
+            {
+                id: 'standard',
+                nameAr: 'النمط الكلاسيكي',
+                nameEn: 'Classic Arena',
+                descAr: 'طاقة 1X قياسية ➜ طاقة مضاعفة 2X في الدقيقة الأخيرة • متوازن وتكتيكي',
+                descEn: 'Standard 1X ➜ 2X Double Time • Balanced & tactical',
+                icon: '🛡️',
+                speedBadge: '1X ➜ 2X'
+            },
+            {
+                id: 'triple',
+                nameAr: 'حلبة الجنون الفائق',
+                nameEn: 'Triple Elixir (3X)',
+                descAr: 'طاقة 3X فائقة وسريعة طوال المباراة • معارك طاحنة وإنزال سريع بلا توقف',
+                descEn: 'Ultra-fast 3X Elixir non-stop • Intense chaos & rapid deploy',
+                icon: '⚡',
+                speedBadge: '3X FRENZY'
+            }
+        ];
+
+        // ==================== WAGER STAKES TIERS (SEPARATED STEP 2) ====================
+        const WAGER_TIERS = [
+            {
+                id: 'free',
+                fee: 0,
+                prize: 50,
+                minTrophies: 0,
+                nameAr: 'تدريب حر (مجاني)',
+                nameEn: 'Free Practice',
+                descAr: 'بدون رهان • مناسب لاختبار الخطط والتكتيكات',
+                descEn: 'Zero entry fee • Safe practice',
+                icon: '🛡️'
+            },
+            {
+                id: 'novice',
+                fee: 100,
+                prize: 200,
+                minTrophies: 0,
+                nameAr: 'صالة المبتدئين',
+                nameEn: 'Novice Lounge',
+                descAr: 'رهان 100 🪙 ➜ جائزة الفوز 200 🪙 (2X)',
+                descEn: 'Entry: 100 🪙 ➜ Prize: 200 🪙 (2X)',
+                icon: '🥉'
+            },
+            {
+                id: 'pro',
+                fee: 500,
+                prize: 1000,
+                minTrophies: 300,
+                nameAr: 'حلبة المحترفين',
+                nameEn: 'Pro Arena',
+                descAr: 'رهان 500 🪙 ➜ جائزة الفوز 1,000 🪙 (2X)',
+                descEn: 'Entry: 500 🪙 ➜ Prize: 1,000 🪙 (2X)',
+                icon: '🥈'
+            },
+            {
+                id: 'elite',
+                fee: 2500,
+                prize: 5000,
+                minTrophies: 800,
+                nameAr: 'قاعة النخبة',
+                nameEn: 'Elite Masters',
+                descAr: 'رهان 2,500 🪙 ➜ جائزة الفوز 5,000 🪙 (2X)',
+                descEn: 'Entry: 2,500 🪙 ➜ Prize: 5,000 🪙 (2X)',
+                icon: '👑'
+            },
+            {
+                id: 'titans',
+                fee: 10000,
+                prize: 20000,
+                minTrophies: 1500,
+                nameAr: 'عرش الأساطير',
+                nameEn: 'Titans Throne',
+                descAr: 'رهان 10,000 🪙 ➜ جائزة الفوز 20,000 🪙 (2X)',
+                descEn: 'Entry: 10,000 🪙 ➜ Prize: 20,000 🪙 (2X)',
+                icon: '🔥'
+            }
+        ];
+
+        let selectedBattleMode = 'standard';
+        try {
+            const savedMode = localStorage.getItem('clah_battle_mode') || localStorage.getItem('clah_selected_battle_mode');
+            if (savedMode && BATTLE_MODES.some(m => m.id === savedMode)) {
+                selectedBattleMode = savedMode;
+            }
+        } catch (_) {}
+
+        let currentWagerTierId = 'free';
+        try {
+            const savedTier = localStorage.getItem('clah_wager_tier');
+            if (savedTier) {
+                if (savedTier === 'training') currentWagerTierId = 'free';
+                else if (savedTier === 'wager_novice') currentWagerTierId = 'novice';
+                else if (savedTier === 'wager_pro') currentWagerTierId = 'pro';
+                else if (savedTier === 'wager_elite') currentWagerTierId = 'elite';
+                else if (savedTier === 'wager_god') currentWagerTierId = 'titans';
+                else if (WAGER_TIERS.some(t => t.id === savedTier)) currentWagerTierId = savedTier;
+            }
+        } catch (_) {}
+
+        let currentMatchWagerTier = null;
+
+        // Backward compatibility mapping for WAGER_ARENAS
+        const WAGER_ARENAS = WAGER_TIERS.map(t => ({
+            ...t,
+            mode: selectedBattleMode
+        }));
+
+        function getCurrentWagerTier() {
+            return WAGER_TIERS.find(t => t.id === currentWagerTierId) || WAGER_TIERS[0];
+        }
+
+        function getCurrentBattleMode() {
+            return BATTLE_MODES.find(m => m.id === selectedBattleMode) || BATTLE_MODES[0];
+        }
+
+        function getCurrentWagerArena() {
+            const tier = getCurrentWagerTier();
+            const mode = getCurrentBattleMode();
+            return {
+                id: tier.id,
+                fee: tier.fee,
+                prize: tier.prize,
+                mode: selectedBattleMode,
+                minTrophies: tier.minTrophies,
+                nameAr: `${mode.nameAr} - ${tier.nameAr}`,
+                nameEn: `${mode.nameEn} - ${tier.nameEn}`,
+                tierNameAr: tier.nameAr,
+                tierNameEn: tier.nameEn,
+                icon: tier.icon
+            };
+        }
+
+        function updateWagerModeButtonUI() {
+            const mode = getCurrentBattleMode();
+            const tier = getCurrentWagerTier();
+            const toggleBtn = document.getElementById('btn-toggle-battle-mode');
+            const modeIcon = document.getElementById('mode-single-icon');
+            const modeName = document.getElementById('mode-single-name');
+            const modeDetail = document.getElementById('mode-single-detail');
+
+            if (toggleBtn) {
+                if (selectedBattleMode === 'triple') toggleBtn.classList.add('frenzy');
+                else toggleBtn.classList.remove('frenzy');
+            }
+            if (modeIcon) modeIcon.textContent = mode.icon;
+            const isAr = (typeof currentLang === 'undefined' || currentLang === 'ar');
+            if (modeName) {
+                modeName.textContent = isAr 
+                    ? `${mode.nameAr} • ${tier.nameAr}`
+                    : `${mode.nameEn} • ${tier.nameEn}`;
+            }
+            if (modeDetail) {
+                if (tier.fee > 0) {
+                    modeDetail.textContent = isAr
+                        ? `رهان: ${tier.fee.toLocaleString('en-US')} 🪙 ➜ جائزة الفوز: ${tier.prize.toLocaleString('en-US')} 🪙 (2X)`
+                        : `Wager: ${tier.fee.toLocaleString('en-US')} 🪙 ➜ Win: ${tier.prize.toLocaleString('en-US')} 🪙 (2X)`;
+                } else {
+                    modeDetail.textContent = isAr
+                        ? `${mode.descAr} • مجاناً بدون رهان`
+                        : `${mode.descEn} • Free Practice`;
+                }
+            }
+        }
+
+        function setGameLanguage(lang) {
+            currentLang = (lang === 'en') ? 'en' : 'ar';
+            try { localStorage.setItem('clah_lang', currentLang); } catch (_) {}
+            document.documentElement.lang = currentLang;
+            document.documentElement.dir = (currentLang === 'ar' ? 'rtl' : 'ltr');
+
+            const sel = document.getElementById('sel-lang-cr');
+            if (sel) sel.value = currentLang;
+            const selModal = document.getElementById('sel-lang-modal');
+            if (selModal) selModal.value = currentLang;
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) {
+                    el.textContent = TRANSLATIONS[currentLang][key];
+                }
+            });
+
+            const navLabels = {
+                0: currentLang === 'ar' ? 'المتجر' : 'Shop',
+                1: currentLang === 'ar' ? 'البطاقات' : 'Cards',
+                2: currentLang === 'ar' ? 'المعركة' : 'Battle',
+                3: currentLang === 'ar' ? 'التحالف' : 'Clan',
+                4: currentLang === 'ar' ? 'الإعدادات' : 'Settings'
+            };
+            document.querySelectorAll('.cr-nav-item').forEach(item => {
+                const idx = item.getAttribute('data-tab-target');
+                const lbl = item.querySelector('.cr-nav-label');
+                if (lbl && navLabels[idx]) lbl.textContent = navLabels[idx];
+            });
+
+            try { if (typeof updateWagerModeButtonUI === 'function') updateWagerModeButtonUI(); } catch (_) {}
+            try { if (typeof renderModeSelectorUI === 'function') renderModeSelectorUI(); } catch (_) {}
+            try { if (typeof renderChestsUI === 'function') renderChestsUI(); } catch (_) {}
+        }
+        window.setGameLanguage = setGameLanguage;
+        window.i18n = {
+            get currentLang() { return currentLang; },
+            setGameLanguage,
+            t: (k) => (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][k]) || k
+        };
 
         // --- TROPHY ROAD MILESTONES DEFINITION ---
         const TROPHY_ROAD_MILESTONES = [
@@ -7472,7 +8695,7 @@
         // Phase 5 State Variables: Cyber Pass, Daily Bounties & Battle Mode
         let seasonCrowns = 0;
         let claimedSeasonTiers = [];
-        let selectedBattleMode = 'standard'; // 'standard' or 'triple'
+        // selectedBattleMode initialized above
         let dailyBounties = [];
         let dailyBountiesDate = '';
 
@@ -8098,6 +9321,18 @@
             const profileNameEl = document.querySelector('.cr-profile-name');
             if (profileNameEl) profileNameEl.textContent = playerName;
 
+            // Header Google status badge
+            const headerGoogleBadge = document.getElementById('btn-header-google-auth');
+            if (headerGoogleBadge) {
+                if (isGooglePlayLinked) {
+                    headerGoogleBadge.classList.add('linked');
+                    headerGoogleBadge.setAttribute('title', `حساب Google متصل: ${googlePlayEmail || playerName}`);
+                } else {
+                    headerGoogleBadge.classList.remove('linked');
+                    headerGoogleBadge.setAttribute('title', 'تسجيل الدخول / اختيار حساب Google');
+                }
+            }
+
             // Settings commander name display
             const settingsNameEl = document.getElementById('settings-commander-name-display');
             if (settingsNameEl) settingsNameEl.textContent = playerName;
@@ -8106,7 +9341,7 @@
             const inputName = document.getElementById('input-commander-name');
             if (inputName && document.activeElement !== inputName) inputName.value = playerName;
 
-            // Google Play account card & badges
+            // Google Play account card & badges in Settings Tab
             const gpBadge = document.getElementById('gp-status-badge');
             const gpText = document.getElementById('gp-status-text');
             const gpBtnText = document.getElementById('btn-gp-action-text');
@@ -8117,8 +9352,8 @@
 
             if (isGooglePlayLinked) {
                 if (gpBadge) gpBadge.className = 'cr-gp-badge linked';
-                if (gpText) gpText.textContent = 'مرتبط: ' + (googlePlayEmail || 'Google Play');
-                if (gpBtnText) gpBtnText.textContent = 'إدارة الحساب ⚙️';
+                if (gpText) gpText.textContent = 'مرتبط: ' + (googlePlayEmail || 'Google');
+                if (gpBtnText) gpBtnText.textContent = 'تبديل / إدارة حسابات Google 🔄';
                 if (gpInfo) gpInfo.style.display = 'block';
                 if (gpCloudId) gpCloudId.textContent = playerId;
                 if (btnUnlinkGp) btnUnlinkGp.style.display = 'inline-block';
@@ -8126,9 +9361,21 @@
             } else {
                 if (gpBadge) gpBadge.className = 'cr-gp-badge unlinked';
                 if (gpText) gpText.textContent = 'غير مرتبط بحساب Google';
-                if (gpBtnText) gpBtnText.textContent = 'ربط الحساب 🔗';
+                if (gpBtnText) gpBtnText.textContent = 'اختيار حساب Google 🔄';
                 if (gpInfo) gpInfo.style.display = 'none';
                 if (btnUnlinkGp) btnUnlinkGp.style.display = 'none';
+            }
+
+            // Google Accounts Modal Footer
+            const googleFooter = document.getElementById('google-signed-in-footer');
+            const googleFooterTxt = document.getElementById('google-current-email-txt');
+            if (googleFooter) {
+                if (isGooglePlayLinked && googlePlayEmail) {
+                    googleFooter.style.display = 'flex';
+                    if (googleFooterTxt) googleFooterTxt.textContent = 'متصل كـ: ' + googlePlayEmail;
+                } else {
+                    googleFooter.style.display = 'none';
+                }
             }
 
             // Export backup JSON in backup modal
@@ -8903,9 +10150,9 @@
 
         function getCardRarityBadge(rarity) {
             switch(rarity) {
-                case 'legendary': return '<span class="rarity-badge rarity-badge-legendary">🟡 أسطوري</span>';
+                case 'legendary': return '<span class="rarity-badge rarity-badge-legendary">👑 أسطوري</span>';
                 case 'epic': return '<span class="rarity-badge rarity-badge-epic">🟣 ملحمي</span>';
-                case 'rare': return '<span class="rarity-badge rarity-badge-rare">🔷 نادر</span>';
+                case 'rare': return '<span class="rarity-badge rarity-badge-rare">🔶 نادر</span>';
                 default: return '<span class="rarity-badge rarity-badge-common">⚪ شائع</span>';
             }
         }
@@ -9033,14 +10280,14 @@
                     const rarity = c ? (c.rarity || 'common') : 'common';
                     slotEl.className = 'cr-deck-slot rarity-' + rarity + (isSwapActive ? ' swap-candidate' : '');
                     slotEl.innerHTML = `
-                        <div class="cr-card-elixir">${c ? c.cost : 1}</div>
+                        <div class="cr-card-elixir"><span>${c ? c.cost : 1}</span></div>
                         <span class="cr-card-level">Lv.${lvl}</span>
                         <div class="cr-card-art-frame">
                             ${getCardIllustration(cardId)}
                         </div>
-                        <span style="font-size: 10px; font-weight: 800; color: #FFFFFF; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">
-                            ${c ? c.name.split(' ')[0] : ''}
-                        </span>
+                        <div class="cr-deck-card-name">
+                            ${getCardDisplayName(cardId)}
+                        </div>
                     `;
 
                     slotEl.onclick = () => {
@@ -9229,20 +10476,21 @@
                 cardEl.setAttribute('data-card-id', id);
 
                 cardEl.innerHTML = `
-                    <div class="cr-card-elixir">${c.cost}</div>
+                    <div class="cr-card-elixir"><span>${c.cost}</span></div>
                     <span class="cr-card-level">Lv.${lvl}</span>
+                    ${inDeck ? `<div class="cr-card-in-deck-pill">✓ بالتشكيلة</div>` : ''}
                     ${masteryStars ? `<span class="cr-card-mastery-stars">${masteryStars}</span>` : ''}
                     <div class="cr-card-art-frame">
                         ${getCardIllustration(id)}
                     </div>
-                    <div class="cr-card-title">${c.name}</div>
-                    <div style="display: flex; justify-content: center; margin-bottom: 2px;">
+                    <div class="cr-card-title">${getCardDisplayName(id)}</div>
+                    <div class="cr-card-meta-row">
                         ${getCardRarityBadge(rarity)}
+                        <span class="cr-card-role-tag">${getCardDisplayRole(id, catMeta.label)}</span>
                     </div>
-                    <div class="cr-card-role-tag">${catMeta.label}</div>
                     <div class="cr-card-upgrade-track ${canAffordUpgrade ? 'ready-glow' : ''}">
                         <div class="cr-card-upgrade-fill ${canAffordUpgrade ? 'ready' : ''}" style="width: ${pct}%;"></div>
-                        <span class="cr-card-upgrade-text">${isMax ? 'MAX' : `${prog.count}/${reqCards}`}</span>
+                        <span class="cr-card-upgrade-text">${canAffordUpgrade ? '▲ جاهز للترقية' : (isMax ? 'MAX' : `${prog.count}/${reqCards}`)}</span>
                     </div>
                 `;
 
@@ -9331,8 +10579,8 @@
             const metaEl = document.getElementById('action-modal-meta');
 
             if (artEl) artEl.innerHTML = getCardIllustration(cardId);
-            if (titleEl) titleEl.textContent = c.name;
-            if (metaEl) metaEl.textContent = `${catMeta.label} • المستوى ${lvl} • تكلفة ${c.cost} ⚡`;
+            if (titleEl) titleEl.textContent = getCardDisplayName(cardId);
+            if (metaEl) metaEl.innerHTML = `${getCardRarityBadge(c.rarity || 'common')} <span style="margin: 0 4px; color: #64748B;">•</span> ${getCardDisplayRole(cardId, catMeta.label)} <span style="margin: 0 4px; color: #64748B;">•</span> المستوى ${lvl} <span style="margin: 0 4px; color: #64748B;">•</span> ${c.cost} ⚡`;
 
             // Before vs After Stats Comparison
             const compContainer = document.getElementById('action-modal-stats-comparison');
@@ -9571,7 +10819,8 @@
                 savePlayerState();
                 try {
                     audio.init();
-                    audio.playFusion();
+                    if (audio.playUpgradeSuccess) audio.playUpgradeSuccess();
+                    else audio.playFusion();
                 } catch (_) {}
                 showToast(`⚡ تم ترقية [${c ? c.name : cardId}] إلى المستوى ${lvl + 1}! (+${req.xp} XP)`, 'gold');
                 renderCardsTab();
@@ -9606,8 +10855,8 @@
             const loreDesc = document.getElementById('info-lore-desc');
 
             if (iconWrap) iconWrap.innerHTML = getCardIllustration(cardId);
-            if (nameEl) nameEl.textContent = `${c.name} (Lv. ${lvl})`;
-            if (roleEl) roleEl.textContent = catMeta.label;
+            if (nameEl) nameEl.textContent = `${getCardDisplayName(cardId)} (Lv. ${lvl})`;
+            if (roleEl) roleEl.innerHTML = `${getCardRarityBadge(c.rarity || 'common')} <span style="margin: 0 4px; color: #64748B;">•</span> ${getCardDisplayRole(cardId, catMeta.label)}`;
 
             if (statsGrid) {
                 statsGrid.innerHTML = `
@@ -9998,7 +11247,7 @@
                                 <span style="font-weight: 800; color: ${p.isSelf ? 'var(--cyan-glow)' : '#FFFFFF'}; font-size: 13px;">
                                     ${p.name}
                                 </span>
-                                ${p.isGooglePlayLinked ? '<span title="Google Play Games" style="font-size: 11px;">🎮</span>' : ''}
+                                ${p.isGooglePlayLinked ? '<span title="متصل بحساب Google" style="display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; background: #ffffff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.3); vertical-align: middle;"><svg viewBox="0 0 48 48" style="width: 10px; height: 10px;"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg></span>' : ''}
                             </div>
                             <span style="font-size: 9.5px; color: #64748B;">${p.isOnline ? '🟢 متصل بالشبكة' : '⚪ غير متصل'}</span>
                         </div>
@@ -10501,41 +11750,455 @@
             };
         }
 
-        // 2. Google Play Linking Modal Controls
-        const btnOpenGpModal = document.getElementById('btn-open-gp-modal');
+        // ==================== 2. GOOGLE ACCOUNTS CHOOSER & MULTI-ACCOUNT CONTROLLER ====================
         const modalGooglePlay = document.getElementById('modal-google-play');
+        const btnOpenGpModal = document.getElementById('btn-open-gp-modal');
+        const btnHeaderGoogleAuth = document.getElementById('btn-header-google-auth');
         const btnCloseGpModal = document.getElementById('btn-close-gp-modal');
-        const btnConfirmGpLink = document.getElementById('btn-confirm-gp-link');
-        const btnUnlinkGp = document.getElementById('btn-unlink-gp');
-        const inputGpEmail = document.getElementById('input-gp-email');
+        const googleAccountsList = document.getElementById('google-accounts-list');
+        const btnToggleAddAccount = document.getElementById('btn-toggle-add-account');
+        const formAddGoogleAccount = document.getElementById('form-add-google-account');
+        const inputNewGoogleEmail = document.getElementById('input-new-google-email');
+        const inputNewGoogleName = document.getElementById('input-new-google-name');
+        const btnSubmitAddAccount = document.getElementById('btn-submit-add-account');
+        const btnCancelAddAccount = document.getElementById('btn-cancel-add-account');
+        const btnGoogleSignout = document.getElementById('btn-google-signout');
+        const googleAuthStatus = document.getElementById('google-auth-status');
 
-        if (btnOpenGpModal && modalGooglePlay) {
-            btnOpenGpModal.onclick = () => {
-                updateProfileUI();
-                modalGooglePlay.classList.add('active');
+        function safeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function showGoogleAuthStatus(msg, isSuccess = true) {
+            if (!googleAuthStatus) return;
+            googleAuthStatus.style.display = 'block';
+            googleAuthStatus.style.background = isSuccess ? 'rgba(16, 185, 129, 0.18)' : 'rgba(239, 68, 68, 0.18)';
+            googleAuthStatus.style.border = isSuccess ? '1px solid #10B981' : '1px solid #EF4444';
+            googleAuthStatus.style.color = isSuccess ? '#34D399' : '#FCA5A5';
+            googleAuthStatus.textContent = msg;
+        }
+
+        function hideGoogleAuthStatus() {
+            if (googleAuthStatus) {
+                googleAuthStatus.style.display = 'none';
+                googleAuthStatus.textContent = '';
+            }
+        }
+
+        // Get stored Google accounts list or seed default accounts
+        function getSavedGoogleAccounts() {
+            const defaultAccounts = [
+                {
+                    email: 'mjd20@gmail.com',
+                    name: 'MJD 20',
+                    avatarBg: '#4285F4',
+                    initial: 'M',
+                    level: 11,
+                    trophies: 2840,
+                    lastLogin: Date.now()
+                },
+                {
+                    email: 'commander.tactics@gmail.com',
+                    name: 'Tactical Commander',
+                    avatarBg: '#EA4335',
+                    initial: 'T',
+                    level: 7,
+                    trophies: 1540,
+                    lastLogin: Date.now() - 86400000
+                },
+                {
+                    email: 'cyber.legend2026@gmail.com',
+                    name: 'Cyber Legend',
+                    avatarBg: '#34A853',
+                    initial: 'C',
+                    level: 12,
+                    trophies: 3820,
+                    lastLogin: Date.now() - 172800000
+                }
+            ];
+
+            try {
+                const stored = localStorage.getItem('clah_google_accounts');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return parsed;
+                    }
+                }
+            } catch (e) {
+                console.warn('Error reading clah_google_accounts:', e);
+            }
+
+            try {
+                localStorage.setItem('clah_google_accounts', JSON.stringify(defaultAccounts));
+            } catch (_) {}
+            return defaultAccounts;
+        }
+
+        function saveGoogleAccountsList(accounts) {
+            try {
+                localStorage.setItem('clah_google_accounts', JSON.stringify(accounts));
+            } catch (e) {
+                console.warn('Error saving clah_google_accounts:', e);
+            }
+        }
+
+        // Save current game state snapshot keyed by Google account email
+        function saveAccountSnapshot(email) {
+            if (!email) return;
+            const key = 'clah_acc_save_' + email.toLowerCase().trim();
+            const snapshot = {
+                playerName,
+                playerId,
+                playerLevel,
+                playerXp,
+                playerGold,
+                playerGems,
+                playerTrophies,
+                playerActiveDeck: [...playerActiveDeck],
+                playerDeckSlots: JSON.parse(JSON.stringify(playerDeckSlots || [])),
+                activeDeckSlot: activeDeckSlot || 0,
+                playerCardLevels: { ...playerCardLevels },
+                playerCardProgress: { ...playerCardProgress },
+                playerChests: JSON.parse(JSON.stringify(playerChests || [])),
+                claimedTrophyMilestones: { ...claimedTrophyMilestones },
+                playerBattleLog: [...(playerBattleLog || [])],
+                playerCardMastery: { ...playerCardMastery },
+                playerClan: playerClan ? { ...playerClan } : null,
+                seasonCrowns,
+                claimedSeasonTiers: [...claimedSeasonTiers],
+                selectedBattleMode,
+                dailyBounties: JSON.parse(JSON.stringify(dailyBounties || [])),
+                dailyBountiesDate,
+                grandChallengeState: { ...grandChallengeState },
+                lastSaved: Date.now()
+            };
+            try {
+                localStorage.setItem(key, JSON.stringify(snapshot));
+            } catch (e) {
+                console.warn('Failed to save account snapshot:', e);
+            }
+        }
+
+        // Restore game state snapshot for selected Google account email
+        function restoreAccountSnapshot(email, fallbackName = null) {
+            if (!email) return false;
+            const key = 'clah_acc_save_' + email.toLowerCase().trim();
+            try {
+                const stored = localStorage.getItem(key);
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    if (data.playerName) playerName = data.playerName;
+                    if (data.playerId) playerId = data.playerId;
+                    if (data.playerLevel !== undefined) playerLevel = data.playerLevel;
+                    if (data.playerXp !== undefined) playerXp = data.playerXp;
+                    if (data.playerGold !== undefined) playerGold = data.playerGold;
+                    if (data.playerGems !== undefined) playerGems = data.playerGems;
+                    if (data.playerTrophies !== undefined) playerTrophies = data.playerTrophies;
+                    if (Array.isArray(data.playerActiveDeck) && data.playerActiveDeck.length === 8) {
+                        playerActiveDeck = [...data.playerActiveDeck];
+                    }
+                    if (Array.isArray(data.playerDeckSlots)) {
+                        playerDeckSlots = JSON.parse(JSON.stringify(data.playerDeckSlots));
+                    }
+                    if (data.activeDeckSlot !== undefined) activeDeckSlot = data.activeDeckSlot;
+                    if (data.playerCardLevels) playerCardLevels = { ...playerCardLevels, ...data.playerCardLevels };
+                    if (data.playerCardProgress) playerCardProgress = { ...playerCardProgress, ...data.playerCardProgress };
+                    if (Array.isArray(data.playerChests)) playerChests = JSON.parse(JSON.stringify(data.playerChests));
+                    if (data.claimedTrophyMilestones) claimedTrophyMilestones = { ...data.claimedTrophyMilestones };
+                    if (Array.isArray(data.playerBattleLog)) playerBattleLog = [...data.playerBattleLog];
+                    if (data.playerCardMastery) playerCardMastery = { ...data.playerCardMastery };
+                    if (data.playerClan !== undefined) playerClan = data.playerClan ? { ...data.playerClan } : null;
+                    if (data.seasonCrowns !== undefined) seasonCrowns = data.seasonCrowns;
+                    if (Array.isArray(data.claimedSeasonTiers)) claimedSeasonTiers = [...data.claimedSeasonTiers];
+                    if (data.selectedBattleMode) selectedBattleMode = data.selectedBattleMode;
+                    if (Array.isArray(data.dailyBounties)) dailyBounties = JSON.parse(JSON.stringify(data.dailyBounties));
+                    if (data.dailyBountiesDate) dailyBountiesDate = data.dailyBountiesDate;
+                    if (data.grandChallengeState) grandChallengeState = { ...grandChallengeState, ...data.grandChallengeState };
+                    return true;
+                } else {
+                    // Seed initial snapshot for default accounts if first time
+                    if (email.toLowerCase().includes('commander.tactics')) {
+                        playerName = 'Tactical Commander';
+                        playerLevel = 7;
+                        playerTrophies = 1540;
+                        playerGold = 1850;
+                        playerGems = 95;
+                    } else if (email.toLowerCase().includes('cyber.legend')) {
+                        playerName = 'Cyber Legend';
+                        playerLevel = 12;
+                        playerTrophies = 3820;
+                        playerGold = 8500;
+                        playerGems = 320;
+                    } else if (fallbackName) {
+                        playerName = fallbackName;
+                    }
+                    return false;
+                }
+            } catch (e) {
+                console.warn('Error restoring account snapshot:', e);
+                return false;
+            }
+        }
+
+        // Render dynamic account items in chooser modal
+        function renderGoogleAccountsList() {
+            if (!googleAccountsList) return;
+            const accounts = getSavedGoogleAccounts();
+            const currentEmail = (isGooglePlayLinked && googlePlayEmail) ? googlePlayEmail.toLowerCase().trim() : '';
+
+            if (accounts.length === 0) {
+                googleAccountsList.innerHTML = `
+                    <div style="text-align: center; color: #64748B; font-size: 12px; padding: 14px;">
+                        لا توجد حسابات مسجلة حالياً. أضف حسابك أدناه.
+                    </div>
+                `;
+                return;
+            }
+
+            googleAccountsList.innerHTML = accounts.map(acc => {
+                const accEmail = (acc.email || '').toLowerCase().trim();
+                const isActive = isGooglePlayLinked && (currentEmail === accEmail);
+                const initial = (acc.initial || acc.name || acc.email || 'G').charAt(0).toUpperCase();
+                const bg = acc.avatarBg || '#4285F4';
+                const trophies = isActive ? playerTrophies : (acc.trophies || 1000);
+                const level = isActive ? playerLevel : (acc.level || 1);
+
+                return `
+                    <div class="google-account-item ${isActive ? 'active' : ''}" onclick="selectGoogleAccount('${safeHtml(acc.email)}')">
+                        <div class="google-avatar-circle" style="background: ${bg};">
+                            ${safeHtml(initial)}
+                        </div>
+                        <div style="display: flex; flex-direction: column; text-align: right; flex: 1; min-width: 0;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                                <span style="font-size: 13px; font-weight: 700; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${safeHtml(acc.name || acc.email)}
+                                </span>
+                                ${isActive 
+                                    ? '<span class="google-active-pill">✓ الحساب النشط</span>' 
+                                    : `<span style="font-size: 11px; color: #94A3B8; font-weight: 600;">🏆 ${trophies}</span>`
+                                }
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 2px;">
+                                <span style="font-size: 11px; color: #94A3B8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: ltr; text-align: left;">
+                                    ${safeHtml(acc.email)}
+                                </span>
+                                <span style="font-size: 10px; color: var(--cyan-glow); font-weight: 700;">Lv.${level}</span>
+                            </div>
+                        </div>
+                        ${!isActive ? `
+                            <button type="button" class="btn-remove-google-acc" title="إزالة هذا الحساب من القائمة" onclick="event.stopPropagation(); removeGoogleAccount('${safeHtml(acc.email)}');">
+                                ✕
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Open & Close modal
+        function openGoogleAccountsModal() {
+            if (!modalGooglePlay) return;
+            hideGoogleAuthStatus();
+            if (formAddGoogleAccount) formAddGoogleAccount.style.display = 'none';
+            if (inputNewGoogleEmail) inputNewGoogleEmail.value = '';
+            if (inputNewGoogleName) inputNewGoogleName.value = '';
+            updateProfileUI();
+            renderGoogleAccountsList();
+            modalGooglePlay.classList.add('active');
+        }
+        window.openGoogleAccountsModal = openGoogleAccountsModal;
+
+        function closeGoogleAccountsModal() {
+            if (!modalGooglePlay) return;
+            modalGooglePlay.classList.remove('active');
+        }
+        window.closeGoogleAccountsModal = closeGoogleAccountsModal;
+
+        // Select & Sign into a Google Account
+        function selectGoogleAccount(email) {
+            if (!email) return;
+            const normalizedEmail = email.toLowerCase().trim();
+
+            // Save previous account's snapshot if currently linked to a different account
+            if (isGooglePlayLinked && googlePlayEmail && googlePlayEmail.toLowerCase().trim() !== normalizedEmail) {
+                saveAccountSnapshot(googlePlayEmail);
+            } else if (!isGooglePlayLinked) {
+                // Save current local guest/offline progress as well
+                saveAccountSnapshot('local_guest');
+            }
+
+            const accounts = getSavedGoogleAccounts();
+            const acc = accounts.find(a => a.email.toLowerCase().trim() === normalizedEmail);
+
+            // Restore target account's saved progress
+            restoreAccountSnapshot(normalizedEmail, acc ? acc.name : null);
+
+            isGooglePlayLinked = true;
+            googlePlayEmail = normalizedEmail;
+
+            // Update account's cached trophies and level in the list
+            if (acc) {
+                acc.trophies = playerTrophies;
+                acc.level = playerLevel;
+                acc.lastLogin = Date.now();
+                saveGoogleAccountsList(accounts);
+            }
+
+            // Save active player state
+            savePlayerState(true);
+
+            // Audio & UI Refresh
+            try { audio.init(); audio.playFusion(); } catch (_) {}
+
+            updateHeaderUI();
+            updateProfileUI();
+            if (typeof renderCardsTab === 'function') renderCardsTab();
+            if (typeof renderBattleTab === 'function') renderBattleTab();
+            if (typeof renderShopTab === 'function') renderShopTab();
+            if (typeof renderLeaderboard === 'function') renderLeaderboard();
+            if (typeof renderClanHubUI === 'function') renderClanHubUI();
+            if (typeof updateTrophyRoadBannerUI === 'function') updateTrophyRoadBannerUI();
+            if (typeof updateCyberPassBanner === 'function') updateCyberPassBanner();
+            if (typeof updateDailyBountiesBannerUI === 'function') updateDailyBountiesBannerUI();
+            if (typeof updateGrandChallengeBannerUI === 'function') updateGrandChallengeBannerUI();
+
+            renderGoogleAccountsList();
+            showGoogleAuthStatus(`✅ تم تسجيل الدخول بنجاح بحساب: ${normalizedEmail}`);
+
+            // Automatically close modal after brief visual confirmation
+            setTimeout(() => {
+                closeGoogleAccountsModal();
+            }, 600);
+        }
+        window.selectGoogleAccount = selectGoogleAccount;
+
+        // Remove an account from the device list
+        function removeGoogleAccount(email) {
+            if (!email) return;
+            const normalizedEmail = email.toLowerCase().trim();
+            let accounts = getSavedGoogleAccounts();
+            accounts = accounts.filter(a => a.email.toLowerCase().trim() !== normalizedEmail);
+            saveGoogleAccountsList(accounts);
+            try {
+                localStorage.removeItem('clah_acc_save_' + normalizedEmail);
+            } catch (_) {}
+            renderGoogleAccountsList();
+            showGoogleAuthStatus(`تمت إزالة الحساب (${normalizedEmail}) من القائمة.`, false);
+        }
+        window.removeGoogleAccount = removeGoogleAccount;
+
+        // Sign out of Google Account
+        function signOutGoogleAccount() {
+            if (googlePlayEmail) {
+                saveAccountSnapshot(googlePlayEmail);
+            }
+            isGooglePlayLinked = false;
+            googlePlayEmail = '';
+            savePlayerState(true);
+            try { audio.init(); audio.playFusion(); } catch (_) {}
+            updateHeaderUI();
+            updateProfileUI();
+            renderGoogleAccountsList();
+            showGoogleAuthStatus('تم تسجيل الخروج من حساب Google بنجاح.', false);
+        }
+        window.signOutGoogleAccount = signOutGoogleAccount;
+
+        // Wire Event Listeners
+        if (btnOpenGpModal) {
+            btnOpenGpModal.onclick = openGoogleAccountsModal;
+        }
+
+        if (btnHeaderGoogleAuth) {
+            btnHeaderGoogleAuth.onclick = (e) => {
+                e.stopPropagation();
+                openGoogleAccountsModal();
             };
         }
-        if (btnCloseGpModal && modalGooglePlay) {
-            btnCloseGpModal.onclick = () => modalGooglePlay.classList.remove('active');
+
+        if (btnCloseGpModal) {
+            btnCloseGpModal.onclick = closeGoogleAccountsModal;
         }
-        if (btnConfirmGpLink && modalGooglePlay) {
-            btnConfirmGpLink.onclick = () => {
-                const email = (inputGpEmail && inputGpEmail.value.trim()) ? inputGpEmail.value.trim() : 'commander@playgames.google.com';
-                isGooglePlayLinked = true;
-                googlePlayEmail = email;
-                savePlayerState(true);
-                showToast('تم ربط حساب Google Play والمزامنة السحابية بنجاح 🎮', 'success');
-                modalGooglePlay.classList.remove('active');
+
+        if (modalGooglePlay) {
+            modalGooglePlay.addEventListener('click', (e) => {
+                if (e.target === modalGooglePlay) {
+                    closeGoogleAccountsModal();
+                }
+            });
+        }
+
+        // Toggle inline Add Google Account form
+        if (btnToggleAddAccount && formAddGoogleAccount) {
+            btnToggleAddAccount.onclick = () => {
+                hideGoogleAuthStatus();
+                const isHidden = formAddGoogleAccount.style.display === 'none' || !formAddGoogleAccount.style.display;
+                formAddGoogleAccount.style.display = isHidden ? 'flex' : 'none';
+                if (isHidden && inputNewGoogleEmail) {
+                    inputNewGoogleEmail.focus();
+                }
             };
         }
-        if (btnUnlinkGp && modalGooglePlay) {
-            btnUnlinkGp.onclick = () => {
-                isGooglePlayLinked = false;
-                googlePlayEmail = '';
-                savePlayerState(true);
-                showToast('تم إلغاء ربط Google Play بنجاح', 'gold');
-                modalGooglePlay.classList.remove('active');
+
+        if (btnCancelAddAccount && formAddGoogleAccount) {
+            btnCancelAddAccount.onclick = () => {
+                formAddGoogleAccount.style.display = 'none';
+                hideGoogleAuthStatus();
             };
+        }
+
+        // Submit new Google Account
+        if (btnSubmitAddAccount) {
+            btnSubmitAddAccount.onclick = () => {
+                const rawEmail = inputNewGoogleEmail ? inputNewGoogleEmail.value.trim() : '';
+                const rawName = inputNewGoogleName ? inputNewGoogleName.value.trim() : '';
+
+                if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) {
+                    showGoogleAuthStatus('يرجى إدخال عنوان بريد Google صالح (مثال: user@gmail.com)', false);
+                    if (inputNewGoogleEmail) inputNewGoogleEmail.focus();
+                    return;
+                }
+
+                const email = rawEmail.toLowerCase();
+                const name = rawName || email.split('@')[0];
+                const colors = ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#8E24AA', '#00ACC1'];
+                const avatarBg = colors[Math.floor(Math.random() * colors.length)];
+                const initial = name.charAt(0).toUpperCase();
+
+                let accounts = getSavedGoogleAccounts();
+                const existingIdx = accounts.findIndex(a => a.email.toLowerCase() === email);
+                if (existingIdx >= 0) {
+                    accounts[existingIdx].name = name;
+                    accounts[existingIdx].lastLogin = Date.now();
+                } else {
+                    accounts.unshift({
+                        email,
+                        name,
+                        avatarBg,
+                        initial,
+                        level: playerLevel || 1,
+                        trophies: playerTrophies || 1000,
+                        lastLogin: Date.now()
+                    });
+                }
+                saveGoogleAccountsList(accounts);
+
+                if (formAddGoogleAccount) formAddGoogleAccount.style.display = 'none';
+                if (inputNewGoogleEmail) inputNewGoogleEmail.value = '';
+                if (inputNewGoogleName) inputNewGoogleName.value = '';
+
+                selectGoogleAccount(email);
+            };
+        }
+
+        if (btnGoogleSignout) {
+            btnGoogleSignout.onclick = signOutGoogleAccount;
         }
 
         // 3. Cloud Sync Now Button
@@ -10622,15 +12285,17 @@
         }
 
         // Initial Renders & State Synchronization
-        updateHeaderUI();
-        updateProfileUI();
-        renderCardsTab();
-        renderChestsUI();
-        updateTrophyRoadBannerUI();
-        updateDailyGiftUI();
-        updateShopCountdownTimer();
-        renderShopDeals();
-        switchTab(2, false); // Start on Battle tab WITHOUT autoplay sound!
+        try { setGameLanguage(currentLang); } catch (e) { console.warn('setGameLanguage error:', e); }
+        try { updateHeaderUI(); } catch (e) { console.warn('updateHeaderUI error:', e); }
+        try { updateProfileUI(); } catch (e) { console.warn('updateProfileUI error:', e); }
+        try { renderCardsTab(); } catch (e) { console.warn('renderCardsTab error:', e); }
+        try { renderChestsUI(); } catch (e) { console.warn('renderChestsUI error:', e); }
+        try { updateWagerModeButtonUI(); } catch (e) { console.warn('updateWagerModeButtonUI error:', e); }
+        try { updateTrophyRoadBannerUI(); } catch (e) { console.warn('updateTrophyRoadBannerUI error:', e); }
+        try { updateDailyGiftUI(); } catch (e) { console.warn('updateDailyGiftUI error:', e); }
+        try { updateShopCountdownTimer(); } catch (e) { console.warn('updateShopCountdownTimer error:', e); }
+        try { renderShopDeals(); } catch (e) { console.warn('renderShopDeals error:', e); }
+        try { switchTab(2, false); } catch (e) { console.warn('switchTab error:', e); }
 
         // --- ONLINE MATCHMAKING RADAR & MULTIPLAYER ENGINE ---
         let mmTimerInterval = null;
@@ -10694,7 +12359,11 @@
                             playerId,
                             playerName,
                             trophies: playerTrophies,
-                            deck: playerActiveDeck
+                            deck: playerActiveDeck,
+                            level: playerLevel,
+                            cardLevels: playerCardLevels,
+                            isTripleElixir: (selectedBattleMode === 'triple'),
+                            wagerTier: currentWagerTierId
                         }));
                     };
 
@@ -11134,100 +12803,170 @@
             };
         }
 
-        // ==================== PHASE 5: BATTLE MODE SWITCHER CONTROLLER ====================
+        // ==================== 8-BALL POOL STYLE WAGER ARENAS CONTROLLER ====================
         function applyBattleMode(mode) {
-            selectedBattleMode = (mode === 'triple') ? 'triple' : 'standard';
-            try { localStorage.setItem('clah_selected_battle_mode', selectedBattleMode); } catch (_) {}
-
-            const toggleBtn = document.getElementById('btn-toggle-battle-mode');
-            const modeIcon = document.getElementById('mode-single-icon');
-            const modeName = document.getElementById('mode-single-name');
-            const modeDetail = document.getElementById('mode-single-detail');
-
-            if (toggleBtn) {
-                if (selectedBattleMode === 'triple') {
-                    toggleBtn.classList.add('frenzy');
-                    if (modeIcon) modeIcon.textContent = '⚡';
-                    if (modeName) modeName.textContent = 'جنون الإكسير الثلاثي (3X)';
-                    if (modeDetail) modeDetail.textContent = '300% طاقة فائقة منذ البداية!';
-                } else {
-                    toggleBtn.classList.remove('frenzy');
-                    if (modeIcon) modeIcon.textContent = '🛡️';
-                    if (modeName) modeName.textContent = 'النمط الكلاسيكي (1X)';
-                    if (modeDetail) modeDetail.textContent = '1X طاقة ➜ 2X حسم تكتيكي';
-                }
-            }
+            updateWagerModeButtonUI();
         }
 
-        function selectBattleMode(mode) {
-            applyBattleMode(mode);
-            try { audio.init(); audio.playDeploy(); } catch (_) {}
-            if (mode === 'triple') {
-                showToast('⚡ تم تفعيل نمط جنون الإكسير الثلاثي 3X! (300% طاقة من الثانية الأولى)', 'gold');
-            } else {
-                showToast('🛡️ تم اختيار النمط الكلاسيكي 1X مع مضاعفة 2X التكتيكية.', 'info');
+        function openModeSelectorModal() {
+            try { if (typeof audio !== 'undefined' && audio) audio.playDeploy(); } catch (_) {}
+            renderModeSelectorUI();
+            const modal = document.getElementById('modal-mode-selector');
+            if (modal) modal.classList.add('active');
+        }
+        window.openModeSelectorModal = openModeSelectorModal;
+
+        function closeModeSelectorModal() {
+            const modal = document.getElementById('modal-mode-selector');
+            if (modal) modal.classList.remove('active');
+        }
+        window.closeModeSelectorModal = closeModeSelectorModal;
+
+        function renderModeSelectorUI() {
+            const modesContainer = document.getElementById('battle-modes-container');
+            const tiersContainer = document.getElementById('wager-arenas-container') || document.getElementById('wager-tiers-container');
+            const goldDisplay = document.getElementById('wager-modal-gold-display');
+            if (goldDisplay) goldDisplay.textContent = playerGold.toLocaleString('en-US');
+
+            // Render Step 1: Battle Modes
+            if (modesContainer) {
+                modesContainer.innerHTML = BATTLE_MODES.map(mode => {
+                    const isSelected = (mode.id === selectedBattleMode);
+                    const name = (currentLang === 'ar') ? mode.nameAr : mode.nameEn;
+                    const desc = (currentLang === 'ar') ? mode.descAr : mode.descEn;
+                    return `
+                        <div class="battle-mode-card ${isSelected ? 'selected' : ''}" onclick="selectBattleMode('${mode.id}')">
+                            <span class="battle-mode-card-icon">${mode.icon}</span>
+                            <span class="battle-mode-card-title">${name}</span>
+                            <span class="battle-mode-card-badge">${mode.speedBadge}</span>
+                            <span class="battle-mode-card-desc">${desc}</span>
+                            ${isSelected ? `<span style="position: absolute; top: 6px; left: 8px; font-size: 11px; color: #FFB703; font-weight: 900;">✓</span>` : ''}
+                        </div>
+                    `;
+                }).join('');
             }
+
+            // Render Step 2: Wager Stakes Tiers
+            if (tiersContainer) {
+                tiersContainer.innerHTML = WAGER_TIERS.map(tier => {
+                    const isSelected = (tier.id === currentWagerTierId);
+                    const isLocked = (playerTrophies < tier.minTrophies);
+                    const name = (currentLang === 'ar') ? tier.nameAr : tier.nameEn;
+                    const desc = (currentLang === 'ar') ? tier.descAr : tier.descEn;
+                    const feeLabel = tier.fee > 0 
+                        ? (currentLang === 'ar' ? `رهان: ${tier.fee.toLocaleString('en-US')} 🪙` : `Wager: ${tier.fee.toLocaleString('en-US')} 🪙`)
+                        : (currentLang === 'ar' ? 'مجاني بدون رهان' : 'Free Entry');
+                    const prizeLabel = (currentLang === 'ar')
+                        ? `جائزة الفوز: ${tier.prize.toLocaleString('en-US')} 🪙 (2X)`
+                        : `Prize: ${tier.prize.toLocaleString('en-US')} 🪙 (2X)`;
+                    const btnText = isSelected 
+                        ? (currentLang === 'ar' ? 'محدد ✓' : 'Selected ✓')
+                        : (isLocked 
+                            ? `🔒 ${tier.minTrophies} 🏆`
+                            : (currentLang === 'ar' ? 'اختيار' : 'Select'));
+
+                    return `
+                        <div class="wager-arena-card ${isSelected ? 'selected' : ''} ${isLocked ? 'locked' : ''}" onclick="${isLocked ? `showToast('${currentLang === 'ar' ? `يتطلب ${tier.minTrophies} كأساً لفتح هذه الفئة!` : `Requires ${tier.minTrophies} trophies to unlock!`}', 'error')` : `selectWagerTier('${tier.id}')`}">
+                            <div class="wager-arena-icon-wrap">${tier.icon}</div>
+                            <div class="wager-arena-info">
+                                <div class="wager-arena-title">${name}</div>
+                                <div class="wager-arena-desc">${desc}</div>
+                                <div class="wager-tags-row">
+                                    <span class="wager-fee-tag">${feeLabel}</span>
+                                    <span class="wager-prize-tag">${prizeLabel}</span>
+                                </div>
+                            </div>
+                            <button type="button" class="wager-select-btn" ${isLocked ? 'disabled' : ''}>
+                                ${btnText}
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+        window.renderModeSelectorUI = renderModeSelectorUI;
+
+        function selectBattleMode(modeId) {
+            if (!BATTLE_MODES.some(m => m.id === modeId)) return;
+            selectedBattleMode = modeId;
+            try {
+                localStorage.setItem('clah_battle_mode', modeId);
+                localStorage.setItem('clah_selected_battle_mode', modeId);
+            } catch (_) {}
+            updateWagerModeButtonUI();
+            try { if (typeof audio !== 'undefined' && audio) audio.playFusion(); } catch (_) {}
+            renderModeSelectorUI();
+            const mode = getCurrentBattleMode();
+            const name = (currentLang === 'ar') ? mode.nameAr : mode.nameEn;
+            showToast((currentLang === 'ar') ? `تم تفعيل [${name}]!` : `Mode [${name}] selected!`, 'cyan');
         }
         window.selectBattleMode = selectBattleMode;
 
+        function selectWagerTier(tierId) {
+            const tier = WAGER_TIERS.find(a => a.id === tierId);
+            if (!tier) return;
+            if (playerTrophies < tier.minTrophies) {
+                showToast(currentLang === 'ar' ? `يتطلب ${tier.minTrophies} كأساً لفتح هذه الفئة!` : `Requires ${tier.minTrophies} trophies to unlock!`, 'error');
+                return;
+            }
+            currentWagerTierId = tierId;
+            try { localStorage.setItem('clah_wager_tier', tierId); } catch (_) {}
+            updateWagerModeButtonUI();
+            try { if (typeof audio !== 'undefined' && audio) audio.playDeploy(); } catch (_) {}
+            renderModeSelectorUI();
+            const name = currentLang === 'ar' ? tier.nameAr : tier.nameEn;
+            showToast(currentLang === 'ar' ? `تم تحديد فئة الرهان [${name}]!` : `Wager stake [${name}] selected!`, 'gold');
+        }
+        window.selectWagerTier = selectWagerTier;
+
         function toggleBattleModeAction() {
-            const nextMode = (selectedBattleMode === 'triple') ? 'standard' : 'triple';
-            selectBattleMode(nextMode);
+            openModeSelectorModal();
         }
         window.toggleBattleModeAction = toggleBattleModeAction;
 
         // ==================== PHASE 5: CYBER SEASON PASS CONTROLLER ====================
-        const CYBER_PASS_TIERS = [
-            { tier: 1, crowns: 5, rewardType: 'currency', gold: 300, gems: 0, xp: 50, title: 'إمداد نقدي تمهيدي', desc: '+300 🪙 ذهب + 50 XP' },
-            { tier: 2, crowns: 10, rewardType: 'chest', chestType: 'silver', title: 'حاوية كوانتية فضية', desc: 'صندوق كوانتي فضي (Silver Chest)' },
-            { tier: 3, crowns: 15, rewardType: 'currency', gold: 0, gems: 20, xp: 50, title: 'بلورات طاقة مشحونة', desc: '+20 💎 جوهرة + 50 XP' },
-            { tier: 4, crowns: 20, rewardType: 'cards', count: 15, title: 'حزمة كروت مضاعفة', desc: '15 بطاقة عشوائية للترقية التكتيكية' },
-            { tier: 5, crowns: 25, rewardType: 'chest', chestType: 'gold', title: 'حاوية ذهبية مدرعة', desc: 'صندوق ذهبي مدرع (Gold Chest)' },
-            { tier: 6, crowns: 30, rewardType: 'currency', gold: 600, gems: 0, xp: 100, title: 'شحنة ذهب ميدانية', desc: '+600 🪙 ذهب + 100 XP' },
-            { tier: 7, crowns: 35, rewardType: 'currency', gold: 0, gems: 35, xp: 100, title: 'محفظة بلورات سيبرانية', desc: '+35 💎 جوهرة + 100 XP' },
-            { tier: 8, crowns: 40, rewardType: 'chest', chestType: 'quantum', title: 'صندوق كوانتي فائق', desc: 'صندوق كوانتي فائق (Quantum Chest)' },
-            { tier: 9, crowns: 45, rewardType: 'currency', gold: 1000, gems: 0, xp: 150, title: 'منحة قيادة عليا', desc: '+1000 🪙 ذهب + 150 XP' },
-            { tier: 10, crowns: 50, rewardType: 'elite', gold: 2000, gems: 100, xp: 300, cardsCount: 30, title: 'صندوق النواة الأسطوري الفائق', desc: 'صندوق النواة الأسطوري (+2000 🪙 | +100 💎 | +30 بطاقة | +300 XP)' }
-        ];
-
         const modalCyberPass = document.getElementById('modal-cyber-pass');
         const btnOpenCyberPass = document.getElementById('btn-open-cyber-pass');
         const btnCloseCyberPass = document.getElementById('btn-close-cyber-pass');
         const btnCloseCyberPassX = document.getElementById('btn-close-cyber-pass-x');
 
         function updateCyberPassBanner() {
+            if (typeof CYBER_PASS_TIERS === 'undefined' || !Array.isArray(CYBER_PASS_TIERS)) return;
             const subEl = document.getElementById('cyber-pass-banner-sub');
             const fillEl = document.getElementById('cyber-pass-bar-fill');
             const badgeEl = document.getElementById('cyber-pass-tier-badge');
             const pillEl = document.getElementById('cyber-pass-action-pill');
             const claimCountEl = document.getElementById('cyber-pass-claim-count');
 
+            const sCrowns = (typeof seasonCrowns !== 'undefined') ? seasonCrowns : 0;
+            const claimedTiers = (typeof claimedSeasonTiers !== 'undefined' && Array.isArray(claimedSeasonTiers)) ? claimedSeasonTiers : [];
+
             const maxCrowns = 50;
-            const pct = Math.min(100, (seasonCrowns / maxCrowns) * 100);
+            const pct = Math.min(100, (sCrowns / maxCrowns) * 100);
             if (fillEl) fillEl.style.width = `${pct}%`;
 
             let currentTier = 0;
             CYBER_PASS_TIERS.forEach(t => {
-                if (seasonCrowns >= t.crowns) currentTier = t.tier;
+                if (sCrowns >= t.crowns) currentTier = t.tier;
             });
 
             if (badgeEl) badgeEl.textContent = `محطة ${Math.min(10, currentTier + 1)}`;
-            if (subEl) subEl.textContent = `${seasonCrowns} / ${maxCrowns} 👑 تيجان تكتيكية`;
+            if (subEl) subEl.textContent = `${sCrowns} / ${maxCrowns} 👑 تيجان تكتيكية`;
 
             // Update Tab 2 Inline Cyber Pass Banner
             const inlineFill = document.getElementById('inline-pass-progress-fill');
             const inlineText = document.getElementById('inline-pass-progress-text');
             const inlineNextVal = document.getElementById('inline-pass-next-val');
             if (inlineFill) inlineFill.style.width = `${pct}%`;
-            if (inlineText) inlineText.textContent = `👑 ${seasonCrowns} / ${maxCrowns}`;
+            if (inlineText) inlineText.textContent = `👑 ${sCrowns} / ${maxCrowns}`;
             if (inlineNextVal) {
-                const nextTierObj = CYBER_PASS_TIERS.find(t => seasonCrowns < t.crowns) || CYBER_PASS_TIERS[CYBER_PASS_TIERS.length - 1];
+                const nextTierObj = CYBER_PASS_TIERS.find(t => sCrowns < t.crowns) || CYBER_PASS_TIERS[CYBER_PASS_TIERS.length - 1];
                 inlineNextVal.textContent = nextTierObj ? `محطة ${nextTierObj.tier} 🎁` : 'مكتمل 👑';
             }
 
             let claimableCount = 0;
             CYBER_PASS_TIERS.forEach(t => {
-                if (seasonCrowns >= t.crowns && !claimedSeasonTiers.includes(t.tier)) {
+                if (sCrowns >= t.crowns && !claimedTiers.includes(t.tier)) {
                     claimableCount++;
                 }
             });
@@ -11241,7 +12980,9 @@
                     if (claimCountEl) claimCountEl.textContent = 'المحطات 🎁';
                 }
             }
-            if (typeof updateChallengesNotifyDot === 'function') updateChallengesNotifyDot();
+            if (typeof updateChallengesNotifyDot === 'function') {
+                try { updateChallengesNotifyDot(); } catch (_) {}
+            }
         }
 
         function renderCyberPassUI() {
@@ -11918,6 +13659,8 @@
         updateChallengesNotifyDot();
         applyBattleMode(selectedBattleMode);
 
+        currentMatchWagerTier = null;
+
         // Start Battle Buttons Handlers
         function startBattleAction(e, multiplayerData = null) {
             console.log('startBattleAction triggered!', multiplayerData ? 'ONLINE MULTIPLAYER' : 'LOCAL AI BOT');
@@ -11943,6 +13686,25 @@
             } else if (playerActiveDeck.length > 8) {
                 playerActiveDeck = playerActiveDeck.slice(0, 8);
                 savePlayerState();
+            }
+
+            // Wager Arenas Entry Fee (Only in normal/online matches, not AI practice or Grand Challenge)
+            if (!isGrandChallengeMatch && multiplayerData !== null) {
+                currentMatchWagerTier = getCurrentWagerArena();
+                if (currentMatchWagerTier.fee > 0) {
+                    if (playerGold < currentMatchWagerTier.fee) {
+                        const msg = (currentLang === 'ar')
+                            ? `⚠️ رصيد الذهب غير كافٍ لدخول ساحة [${currentMatchWagerTier.nameAr}]!\nرسوم الدخول: ${currentMatchWagerTier.fee.toLocaleString('en-US')} 🪙\nرصيدك الحالي: ${playerGold.toLocaleString('en-US')} 🪙`
+                            : `⚠️ Insufficient gold for [${currentMatchWagerTier.nameEn}]!\nEntry Fee: ${currentMatchWagerTier.fee.toLocaleString('en-US')} 🪙\nYour Gold: ${playerGold.toLocaleString('en-US')} 🪙`;
+                        alert(msg);
+                        return;
+                    }
+                    playerGold -= currentMatchWagerTier.fee;
+                    savePlayerState();
+                    updateHeaderUI();
+                }
+            } else {
+                currentMatchWagerTier = null;
             }
 
             try {
@@ -11977,6 +13739,14 @@
         if (btnStartBattle) {
             btnStartBattle.onclick = (e) => {
                 isGrandChallengeMatch = false;
+                const tier = getCurrentWagerArena();
+                if (tier.fee > 0 && playerGold < tier.fee) {
+                    const msg = (currentLang === 'ar')
+                        ? `⚠️ رصيد الذهب غير كافٍ لدخول ساحة [${tier.nameAr}]!\nرسوم الدخول: ${tier.fee.toLocaleString('en-US')} 🪙\nرصيدك الحالي: ${playerGold.toLocaleString('en-US')} 🪙`
+                        : `⚠️ Insufficient gold for [${tier.nameEn}]!\nEntry Fee: ${tier.fee.toLocaleString('en-US')} 🪙\nYour Gold: ${playerGold.toLocaleString('en-US')} 🪙`;
+                    alert(msg);
+                    return;
+                }
                 try { audio.init(); } catch (_) {}
                 openMatchmakingModal();
             };
@@ -12531,7 +14301,18 @@
                 if (typeof updateGrandChallengeBannerUI === 'function') updateGrandChallengeBannerUI();
             } else if (isWin) {
                 playerTrophies += 30;
-                playerGold += 100;
+                let goldEarned = 100;
+                let wagerMsg = '';
+
+                if (currentMatchWagerTier && currentMatchWagerTier.fee > 0) {
+                    goldEarned = currentMatchWagerTier.prize;
+                    playerGold += goldEarned;
+                    wagerMsg = (currentLang === 'ar') 
+                        ? ` • 💰 جائزة الرهان (2X): +${goldEarned.toLocaleString('en-US')} 🪙!` 
+                        : ` • 💰 Wager Prize (2X): +${goldEarned.toLocaleString('en-US')} 🪙!`;
+                } else {
+                    playerGold += 100;
+                }
 
                 // Award victory chest if an empty slot is available
                 let chestMsg = '';
@@ -12547,29 +14328,48 @@
                         maxTimer: 10
                     };
                     const typeName = getChestTypeName(type);
-                    chestMsg = ` • 🎁 غنيمة: [${typeName}]!`;
+                    chestMsg = (currentLang === 'ar') ? ` • 🎁 غنيمة: [${typeName}]!` : ` • 🎁 Reward: [${typeName}]!`;
                     renderChestsUI();
                 }
 
                 savePlayerState();
                 iconEl.textContent = '🏆';
-                titleEl.textContent = 'نصر تكتيكي مؤزر! (VICTORY)';
+                titleEl.textContent = (currentLang === 'ar') ? 'نصر تكتيكي مؤزر!' : 'Tactical Victory!';
                 titleEl.style.color = 'var(--cyan-glow)';
-                descEl.textContent = `تم اختراق ودك المقر الرئيسي للعدو بنجاح، وتحقيق السيطرة الاستراتيجية الكاملة! (+30 🏆 | +100 🪙)${chestMsg}`;
+                descEl.textContent = (currentLang === 'ar')
+                    ? `تم اختراق ودك المقر الرئيسي للعدو بنجاح، وتحقيق السيطرة الاستراتيجية الكاملة! (+30 🏆 | +${goldEarned.toLocaleString('en-US')} 🪙)${wagerMsg}${chestMsg}`
+                    : `Enemy headquarters breached! Full tactical control achieved! (+30 🏆 | +${goldEarned.toLocaleString('en-US')} 🪙)${wagerMsg}${chestMsg}`;
             } else if (isDraw) {
-                playerGold += 30;
+                let drawGold = 30;
+                let refundMsg = '';
+                if (currentMatchWagerTier && currentMatchWagerTier.fee > 0) {
+                    drawGold = currentMatchWagerTier.fee;
+                    playerGold += drawGold;
+                    refundMsg = (currentLang === 'ar')
+                        ? ` (تم استرجاع رهانك كاملاً: +${drawGold.toLocaleString('en-US')} 🪙)`
+                        : ` (Your wager was fully refunded: +${drawGold.toLocaleString('en-US')} 🪙)`;
+                } else {
+                    playerGold += 30;
+                }
                 savePlayerState();
                 iconEl.textContent = '⚖️';
-                titleEl.textContent = 'تعادل تكتيكي متكافئ (DRAW)';
+                titleEl.textContent = (currentLang === 'ar') ? 'تعادل تكتيكي متكافئ' : 'Tactical Draw';
                 titleEl.style.color = 'var(--amber-gold)';
-                descEl.textContent = 'انتهى الوقت المخصص والحسم التكتيكي دون أن يتمكن أي طرف من كسر دفاعات الآخر. (+30 🪙)';
+                descEl.textContent = (currentLang === 'ar')
+                    ? `انتهى الوقت المخصص والحسم التكتيكي دون أن يتمكن أي طرف من كسر دفاعات الآخر.${refundMsg}`
+                    : `Match ended in a tactical draw without breaking defenses.${refundMsg}`;
             } else {
                 playerTrophies = Math.max(0, playerTrophies - 15);
                 savePlayerState();
                 iconEl.textContent = '💥';
-                titleEl.textContent = 'تدمير المقر الرئيسي (DEFEAT)';
+                titleEl.textContent = (currentLang === 'ar') ? 'تدمير المقر الرئيسي' : 'Defeat';
                 titleEl.style.color = 'var(--crimson-glow)';
-                descEl.textContent = 'تمكنت قوات الخصم من خرق دفاعاتك وتدمير برج القيادة المركزي (-15 🏆).. أعد ترتيب تشكيلتك وحاول مجدداً!';
+                const wagerLossNotice = (currentMatchWagerTier && currentMatchWagerTier.fee > 0)
+                    ? ((currentLang === 'ar') ? ` خسرت رهان الجولة (${currentMatchWagerTier.fee.toLocaleString('en-US')} 🪙).` : ` You lost the round wager (${currentMatchWagerTier.fee.toLocaleString('en-US')} 🪙).`)
+                    : '';
+                descEl.textContent = (currentLang === 'ar')
+                    ? `تمكنت قوات الخصم من خرق دفاعاتك وتدمير برج القيادة المركزي (-15 🏆).${wagerLossNotice} أعد ترتيب تشكيلتك وحاول مجدداً!`
+                    : `Enemy forces breached your defenses and destroyed the command tower (-15 🏆).${wagerLossNotice} Rebuild your deck and try again!`;
             }
 
             const p1Alive = [snapshot.p1.towers.left, snapshot.p1.towers.main, snapshot.p1.towers.right].filter(t => t.hp > 0).length;
@@ -12585,20 +14385,31 @@
                 if (typeof updateCyberPassBanner === 'function') updateCyberPassBanner();
             }
 
+            const aliveLabel = (currentLang === 'ar') ? 'أبراجك الصامدة' : 'Your Towers';
+            const enemyLabel = (currentLang === 'ar') ? 'أبراج الخصم' : 'Enemy Towers';
+            const crownsLabel = (currentLang === 'ar') ? 'تيجان الموسم 👑' : 'Season Crowns 👑';
+
             statsEl.innerHTML = `
                 <div style="display: flex; flex-direction: column; align-items: center;">
-                    <span style="color: #94A3B8; font-size: 11px;">أبراجك الصامدة</span>
+                    <span style="color: #94A3B8; font-size: 11px;">${aliveLabel}</span>
                     <strong style="color: var(--cyan-glow); font-size: 18px;">${p1Alive} / 3</strong>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: center;">
-                    <span style="color: #94A3B8; font-size: 11px;">أبراج الخصم</span>
+                    <span style="color: #94A3B8; font-size: 11px;">${enemyLabel}</span>
                     <strong style="color: var(--crimson-glow); font-size: 18px;">${p1Crowns} / 3</strong>
                 </div>
                 <div style="display: flex; flex-direction: column; align-items: center;">
-                    <span style="color: #94A3B8; font-size: 11px;">تيجان الموسم 👑</span>
+                    <span style="color: #94A3B8; font-size: 11px;">${crownsLabel}</span>
                     <strong style="color: #FFB703; font-size: 18px;">+${p1Crowns}</strong>
                 </div>
             `;
+
+            const btnReturnMenu = document.getElementById('btn-return-menu');
+            if (btnReturnMenu) {
+                btnReturnMenu.innerHTML = (currentLang === 'ar') 
+                    ? '<span>العودة للقائمة الرئيسية</span>' 
+                    : '<span>Return to Main Menu</span>';
+            }
 
             // Record match into Battle History Log
             try {
@@ -12608,9 +14419,9 @@
                     result: isWin ? 'win' : (isDraw ? 'draw' : 'loss'),
                     crownsP1: p1Crowns,
                     crownsP2: p2Crowns,
-                    opponentName: isGrandChallengeMatch ? 'البطولة الكبرى (Level 5 Cap)' : (isMultiplayerMatch ? 'قائد منافس (Online)' : 'الذكاء الاصطناعي (AI Bot)'),
+                    opponentName: isGrandChallengeMatch ? (currentLang === 'ar' ? 'البطولة الكبرى' : 'Grand Challenge') : (isMultiplayerMatch ? (currentLang === 'ar' ? 'قائد منافس (Online)' : 'Online Opponent') : (currentLang === 'ar' ? 'الذكاء الاصطناعي (AI Bot)' : 'Tactical AI Bot')),
                     trophiesDelta: isGrandChallengeMatch ? 0 : (isWin ? 30 : (isDraw ? 0 : -15)),
-                    goldEarned: isGrandChallengeMatch ? 0 : (isWin ? 100 : (isDraw ? 30 : 0))
+                    goldEarned: isGrandChallengeMatch ? 0 : (isWin ? (currentMatchWagerTier ? currentMatchWagerTier.prize : 100) : (isDraw ? (currentMatchWagerTier ? currentMatchWagerTier.fee : 30) : 0))
                 });
             } catch (err) {
                 console.warn('Could not record match to battle log:', err);

@@ -1,5 +1,5 @@
 /**
- * Hyper-Lane Tactics Online - Master Production Backend Server
+ * CyberClash Online - Master Production Backend Server
  * Real-Time WebSockets Multiplayer + REST Cloud Saves + Render.com Ready
  */
 
@@ -168,6 +168,10 @@ function handleClientMessage(ws, data) {
                 playerId: data.playerId || 'guest_' + Math.floor(Math.random() * 10000),
                 playerName: data.playerName || 'COMMANDER',
                 trophies: data.trophies || 2840,
+                level: Math.min(10, Math.max(1, parseInt(data.level, 10) || 1)),
+                cardLevels: (typeof data.cardLevels === 'object' && data.cardLevels) ? data.cardLevels : {},
+                isTripleElixir: Boolean(data.isTripleElixir),
+                wagerTier: data.wagerTier || 'training',
                 deck: Array.isArray(data.deck) && data.deck.length === 8 ? data.deck : null,
                 joinedAt: Date.now()
             };
@@ -184,7 +188,7 @@ function handleClientMessage(ws, data) {
                     queuePosition: matchmakingQueue.length
                 }));
 
-                // Fallback timer: if no opponent found in 6 seconds, allow client to fight bot
+                // Fallback timer: if no opponent found in 12 seconds, allow client to fight bot
                 setTimeout(() => {
                     const idx = matchmakingQueue.indexOf(entry);
                     if (idx !== -1) {
@@ -196,7 +200,7 @@ function handleClientMessage(ws, data) {
                             }));
                         }
                     }
-                }, 6000);
+                }, 12000);
             }
             break;
         }
@@ -258,6 +262,11 @@ function createMultiplayerMatch(player1, player2) {
         isLocal: false,
         p1Deck: player1.deck,
         p2Deck: player2.deck,
+        p1Level: player1.level || 1,
+        p2Level: player2.level || 1,
+        p1CardLevels: player1.cardLevels || {},
+        p2CardLevels: player2.cardLevels || {},
+        isTripleElixir: player1.isTripleElixir || player2.isTripleElixir,
         onEvent: (evt) => {
             broadcastToRoom(roomId, { type: 'battle_event', event: evt });
         }
@@ -305,11 +314,13 @@ function createMultiplayerMatch(player1, player2) {
     });
 
     // Notify both players of match found
+    const activeWager = player1.wagerTier || player2.wagerTier || 'training';
     if (player1.ws.readyState === WebSocket.OPEN) {
         player1.ws.send(JSON.stringify({
             type: 'match_start',
             roomId,
             role: 1,
+            wagerTier: activeWager,
             opponentName: player2.playerName,
             opponentTrophies: player2.trophies,
             opponent: { name: player2.playerName, trophies: player2.trophies }
@@ -321,6 +332,7 @@ function createMultiplayerMatch(player1, player2) {
             type: 'match_start',
             roomId,
             role: 2,
+            wagerTier: activeWager,
             opponentName: player1.playerName,
             opponentTrophies: player1.trophies,
             opponent: { name: player1.playerName, trophies: player1.trophies }
@@ -332,7 +344,7 @@ function createP2Snapshot(s) {
     // Invert Y-coordinates and towers so P2 plays from the bottom looking up
     const inverted = JSON.parse(JSON.stringify(s));
 
-    inverted.units = inverted.units.map(u => ({
+    inverted.units = (inverted.units || []).map(u => ({
         ...u,
         x: 1080 - u.x,
         y: 1920 - u.y,
@@ -340,16 +352,93 @@ function createP2Snapshot(s) {
         owner: u.owner === 1 ? 2 : 1 // Swap owner perspective
     }));
 
-    inverted.projectiles = inverted.projectiles.map(p => ({
+    inverted.projectiles = (inverted.projectiles || []).map(p => ({
         ...p,
         x: 1080 - p.x,
         y: 1920 - p.y
     }));
 
-    // Swap P1 and P2 tower status in snapshot for P2
-    const tempP1 = inverted.p1;
-    inverted.p1 = inverted.p2;
-    inverted.p2 = tempP1;
+    // Invert Relay Core perspective
+    if (inverted.relayCore) {
+        inverted.relayCore.owner = inverted.relayCore.owner === 1 ? 2 : (inverted.relayCore.owner === 2 ? 1 : 0);
+    }
+
+    // Build P2's friendly towers (which were P2 towers at top y: 450/330, mirrored to bottom y: 1160/1280)
+    const p2FriendlyTowers = {
+        left: {
+            x: 230,
+            y: 1160,
+            hp: s.p2.towers.right.hp,
+            maxHp: s.p2.towers.right.maxHp,
+            alive: s.p2.towers.right.alive,
+            isFrozen: s.p2.towers.right.isFrozen
+        },
+        main: {
+            x: 540,
+            y: 1280,
+            hp: s.p2.towers.main.hp,
+            maxHp: s.p2.towers.main.maxHp,
+            alive: s.p2.towers.main.alive,
+            isFrozen: s.p2.towers.main.isFrozen
+        },
+        right: {
+            x: 850,
+            y: 1160,
+            hp: s.p2.towers.left.hp,
+            maxHp: s.p2.towers.left.maxHp,
+            alive: s.p2.towers.left.alive,
+            isFrozen: s.p2.towers.left.isFrozen
+        }
+    };
+
+    // Build P2's enemy towers (which were P1 towers at bottom y: 1160/1280, mirrored to top y: 450/330)
+    const p2EnemyTowers = {
+        left: {
+            x: 230,
+            y: 450,
+            hp: s.p1.towers.right.hp,
+            maxHp: s.p1.towers.right.maxHp,
+            alive: s.p1.towers.right.alive,
+            isFrozen: s.p1.towers.right.isFrozen
+        },
+        main: {
+            x: 540,
+            y: 330,
+            hp: s.p1.towers.main.hp,
+            maxHp: s.p1.towers.main.maxHp,
+            alive: s.p1.towers.main.alive,
+            isFrozen: s.p1.towers.main.isFrozen
+        },
+        right: {
+            x: 850,
+            y: 450,
+            hp: s.p1.towers.left.hp,
+            maxHp: s.p1.towers.left.maxHp,
+            alive: s.p1.towers.left.alive,
+            isFrozen: s.p1.towers.left.isFrozen
+        }
+    };
+
+    // Set P1 (friendly perspective for P2 client)
+    inverted.p1 = {
+        energy: s.p2.energy,
+        maxEnergy: s.p2.maxEnergy,
+        energyDebt: s.p2.energyDebt || 0,
+        isRedline: !!s.p2.isRedline,
+        hand: s.p2.hand ? [...s.p2.hand] : (s.p1.hand ? [...s.p1.hand] : []),
+        nextCard: s.p2.nextCard || null,
+        cannonCooldown: s.p2.cannonCooldown || 0,
+        towers: p2FriendlyTowers
+    };
+
+    // Set P2 (enemy perspective for P2 client)
+    inverted.p2 = {
+        energy: s.p1.energy,
+        maxEnergy: s.p1.maxEnergy,
+        isRedline: !!s.p1.isRedline,
+        cannonCooldown: s.p1.cannonCooldown || 0,
+        towers: p2EnemyTowers
+    };
 
     return inverted;
 }
@@ -392,7 +481,7 @@ setInterval(() => {
 // Start Server
 server.listen(PORT, () => {
     console.log(`====================================================`);
-    console.log(` Hyper-Lane Tactics Online Server Active!`);
+    console.log(` CyberClash Online Server Active!`);
     console.log(` Local HTTP Server: http://localhost:${PORT}`);
     console.log(` WebSocket Service: ws://localhost:${PORT}/ws`);
     console.log(` Deployment Ready:  Render.com (Port ${PORT})`);

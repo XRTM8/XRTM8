@@ -1,7 +1,7 @@
 {
-  "name": "hyper-lane-tactics-online",
-  "version": "1.0.0",
-  "description": "Hyper-Lane Tactics Online - Real-time Cyber Arena with WebSockets & Render Deployment",
+  "name": "cyberclash",
+  "version": "1.1.0",
+  "description": "CyberClash - Real-time Tactical Cyber Arena with WebSockets & Render Deployment",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: hyper-lane-tactics-online
+    name: cyberclash
     env: node
     plan: free
     buildCommand: npm install
