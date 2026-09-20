@@ -154,6 +154,52 @@ class TacticalRenderer {
                 });
                 const relayText = (window.i18n && window.i18n.currentLang === 'ar') ? 'شحن فائق للنواة!' : 'RELAY OVERCHARGE!';
                 this.addFloatingText(540, 800, relayText, evt.owner === 1 ? '#00F2FE' : '#FF2A54', true);
+            } else if (evt.type === 'tower_enrage') {
+                // Guardian Wrath: the main citadel roars to life
+                const c = evt.owner === 1 ? '#FF4500' : '#FF2A54';
+                this.createSparks(evt.x, evt.y, 55, c);
+                this.createSparks(evt.x, evt.y, 30, '#FFB703');
+                this.empRings.push({
+                    x: evt.x, y: evt.y,
+                    radius: 25, maxRadius: 240,
+                    color: c,
+                    life: 0.7, maxLife: 0.7
+                });
+                const rageText = (window.i18n && window.i18n.currentLang === 'ar') ? '🔥 غضب الوصي!' : '🔥 GUARDIAN WRATH!';
+                this.addFloatingText(evt.x, evt.y - 50, rageText, c, true);
+                this.screenShake = Math.max(this.screenShake, 14);
+                try { if (window.audio && window.audio.playExplosion) window.audio.playExplosion(); } catch (_) {}
+            } else if (evt.type === 'sky_zap_pulse') {
+                // Anti-air cloud strike
+                const zapRadius = evt.radius || 340;
+                this.empRings.push({
+                    x: evt.x, y: evt.y,
+                    radius: 20, maxRadius: zapRadius,
+                    color: '#38BDF8',
+                    life: 0.65, maxLife: 0.65
+                });
+                this.empRings.push({
+                    x: evt.x, y: evt.y,
+                    radius: 12, maxRadius: zapRadius * 0.6,
+                    color: '#E0F2FE',
+                    life: 0.5, maxLife: 0.5
+                });
+                this.createSparks(evt.x, evt.y, 40, '#7DD3FC');
+                this.createSparks(evt.x, evt.y, 20, '#FFFFFF');
+                const zapText = (window.i18n && window.i18n.currentLang === 'ar') ? '⚡ صاعقة سحابية!' : '⚡ SKY ZAP!';
+                this.addFloatingText(evt.x, evt.y - 40, zapText, '#7DD3FC', true);
+                this.screenShake = Math.max(this.screenShake, 10);
+            } else if (evt.type === 'energy_generated') {
+                // Quantum Reactor pulse
+                this.empRings.push({
+                    x: evt.x, y: evt.y,
+                    radius: 10, maxRadius: 90,
+                    color: '#10B981',
+                    life: 0.5, maxLife: 0.5
+                });
+                this.createSparks(evt.x, evt.y, 18, '#34D399');
+                const genText = (window.i18n && window.i18n.currentLang === 'ar') ? `⚡ +${evt.amount} طاقة!` : `⚡ +${evt.amount} ENERGY!`;
+                this.addFloatingText(evt.x, evt.y - 34, genText, '#34D399', true);
             } else if (evt.type === 'damage_dealt') {
                 const color = evt.isShield ? '#00F2FE' : (evt.isTower ? '#FFB703' : '#FF2A54');
                 const text = evt.isShield ? `SHIELD -${evt.amount}` : `-${evt.amount}`;
@@ -344,6 +390,32 @@ class TacticalRenderer {
                     this.addFloatingText(evt.target2X, evt.target2Y - 25, '⚡ MICRO-STUN', '#00F2FE', false);
                 }
                 this.screenShake = Math.max(this.screenShake, 4);
+            } else if (evt.type === 'thermal_storm') {
+                // Thermal Storm cell over the air corridor (warning telegraph / eruption / end)
+                const stormRadius = evt.radius || 105;
+                const isAr = window.i18n && window.i18n.currentLang === 'ar';
+                if (evt.phase === 'warning') {
+                    this.empRings.push({
+                        x: evt.x, y: evt.y,
+                        radius: 15, maxRadius: stormRadius * 1.25,
+                        color: '#FF8A3C',
+                        life: 0.8, maxLife: 0.8
+                    });
+                    const warnText = isAr ? '🌪️ عاصفة حرارية قادمة!' : '🌪️ THERMAL STORM INBOUND!';
+                    this.addFloatingText(evt.x, evt.y - 55, warnText, '#FFB703', true);
+                } else if (evt.phase === 'active') {
+                    this.empRings.push({
+                        x: evt.x, y: evt.y,
+                        radius: 10, maxRadius: stormRadius * 1.5,
+                        color: '#FF5722',
+                        life: 0.7, maxLife: 0.7
+                    });
+                    this.createSparks(evt.x, evt.y, 40, '#FFB703');
+                    this.createSparks(evt.x, evt.y, 25, '#FF5722');
+                    const fireText = isAr ? '🔥 انفجار حراري!' : '🔥 THERMAL ERUPTION!';
+                    this.addFloatingText(evt.x, evt.y - 50, fireText, '#FF5722', true);
+                    this.screenShake = Math.max(this.screenShake, 12);
+                }
             } else if (evt.type === 'arena_hazard') {
                 this.activeHazardAlert = {
                     hazardType: evt.hazardType,
@@ -441,6 +513,9 @@ class TacticalRenderer {
             // 4. Draw Central Relay Core
             const relayState = this.currentSnapshot ? this.currentSnapshot.relayCore : null;
             this.drawRelayCore(ctx, relayState, nowMs);
+
+            // 4.5. Draw Thermal Storm heat cells over the air corridor
+            this.drawThermalStorms(ctx, nowMs);
 
             // 5. Draw Cyber Fortresses (Towers)
             if (this.currentSnapshot) {
@@ -620,19 +695,58 @@ class TacticalRenderer {
         // Draw bridge approaches only (spanning Y: 740 to 900)
         for (const b of bridges) {
             const isHovered = this.dragState.active && this.dragState.hoveredLane === b.id;
-            const laneColor = b.isHyper ? 'rgba(255, 183, 3, 0.12)' : 'rgba(0, 242, 254, 0.08)';
-            const borderColor = b.isHyper ? '#FFB703' : '#00F2FE';
+
+            if (b.isHyper) {
+                // AIR HYPER-LANE: glowing flight corridor (no ground bridge here!)
+                const laneColor = isHovered ? 'rgba(56, 189, 248, 0.22)' : 'rgba(56, 189, 248, 0.07)';
+                ctx.fillStyle = laneColor;
+                ctx.fillRect(b.x - b.w / 2, 740, b.w, 160);
+
+                ctx.strokeStyle = isHovered ? '#38BDF8' : 'rgba(56, 189, 248, 0.4)';
+                ctx.lineWidth = isHovered ? 2.5 : 1.5;
+                ctx.setLineDash([12, 8]);
+                ctx.strokeRect(b.x - b.w / 2, 740, b.w, 160);
+                ctx.setLineDash([]);
+
+                // Animated up/down airflow chevrons
+                const airPhase = (nowMs * 0.05) % 40;
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
+                ctx.lineWidth = 2;
+                for (let ay = 750 + airPhase; ay < 900; ay += 40) {
+                    ctx.beginPath();
+                    ctx.moveTo(b.x - 16, ay + 8);
+                    ctx.lineTo(b.x, ay);
+                    ctx.lineTo(b.x + 16, ay + 8);
+                    ctx.stroke();
+                }
+
+                // Air lane plate
+                ctx.fillStyle = 'rgba(6, 8, 14, 0.85)';
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.7)';
+                ctx.lineWidth = 1.5;
+                if (ctx.roundRect) ctx.roundRect(b.x - 58, 706, 116, 24, 6); else ctx.rect(b.x - 58, 706, 116, 24);
+                ctx.fill();
+                ctx.stroke();
+                ctx.font = 'bold 13px "Rajdhani", sans-serif';
+                ctx.fillStyle = '#7DD3FC';
+                ctx.textAlign = 'center';
+                ctx.fillText('✈️ ممر جوي (طيران فقط)', b.x, 723);
+                continue;
+            }
+
+            const laneColor = 'rgba(0, 242, 254, 0.08)';
+            const borderColor = '#00F2FE';
 
             // Bridge tactical approach pads (only near the chasm, not full screen!)
-            ctx.fillStyle = isHovered ? (b.isHyper ? 'rgba(255, 183, 3, 0.25)' : 'rgba(0, 242, 254, 0.2)') : laneColor;
+            ctx.fillStyle = isHovered ? 'rgba(0, 242, 254, 0.2)' : laneColor;
             ctx.fillRect(b.x - b.w / 2, 740, b.w, 160);
 
-            ctx.strokeStyle = isHovered ? borderColor : (b.isHyper ? 'rgba(255, 183, 3, 0.4)' : 'rgba(0, 242, 254, 0.25)');
+            ctx.strokeStyle = isHovered ? borderColor : 'rgba(0, 242, 254, 0.25)';
             ctx.lineWidth = isHovered ? 2.5 : 1.5;
             ctx.strokeRect(b.x - b.w / 2, 740, b.w, 160);
 
             // Directional chevron arrows at bridge entry
-            ctx.strokeStyle = b.isHyper ? 'rgba(255, 183, 3, 0.6)' : 'rgba(0, 242, 254, 0.4)';
+            ctx.strokeStyle = 'rgba(0, 242, 254, 0.4)';
             ctx.lineWidth = 2;
             const arrowY = 875;
             ctx.beginPath();
@@ -652,6 +766,53 @@ class TacticalRenderer {
         for (let idx = 0; idx < bridges.length; idx++) {
             const bx = bridges[idx];
             const isCenter = idx === 1;
+
+            // --- CENTER: AIR CORRIDOR (no ground bridge - only the flight tube spans the chasm) ---
+            if (isCenter) {
+                // Dark void gap where the old bridge was removed
+                ctx.fillStyle = 'rgba(3, 6, 12, 0.85)';
+                ctx.fillRect(bx - bw / 2 - 6, chasmY - bh / 2 - 4, bw + 12, bh + 8);
+
+                // Dashed cyan corridor edge rails (energy walls of the flight tube)
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.8)';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([16, 10]);
+                ctx.beginPath();
+                ctx.moveTo(bx - bw / 2, chasmY - bh / 2);
+                ctx.lineTo(bx + bw / 2, chasmY - bh / 2);
+                ctx.moveTo(bx - bw / 2, chasmY + bh / 2);
+                ctx.lineTo(bx + bw / 2, chasmY + bh / 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Animated upward airflow chevrons inside the tube
+                const airOffset = (nowMs * 0.06) % 42;
+                ctx.strokeStyle = 'rgba(125, 211, 252, 0.75)';
+                ctx.lineWidth = 2.2;
+                for (let ay = chasmY - bh / 2 + airOffset; ay < chasmY + bh / 2; ay += 42) {
+                    ctx.beginPath();
+                    ctx.moveTo(bx - 16, ay - 7);
+                    ctx.lineTo(bx, ay);
+                    ctx.lineTo(bx + 16, ay - 7);
+                    ctx.stroke();
+                }
+
+                // Suspended pylons at both banks
+                for (const px of [bx - bw / 2, bx + bw / 2]) {
+                    ctx.fillStyle = '#1E293B';
+                    ctx.strokeStyle = '#38BDF8';
+                    ctx.lineWidth = 1.5;
+                    if (ctx.roundRect) ctx.roundRect(px - 7, chasmY - bh / 2 - 7, 14, 14, 3); else ctx.rect(px - 7, chasmY - bh / 2 - 7, 14, 14);
+                    ctx.fill();
+                    ctx.stroke();
+                    const ledPulse = 0.5 + Math.sin(nowMs * 0.008 + bx) * 0.5;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${ledPulse})`;
+                    ctx.beginPath();
+                    ctx.arc(px, chasmY - bh / 2, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                continue;
+            }
 
             // 1. Reinforced Heavy Substructure & Shadow
             ctx.fillStyle = '#04070D';
@@ -860,7 +1021,7 @@ class TacticalRenderer {
             ctx.fillText(isAr ? `⚡ شحن النواة: ${relayState.cooldown} ث` : `OVERCHARGE: ${relayState.cooldown}s`, cx, cy + 90);
         } else {
             ctx.fillStyle = '#FFB703';
-            ctx.fillText(isAr ? '⚡ نواة الطاقة المركزية (نشطة)' : 'RELAY CORE ONLINE', cx, cy + 90);
+            ctx.fillText(isAr ? '⚡ نواة الطاقة (للوحدات الجوية فقط)' : 'RELAY CORE (AERIAL ONLY)', cx, cy + 90);
         }
     }
 
@@ -912,6 +1073,27 @@ class TacticalRenderer {
                 this.drawMainCitadel(ctx, tower, isP1, primaryColor, targetAngle, hasTarget, nowMs);
             } else {
                 this.drawSentryTower(ctx, tower, isP1, primaryColor, targetAngle, hasTarget, nowMs);
+            }
+
+            // Guardian Wrath aura (main citadel below 40% HP)
+            if (tower.isEnraged) {
+                const eRadius = (t.isMain ? 92 : 64) * (1 + Math.sin(nowMs * 0.012) * 0.12);
+                const eGrad = ctx.createRadialGradient(0, 0, 12, 0, 0, eRadius);
+                eGrad.addColorStop(0, 'rgba(255, 90, 20, 0.55)');
+                eGrad.addColorStop(0.6, 'rgba(255, 40, 0, 0.25)');
+                eGrad.addColorStop(1, 'rgba(255, 0, 0, 0)');
+                ctx.fillStyle = eGrad;
+                ctx.beginPath();
+                ctx.arc(0, 0, eRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.strokeStyle = '#FF4500';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, (t.isMain ? 74 : 54) * (1 + Math.sin(nowMs * 0.02) * 0.06), 0, Math.PI * 2);
+                ctx.stroke();
+
+                this.drawElectricArcs(ctx, t.isMain ? 66 : 48, '#FF4500', nowMs);
             }
 
             // Frozen Ice Dome Overlay (Cryo Freeze Pulse)
@@ -1435,23 +1617,26 @@ class TacticalRenderer {
             const isP1 = unit.owner === 1;
             const teamColor = isP1 ? '#00F2FE' : '#FF2A54';
 
-            // Adrenaline Ghost Motion Trails
-            if (unit.adrenalineTimer > 0) {
+            // Aerial hover: gentle vertical bob (flying units are above the ground plane)
+            const airBob = unit.isAerial ? (Math.sin(nowMs * 0.005 + (unit.id || 0) * 1.7) * 3.5 - 4) : 0;
+
+            // Adrenaline Ghost Motion Trails (adrenalineTimer locally, hasAdrenaline from online snapshots)
+            if ((unit.adrenalineTimer || 0) > 0 || unit.hasAdrenaline) {
                 ctx.save();
                 ctx.globalAlpha = 0.28;
-                ctx.translate(renderX - Math.cos(unitAngle) * 16, renderY - Math.sin(unitAngle) * 16);
+                ctx.translate(renderX - Math.cos(unitAngle) * 16, renderY + airBob - Math.sin(unitAngle) * 16);
                 ctx.rotate(unitAngle + Math.PI / 2);
                 this.renderUnitSprite(ctx, unit, '#FFB703', nowMs);
                 ctx.restore();
             }
 
             ctx.save();
-            ctx.translate(renderX, renderY);
+            ctx.translate(renderX, renderY + airBob);
 
-            // Ground shadow
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            // Ground shadow (aerial units cast a smaller, lower, fainter shadow)
+            ctx.fillStyle = unit.isAerial ? 'rgba(0, 0, 0, 0.22)' : 'rgba(0, 0, 0, 0.4)';
             ctx.beginPath();
-            ctx.ellipse(0, 18, 22, 8, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, unit.isAerial ? 42 : 18, unit.isAerial ? 16 : 22, unit.isAerial ? 6 : 8, 0, 0, Math.PI * 2);
             ctx.fill();
 
             // Stun effect
@@ -1490,6 +1675,25 @@ class TacticalRenderer {
                 }
             }
 
+            // Slowed / burning status ring (plasma burn & cryo post-thaw slow)
+            if (unit.isSlowed || unit.isBurning) {
+                ctx.strokeStyle = unit.isBurning ? 'rgba(255, 120, 0, 0.85)' : 'rgba(245, 158, 11, 0.75)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.arc(0, 0, 28, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                if (unit.isBurning) {
+                    // Small flickering flame glyph above the unit
+                    const flick = 0.6 + Math.sin(nowMs * 0.02 + (unit.id || 0)) * 0.4;
+                    ctx.fillStyle = `rgba(255, 160, 30, ${flick})`;
+                    ctx.font = '16px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🔥', 14, -30);
+                }
+            }
+
             // Shield bubble
             if (unit.shieldHp > 0) {
                 ctx.strokeStyle = 'rgba(0, 242, 254, 0.85)';
@@ -1502,8 +1706,8 @@ class TacticalRenderer {
             }
 
             // Deployable structure remaining decay ring (Sentry Bunker)
-            if (unit.isBuilding && unit.decayTimer !== undefined) {
-                const decayPct = Math.max(0, unit.decayTimer / 35);
+            if (unit.isBuilding && unit.decayTimer !== undefined && unit.decayTimer > 0) {
+                const decayPct = Math.max(0, unit.decayTimer / (unit.decayTotal || 35));
                 ctx.strokeStyle = 'rgba(255, 183, 3, 0.85)';
                 ctx.lineWidth = 2.5;
                 ctx.beginPath();
@@ -1616,7 +1820,7 @@ class TacticalRenderer {
         if (!this.currentSnapshot || !this.currentSnapshot.isOvertime) return;
 
         const bx = 540;
-        const by = 215; // Directly in the sky above enemy base (y = 330) and below top HUD
+        const by = 215; // Directly in the sky above enemy base (y = 295) and below top HUD
         const bw = 500;
         const bh = 64;
 
@@ -1707,6 +1911,52 @@ class TacticalRenderer {
         ctx.fillText(sub, 0, 19);
 
         ctx.restore();
+    }
+
+    drawThermalStorms(ctx, nowMs) {
+        const storms = (this.currentSnapshot && this.currentSnapshot.thermalStorms) || [];
+        if (storms.length === 0) return;
+        const t = nowMs / 1000;
+        for (const s of storms) {
+            if (s.active) {
+                // Erupting fire cell: glowing core, dashed heat boundary, rising embers
+                const pulse = 1 + Math.sin(t * 9 + s.id) * 0.06;
+                const r = s.radius * pulse;
+                const grad = ctx.createRadialGradient(s.x, s.y, 10, s.x, s.y, r);
+                grad.addColorStop(0, 'rgba(255, 190, 80, 0.34)');
+                grad.addColorStop(0.65, 'rgba(255, 90, 30, 0.20)');
+                grad.addColorStop(1, 'rgba(255, 60, 20, 0.0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = 'rgba(255, 140, 50, 0.85)';
+                ctx.lineWidth = 3;
+                ctx.setLineDash([14, 10]);
+                ctx.lineDashOffset = -t * 60;
+                ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.stroke();
+                ctx.setLineDash([]);
+                if (Math.random() < 0.5) {
+                    this.createSparks(s.x + (Math.random() - 0.5) * r * 1.4, s.y + (Math.random() - 0.5) * r * 1.4, 1, Math.random() < 0.5 ? '#FFB703' : '#FF5722');
+                }
+            } else {
+                // Warning telegraph: pulsing dashed ring that grows as the cell ignites
+                const progress = 1 - (s.warnTicks / 60);
+                const r = s.radius * (0.55 + progress * 0.45);
+                const blink = (Math.sin(t * 10) + 1) / 2;
+                ctx.strokeStyle = `rgba(255, 150, 60, ${0.35 + blink * 0.45})`;
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([10, 12]);
+                ctx.lineDashOffset = -t * 90;
+                ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = `rgba(255, 150, 60, ${0.10 + blink * 0.10})`;
+                ctx.beginPath(); ctx.arc(s.x, s.y, r, 0, Math.PI * 2); ctx.fill();
+                if (Math.floor(t * 4) % 2 === 0) {
+                    ctx.font = '34px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🌪️', s.x, s.y + 12);
+                }
+            }
+        }
     }
 
     drawHazardSkyBanner(ctx, dt, nowMs) {
@@ -2602,6 +2852,85 @@ class TacticalRenderer {
                 ctx.arc(6, -r - 45, 2.5, 0, Math.PI * 2);
                 ctx.fill();
             }
+        } else if (unit.cardId === 'quantum_reactor') {
+            // QUANTUM REACTOR: Mobile energy generation building
+            const r = 28;
+            const corePulse = 1 + Math.sin(nowMs * 0.008) * 0.18;
+            const chargePhase = (nowMs % 3500) / 3500; // visual 7s cycle charge-up
+
+            // 1. Reinforced Octagonal Containment Base
+            ctx.fillStyle = '#0B1220';
+            ctx.strokeStyle = '#10B981';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let i = 0; i < 8; i++) {
+                const a = (i * Math.PI * 2) / 8 + Math.PI / 8;
+                const px = Math.cos(a) * r;
+                const py = Math.sin(a) * r;
+                if (i === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            // 2. Rotating Containment Field Ring
+            const ringSpin = (nowMs * 0.004) % (Math.PI * 2);
+            ctx.save();
+            ctx.rotate(ringSpin);
+            ctx.strokeStyle = 'rgba(52, 211, 153, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 8]);
+            ctx.beginPath();
+            ctx.arc(0, 0, r - 7, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+
+            // 3. 4 Stabilizer Coil Nodes with charge progress
+            for (let i = 0; i < 4; i++) {
+                const a = (i * Math.PI / 2) + Math.PI / 4;
+                const nx = Math.cos(a) * (r - 4);
+                const ny = Math.sin(a) * (r - 4);
+                const nodeCharge = Math.max(0, Math.min(1, chargePhase * 4 - i));
+                ctx.fillStyle = '#1E293B';
+                ctx.strokeStyle = '#34D399';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.arc(nx, ny, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = nodeCharge >= 1 ? '#FFFFFF' : `rgba(52, 211, 153, ${0.3 + nodeCharge * 0.7})`;
+                ctx.beginPath();
+                ctx.arc(nx, ny, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+                // Conduit to core
+                ctx.strokeStyle = 'rgba(52, 211, 153, 0.35)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(nx, ny);
+                ctx.lineTo(0, 0);
+                ctx.stroke();
+            }
+
+            // 4. Central Quantum Core (pulsing)
+            const coreRad = 11 * corePulse;
+            const qGrad = ctx.createRadialGradient(0, 0, 1, 0, 0, coreRad);
+            qGrad.addColorStop(0, '#FFFFFF');
+            qGrad.addColorStop(0.45, '#34D399');
+            qGrad.addColorStop(1, 'rgba(16, 185, 129, 0)');
+            ctx.fillStyle = qGrad;
+            ctx.beginPath();
+            ctx.arc(0, 0, coreRad, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 5. Rising energy light column
+            const columnH = 18 + Math.sin(nowMs * 0.006) * 6;
+            const colGrad = ctx.createLinearGradient(0, 0, 0, -columnH);
+            colGrad.addColorStop(0, 'rgba(52, 211, 153, 0.75)');
+            colGrad.addColorStop(1, 'rgba(52, 211, 153, 0)');
+            ctx.fillStyle = colGrad;
+            ctx.fillRect(-3, -columnH, 6, columnH);
         } else {
             // SWARM DROIDS: Fast cyber mantis / scarabs with scythe claws
             const legWalk = Math.sin(nowMs * 0.03 + (unit.id || 0)) * 4;
@@ -2874,6 +3203,9 @@ class TacticalRenderer {
                     } else if (cardData.id === 'cryo_freeze') {
                         ringColor = '#38BDF8';
                         spellTitle = isAr ? '❄️ التجميد المطلق' : '❄️ CRYO FREEZE';
+                    } else if (cardData.id === 'sky_zap') {
+                        ringColor = '#7DD3FC';
+                        spellTitle = isAr ? '⚡ الصاعقة السحابية (جوي فقط)' : '⚡ SKY ZAP (AERIAL ONLY)';
                     } else if (cardData.id === 'orbital_salvo') {
                         ringColor = '#FF2A54';
                         spellTitle = isAr ? '🚀 القصف المداري' : '🚀 ORBITAL BARRAGE';
@@ -3058,9 +3390,52 @@ class TacticalRenderer {
                     ? '🎯 مدفع الهاون: قصف بعيد المدى (650px)'
                     : '🛡️ بنكر دفاعي: تغطية شاملة 360° للمنطقة';
                 ctx.fillText(label, x, y - 48);
+            } else if (cardData && cardData.isAerial) {
+                // AERIAL Unit: straight flight corridor over the chasm straight to the enemy main tower
+                const targetX = 540;
+                const targetY = 295;
+
+                ctx.save();
+                ctx.strokeStyle = 'rgba(125, 211, 252, 0.75)';
+                ctx.lineWidth = 2.5;
+                ctx.setLineDash([14, 10]);
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.lineTo(targetX, targetY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // Destination lock on the enemy main fortress
+                ctx.strokeStyle = '#7DD3FC';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.arc(targetX, targetY, 40 + Math.sin(performance.now() * 0.01) * 5, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.font = '24px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('🛸', targetX, targetY - 48);
+                ctx.restore();
+
+                // Reticle rings
+                ctx.strokeStyle = '#7DD3FC';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(x, y, 38, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = 'rgba(125, 211, 252, 0.25)';
+                ctx.beginPath();
+                ctx.arc(x, y, 28, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.font = 'bold 18px "Rajdhani"';
+                ctx.fillStyle = '#7DD3FC';
+                ctx.textAlign = 'center';
+                ctx.fillText('✈️ إنزال جوي حر ➔ مسار مباشر', x, y - 48);
             } else {
                 // Standard Unit Deployment Reticle with directional trajectory to nearest bridge
-                const nearestBridgeX = x < 385 ? 230 : (x > 695 ? 850 : 540);
+                // (Ground units can only use the two side bridges - mirrors engine reroute)
+                const nearestBridgeX = x < 540 ? 230 : 850;
                 const bridgeY = 820;
 
                 // Tactical trajectory line to bridge
@@ -3095,7 +3470,7 @@ class TacticalRenderer {
                 ctx.font = 'bold 18px "Rajdhani"';
                 ctx.fillStyle = '#00F2FE';
                 ctx.textAlign = 'center';
-                ctx.fillText('إنزال حر ➔ أقرب جسر', x, y - 48);
+                ctx.fillText('إنزال حر ➔ أقرب جسر جانبي', x, y - 48);
             }
         }
         // Mode 2: Card is selected via Tap Mode (waiting for field tap)
@@ -3271,8 +3646,23 @@ class TacticalRenderer {
                 else this.dragState.hoveredLane = 2;
 
                 if (this.dragState.isCatalyst && this.currentSnapshot) {
-                    // Spells are true AoE (340px circle) affecting ALL units - no single-unit snapping
-                    this.dragState.snappedUnitId = null;
+                    const cardData = TacticalGameRoom.CARD_DATABASE[this.dragState.cardId];
+                    // Fusion catalysts (Plasma / Nano / EMP) magnet-snap onto a compatible
+                    // friendly unit for FUSION EVOLUTION. Pure damage/control spells stay free AoE.
+                    if (cardData && Array.isArray(cardData.catalystFor) && cardData.catalystFor.length > 0) {
+                        let best = null;
+                        let bestDist = 95;
+                        for (const u of this.currentSnapshot.units) {
+                            if (!u.alive || u.owner !== 1 || (u.fusionTier || 0) > 0) continue;
+                            const base = TacticalGameRoom.CARD_DATABASE[u.cardId];
+                            if (!base || base.fusionTarget !== this.dragState.cardId) continue;
+                            const d = Math.hypot(u.x - pos.x, u.y - pos.y);
+                            if (d < bestDist) { bestDist = d; best = u; }
+                        }
+                        this.dragState.snappedUnitId = best ? best.id : null;
+                    } else {
+                        this.dragState.snappedUnitId = null;
+                    }
                 }
             } else if (this.selectedCardId) {
                 this.hoverCanvasPos = this.getCanvasCoords(e);
@@ -3293,11 +3683,18 @@ class TacticalRenderer {
                     const cardData = TacticalGameRoom.CARD_DATABASE[this.cardTouchSession.cardId];
                     const isSpell = cardData && cardData.isSpell;
                     const isValidY = isSpell ? (pos.y >= 180 && pos.y <= 1600) : (pos.y >= 840 && pos.y <= 1400);
+                    const snappedId = this.dragState.snappedUnitId;
+                    this.dragState.snappedUnitId = null;
 
-                    // Deployed if released inside valid placement zone: always true AoE deploy for all units
+                    // Released inside a valid placement zone
                     if (isValidY) {
-                        const deployY = isSpell ? pos.y : Math.max(860, Math.min(1380, pos.y));
-                        this.room.deployCard(1, this.cardTouchSession.cardId, pos.x, deployY);
+                        if (snappedId) {
+                            // Dropped a fusion catalyst onto a compatible friendly unit → FUSION EVOLUTION
+                            this.room.attemptFusion(1, this.cardTouchSession.cardId, snappedId);
+                        } else {
+                            const deployY = isSpell ? pos.y : Math.max(860, Math.min(1380, pos.y));
+                            this.room.deployCard(1, this.cardTouchSession.cardId, pos.x, deployY);
+                        }
                         this.clearCardSelection();
                     } else {
                         // Cancelled

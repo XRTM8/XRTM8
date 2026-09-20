@@ -20,7 +20,7 @@
         HEIGHT: 1920,
         LANES: {
             0: { id: 0, name: 'Left Flank', x: 230, width: 220, speedMultiplier: 1.0 },
-            1: { id: 1, name: 'Hyper-Lane', x: 540, width: 240, speedMultiplier: 1.4 },
+            1: { id: 1, name: 'Air Hyper-Lane', x: 540, width: 240, speedMultiplier: 1.4 }, // Ground-locked: aerial units only
             2: { id: 2, name: 'Right Flank', x: 850, width: 220, speedMultiplier: 1.0 }
         },
         RELAY_CORE: { x: 540, y: 820, radius: 60, cooldownDuration: 240 }, // 12 seconds = 240 ticks
@@ -39,6 +39,7 @@
             id: 'scout_drone',
             name: 'Scout Drone',
             role: 'striker',
+            isAerial: true,
             cost: 2,
             hp: 420,
             damage: 115,
@@ -48,7 +49,7 @@
             targetPref: 'first_in_line',
             splashRadius: 0,
             isHeavy: false,
-            description: 'طائرة استطلاع نفاثة فائقة السرعة بليزر مزدوج سريع الإطلاق؛ ممتازة لاصطياد الدبابات البطيئة ومطاردة الأهداف.',
+            description: 'طائرة استطلاع نفاثة جوية فائقة السرعة بليزر مزدوج؛ تعبر الشق مباشرة بخط مستقيم وتسيطر على نواة الطاقة. تتلقى +25% ضرراً من الأبراج.',
             rarity: 'common',
             fusionTarget: 'plasma_mod',
             fusesInto: 'railgun_drone'
@@ -57,6 +58,7 @@
             id: 'cyber_trooper',
             name: 'Cyber Trooper',
             role: 'striker',
+            groundOnly: true, // Carbine & bayonet cannot reach flying units
             cost: 3,
             hp: 950,
             damage: 135,
@@ -75,6 +77,7 @@
             id: 'mech_titan',
             name: 'Mech Titan',
             role: 'vanguard',
+            groundOnly: true, // Heavy armor cannot engage aerial targets
             cost: 5,
             hp: 3200,
             damage: 260,
@@ -93,6 +96,7 @@
             id: 'plasma_caster',
             name: 'Plasma Caster',
             role: 'striker',
+            isAerial: true,
             cost: 4,
             hp: 620,
             damage: 210,
@@ -102,7 +106,7 @@
             targetPref: 'first_in_line',
             splashRadius: 100,
             isHeavy: false,
-            description: 'مدفعية بلازما ثقيلة بعيدة المدى؛ تقصف الأعداء من خلف النهر وتفجر الحشود بكرة بلازمية متوهجة.',
+            description: 'مدفعية بلازما جوية تطفو فوق الشق وتقصف الأعداء من مسافة بعيدة، وتفجر الحشود بكرة بلازمية متوهجة. مستهدَفة من الأبراج (+25%).',
             rarity: 'rare',
             fusionTarget: 'plasma_mod',
             fusesInto: 'super_caster'
@@ -111,6 +115,7 @@
             id: 'swarm_droids',
             name: 'Swarm Droids',
             role: 'disruptor',
+            isAerial: true,
             cost: 3,
             count: 4,
             hp: 190,
@@ -121,7 +126,7 @@
             targetPref: 'first_in_line',
             splashRadius: 0,
             isHeavy: false,
-            description: 'سرب هجومي سريع مكون من 4 درويدات قاطعة؛ تلتف حول العمالقة وتفتك بهم، وتتأثر بالهجمات المتفجرة.',
+            description: 'سرب حشري جوي مكون من 4 درويدات قاطعة؛ يطير فوق الشق مباشرة لتلتف حول العمالقة وتفتك بهم، وتتأثر بالهجمات المتفجرة وبالأبراج (+25%).',
             rarity: 'common',
             fusionTarget: null
         },
@@ -200,6 +205,7 @@
             id: 'mortar_cannon',
             name: 'Mortar Cannon',
             role: 'siege',
+            groundOnly: true, // Lobbed shells target ground units and towers only
             cost: 4,
             hp: 1350,
             damage: 280,
@@ -232,6 +238,7 @@
             id: 'aero_repairer',
             name: 'Aero-Medic Drone',
             role: 'support',
+            isAerial: true,
             cost: 3,
             hp: 520,
             damage: 0,
@@ -244,7 +251,7 @@
             splashRadius: 0,
             isHeavy: false,
             rarity: 'rare',
-            description: 'طائرة دعم لوجستي حليفة طائرة؛ ترسل شعاع ليزر نانوي مستمر لترميم وتطبيب القوات الصديقة في الميدان.',
+            description: 'طائرة دعم جوية تطفو فوق المعركة وترسل شعاع ليزر نانوي لترميم القوات الصديقة في أي موقع من الساحة.',
             fusionTarget: 'nano_repair',
             fusesInto: 'overcharge_drone'
         },
@@ -268,6 +275,38 @@
             rarity: 'epic',
             description: 'مصنع درونات عسكري مستقل؛ يطلق زوجاً من طائرات الدرون الهجومية كل 7 ثوانٍ نحو مسار العدو مع مدة بقاء 30 ثانية.',
             fusionTarget: null
+        },
+        quantum_reactor: {
+            id: 'quantum_reactor',
+            name: 'Quantum Reactor',
+            role: 'economy',
+            cost: 4,
+            hp: 900,
+            damage: 0,
+            attackSpeed: 0,
+            range: 0,
+            speed: 0,
+            isBuilding: true,
+            energyRegen: 1.0, // +1 energy per cycle
+            regenInterval: 7.0, // seconds between cycles
+            decayTimer: 28, // 4 generation cycles, then self-dismantles
+            isHeavy: true,
+            rarity: 'rare',
+            description: 'مفاعل طاقة كوانتي محمول: يولّد +1 طاقة كل 7 ثوانٍ (4 دورات ثم يُفكك ذاتياً)، بجسم صلب 900 HP يعمل كصدّاد يمتص نيران العدو.',
+            fusionTarget: null
+        },
+        sky_zap: {
+            id: 'sky_zap',
+            name: 'Sky Zap',
+            role: 'tactical_spell',
+            cost: 3,
+            isSpell: true,
+            zapDamage: 200,
+            zapStun: 0.8,
+            zapSlow: 2.5,
+            description: 'تعويذة المضاد الجوي (نطاق 340px): صاعقة سحابية تصيب الوحدات الجوية فقط — 200 ضرر فوري مع صعق 0.8 ثانية وإبطاء 40% لمدة 2.5 ثانية. لا تؤثر على الجنود الأرضيين.',
+            rarity: 'rare',
+            catalystFor: []
         },
         cryo_freeze: {
             id: 'cryo_freeze',
@@ -343,6 +382,7 @@
             id: 'shield_vanguard',
             name: 'Shield Vanguard',
             role: 'striker',
+            groundOnly: true, // Inherited from Cyber Trooper: cannot engage aerial targets
             hp: 1600,
             damage: 175,
             attackSpeed: 0.95,
@@ -357,6 +397,7 @@
             id: 'siege_colossus',
             name: 'Siege Colossus',
             role: 'vanguard',
+            groundOnly: true, // Inherited from Mech Titan: cannot engage aerial targets
             hp: 4400,
             damage: 360,
             attackSpeed: 1.6,
@@ -417,6 +458,7 @@
             id: 'hellfire_mortar',
             name: 'Hellfire Mortar',
             role: 'siege',
+            groundOnly: true, // Inherited from Mortar Cannon: ground targets only
             hp: 1850,
             damage: 380,
             attackSpeed: 3.2,
@@ -531,6 +573,18 @@
 
             // Triple Elixir 3X Mode
             this.isTripleElixirMode = Boolean(config.isTripleElixir || false);
+
+            // Daily Champion Card: one rotating card gets +20% stats for the day
+            this.dailyChampionCardId = config.dailyChampionCardId || null;
+
+            // Thermal Storm: recurring heat cells over the Air Hyper-Lane (aerial-only damage)
+            this.thermalStorms = [];
+            this.nextStormId = 1;
+            this.thermalStormCount = 0;
+            this.nextThermalStormTick = 700 + Math.floor(Math.random() * 200); // 35-45s
+
+            // Adaptive Bot intel: observed card plays of the human commander (local matches)
+            this.botIntel = { aerial: 0, heavy: 0, swarm: 0, spell: 0, building: 0, announced: {} };
         }
 
         createPlayerState(playerNum, deckList) {
@@ -573,6 +627,7 @@
                         damage: flankDmg,
                         attackCooldown: 0,
                         freezeTimer: 0,
+                        lastHitTick: -9999,
                         alive: true
                     },
                     main: {
@@ -581,13 +636,15 @@
                         isTower: true,
                         lane: 1,
                         x: ARENA.LANES[1].x,
-                        y: isP1 ? 1280 : 330,
+                        y: isP1 ? 1315 : 295, // Set back behind the flanks: side towers form the first defensive line
                         hp: mainHp,
                         maxHp: mainHp,
-                        range: 310,
+                        range: 335, // Slightly extended reach so the citadel still covers the air lane from its new depth
                         damage: mainDmg,
                         attackCooldown: 0,
                         freezeTimer: 0,
+                        enragedTicks: 0, // Guardian Wrath: +40% dmg & +30% range while low on HP
+                        lastHitTick: -9999,
                         alive: true
                     },
                     right: {
@@ -603,6 +660,7 @@
                         damage: flankDmg,
                         attackCooldown: 0,
                         freezeTimer: 0,
+                        lastHitTick: -9999,
                         alive: true
                     }
                 }
@@ -612,6 +670,13 @@
         start() {
             this.state = 'RUNNING';
             this.currentTick = 0;
+            if (this.dailyChampionCardId) {
+                const ch = CARD_DATABASE[this.dailyChampionCardId];
+                if (ch) {
+                    this.addCombatLog(`⭐ بطاقة اليوم: ${ch.name} (+20% إحصائيات) — استغلها في تشكيلتك!`);
+                    this.emitEvent('daily_champion', { cardId: this.dailyChampionCardId });
+                }
+            }
             if (this.isTripleElixirMode) {
                 this.addCombatLog('⚡ بدأت المعركة بنمط جنون الإكسير الثلاثي (TRIPLE ELIXIR 3X)!');
                 this.emitEvent('triple_energy_start', {});
@@ -663,13 +728,18 @@
             // Stage 2: Relay Core Update
             this.updateRelayCore();
 
+            // Stage 2.5: Thermal Storm cells over the air corridor
+            this.updateThermalStorms();
+
             // Stage 3: Bot AI Logic
             this.updateBotAI();
 
             // Stage 4: Unit State Machine & Movement
             this.updateUnits(dt);
 
-            // Stage 5: Defensive Tower Attacks
+            // Stage 5: Tower upkeep (self-repair) & Defensive Tower Attacks (with Guardian Wrath)
+            this.updateTowerRegen();
+            this.updateTowerEnrage();
             this.updateTowers(this.p1, this.p2);
             this.updateTowers(this.p2, this.p1);
 
@@ -682,8 +752,10 @@
         }
 
         updateEnergy(player, dt) {
-            // Base regeneration: 1 energy per 1.15s for player, 1 per 1.35s for bot
-            let rate = player.id === 1 ? (1.0 / 1.15) : (1.0 / 1.35);
+            // Base regeneration: 1 energy per 1.15s for BOTH commanders (fair online play).
+            // The local AI opponent keeps a slight handicap (1 per 1.35s) only in local matches.
+            const isLocalBotSide = this.isLocal && player.id === 2;
+            let rate = isLocalBotSide ? (1.0 / 1.35) : (1.0 / 1.15);
 
             // Triple Elixir 3X Mode or Sudden death double speed
             if (this.isTripleElixirMode) {
@@ -727,10 +799,11 @@
                 return;
             }
 
-            // Check if any unit crossed the Relay Core
+            // Check if any unit crossed the Relay Core (it floats over the chasm:
+            // only AERIAL units can fly through and capture it)
             for (const unit of this.units) {
                 if (!unit.alive) continue;
-                if (unit.lane !== 1) continue; // Must be in Hyper-Lane
+                if (!unit.isAerial) continue;
 
                 const dist = Math.hypot(unit.x - this.relayCore.x, unit.y - this.relayCore.y);
                 if (dist <= this.relayCore.radius) {
@@ -744,7 +817,7 @@
                     // Grant unit a plasma barrier absorbing first 300 damage
                     unit.shieldHp = 300;
 
-                    this.addCombatLog(`[سيطرة] اللاعب ${unit.owner === 1 ? 'القائد' : 'الخصم'} استولى على مكثف المسار الأوسط! (+1 طاقة ودرع)`);
+                    this.addCombatLog(`[سيطرة] 🛸 ${unit.owner === 1 ? 'القائد' : 'الخصم'} حلّق فوق الشق واستولى على نواة الطاقة المركزية! (+1 طاقة ودرع)`);
                     this.emitEvent('relay_captured', { owner: unit.owner, unitId: unit.id });
 
                     // In Overtime, seizing Relay Core fires a decisive orbital strike at the lowest enemy tower!
@@ -755,7 +828,7 @@
                         if (enemy.towers.right.alive && enemy.towers.right.hp < targetTower.hp) targetTower = enemy.towers.right;
 
                         this.applyDamage(targetTower, 260, null);
-                        this.addCombatLog(`[صدمة حاسمة] مكثف المسار الأوسط يقصف برج الخصم مباشرة (260 ضرر)!`);
+                        this.addCombatLog(`[صدمة حاسمة] نواة الطاقة تقصف برج الخصم مباشرة (260 ضرر)!`);
                         this.emitEvent('orbital_strike', { fromX: 540, fromY: 820, toX: targetTower.x, toY: targetTower.y, owner: unit.owner });
                     }
                     break;
@@ -786,12 +859,33 @@
                     }
                 }
 
+                // Handle lingering burn damage (Plasma Strike fire zone: 65 DPS)
+                if (unit.burnTimer > 0) {
+                    unit.burnTimer -= dt;
+                    if (unit.alive) {
+                        this.applyDamage(unit, 65 * dt, null, { silent: true });
+                        if (!unit.alive) continue;
+                    }
+                }
+
                 // Handle spawner logic for Drone Hub (drone_factory)
                 if (unit.isBuilding && unit.isSpawner && unit.alive && (!unit.freezeTimer || unit.freezeTimer <= 0)) {
                     unit.spawnTimer = (unit.spawnTimer || 0) + dt;
                     if (unit.spawnTimer >= (unit.spawnInterval || 7.0)) {
                         unit.spawnTimer = 0;
                         this.spawnFromBuilding(unit);
+                    }
+                }
+
+                // Handle Quantum Reactor: periodic energy generation for the owner
+                if (unit.isBuilding && unit.energyRegen > 0 && unit.alive && (!unit.freezeTimer || unit.freezeTimer <= 0)) {
+                    unit.regenTimer += dt;
+                    if (unit.regenTimer >= (unit.regenInterval || 7.0)) {
+                        unit.regenTimer -= unit.regenInterval;
+                        const genOwner = unit.owner === 1 ? this.p1 : this.p2;
+                        genOwner.energy = Math.min(genOwner.maxEnergy, genOwner.energy + unit.energyRegen);
+                        this.addCombatLog(`[مفاعل الطاقة] ⚡ مفاعل ${unit.owner === 1 ? 'القائد' : 'الخصم'} ولّد +${unit.energyRegen} طاقة!`);
+                        this.emitEvent('energy_generated', { x: unit.x, y: unit.y, owner: unit.owner, amount: unit.energyRegen });
                     }
                 }
 
@@ -823,6 +917,11 @@
                 // Adrenaline boost decay
                 if (unit.adrenalineTimer > 0) {
                     unit.adrenalineTimer -= dt;
+                }
+
+                // Burn / post-freeze slow decay (40% move speed reduction while active)
+                if (unit.slowTimer > 0) {
+                    unit.slowTimer -= dt;
                 }
 
                 // Healer Support Behavior (Aero-Medic Drone)
@@ -878,7 +977,59 @@
                     let destX = bridgeX;
                     let destY = 820;
 
-                    if (unit.owner === 1) {
+                    // Healer: actively seek the most wounded nearby ally before advancing
+                    let healerSeekTarget = null;
+                    if (unit.healer) {
+                        let lowestPct = 1.0;
+                        for (const ally of this.units) {
+                            if (!ally.alive || ally.owner !== unit.owner || ally.id === unit.id || ally.isBuilding) continue;
+                            const pct = ally.hp / ally.maxHp;
+                            if (pct < 1.0 && pct < lowestPct) {
+                                const d = Math.hypot(ally.x - unit.x, ally.y - unit.y);
+                                if (d <= unit.range * 1.6) {
+                                    lowestPct = pct;
+                                    healerSeekTarget = ally;
+                                }
+                            }
+                        }
+                    }
+
+                    if (healerSeekTarget) {
+                        destX = healerSeekTarget.x;
+                        destY = healerSeekTarget.y;
+                    } else if (unit.isAerial) {
+                        // AERIAL: the chasm is no obstacle - fly a straight line to the enemy main tower
+                        const aerialEnemy = unit.owner === 1 ? this.p2 : this.p1;
+                        destX = aerialEnemy.towers.main.x;
+                        destY = aerialEnemy.towers.main.y;
+
+                        // Thermal Storm avoidance: bank hard to the lane edge opposite the hot cell.
+                        // The side choice is sticky per storm so the flyer commits to one bank.
+                        for (const storm of this.thermalStorms) {
+                            if (!storm.active) continue;
+                            const aheadDir = unit.owner === 1 ? -1 : 1; // P1 flies up, P2 flies down
+                            const dy = storm.y - unit.y;
+                            if (dy * aheadDir < -60 || dy * aheadDir > 480) {
+                                if (unit.stormDodge && unit.stormDodge.stormId === storm.id) unit.stormDodge = null;
+                                continue; // storm not on the flight path
+                            }
+                            if (Math.abs(storm.x - unit.x) >= storm.radius + 50) continue;
+                            let side = null;
+                            if (unit.stormDodge && unit.stormDodge.stormId === storm.id) {
+                                side = unit.stormDodge.side;
+                            } else {
+                                const roomRight = 655 - unit.x;
+                                const roomLeft = unit.x - 425;
+                                side = storm.x < 540 ? 1 : (storm.x > 540 ? -1 : (roomRight >= roomLeft ? 1 : -1));
+                                unit.stormDodge = { stormId: storm.id, side };
+                            }
+                            // Steep short bank: aim at the lane edge only ~150px ahead so the
+                            // flyer reaches the clear side BEFORE crossing the storm's fire line
+                            destX = side === 1 ? 655 : 425;
+                            destY = aheadDir === -1 ? Math.max(180, unit.y - 150) : Math.min(1740, unit.y + 150);
+                            break;
+                        }
+                    } else if (unit.owner === 1) {
                         // P1 unit
                         if (unit.y > 860) {
                             // On friendly side: move to bridge
@@ -919,9 +1070,13 @@
                     const dist = Math.hypot(toDestX, toDestY);
 
                     let speed = unit.speed;
-                    // Hyper-Lane speed boost (1.4x for non-heavy units)
+                    // Air Hyper-Lane boost (1.4x for non-heavy units in the center air lane)
                     if (unit.lane === 1 && !unit.isHeavy) {
                         speed *= ARENA.LANES[1].speedMultiplier;
+                    }
+                    // Burn / post-freeze slow: 40% movement speed reduction while active
+                    if (unit.slowTimer > 0) {
+                        speed *= 0.6;
                     }
 
                     let moveVx = dist > 0 ? (toDestX / dist) * speed : 0;
@@ -930,6 +1085,17 @@
 
                     let nextX = unit.x + moveVx * dt;
                     let nextY = unit.y + moveVy * dt;
+
+                    // Gentle separation from stacked allies so squads keep readable spacing
+                    for (const other of this.units) {
+                        if (!other.alive || other.id === unit.id || other.owner !== unit.owner) continue;
+                        const d = Math.hypot(other.x - nextX, other.y - nextY);
+                        if (d < 30 && d > 0.001) {
+                            const push = (30 - d) * 0.2;
+                            nextX += ((nextX - other.x) / d) * push;
+                            nextY += ((nextY - other.y) / d) * push;
+                        }
+                    }
 
                     // Physical body blocking & collision with opposing units
                     for (const other of this.units) {
@@ -942,6 +1108,10 @@
                             break;
                         }
                     }
+
+                    // Keep units inside arena bounds
+                    nextX = Math.max(60, Math.min(1020, nextX));
+                    nextY = Math.max(160, Math.min(1780, nextY));
 
                     unit.x = nextX;
                     unit.y = nextY;
@@ -994,8 +1164,10 @@
                 if (tower) return tower;
 
                 // If no tower in range, attack any enemy unit directly blocking its path
+                // (ground-only heavies cannot swat aerial units that fly over them)
                 for (const other of this.units) {
                     if (!other.alive || other.owner === unit.owner || other.lane !== unit.lane || other.isStealth) continue;
+                    if (other.isAerial) continue;
                     const dist = Math.hypot(other.x - unit.x, other.y - unit.y);
                     if (dist <= unit.range + 20) {
                         return other;
@@ -1010,6 +1182,7 @@
                 let maxHp = -1;
                 for (const other of this.units) {
                     if (!other.alive || other.owner === unit.owner || other.isStealth) continue;
+                    if (unit.groundOnly && other.isAerial) continue;
                     const dist = Math.hypot(other.x - unit.x, other.y - unit.y);
                     if (dist <= unit.range + 25 && other.hp > maxHp) {
                         maxHp = other.hp;
@@ -1028,6 +1201,7 @@
 
                 for (const other of this.units) {
                     if (!other.alive || other.owner === unit.owner || other.isStealth) continue;
+                    if (unit.groundOnly && other.isAerial) continue; // Mortars cannot reach flyers (360° bunkers still can)
 
                     const dist = Math.hypot(other.x - unit.x, other.y - unit.y);
                     if (unit.minRange && dist < unit.minRange) continue;
@@ -1064,11 +1238,14 @@
             }
 
             // Striker / Disruptor / Turret targets nearest enemy in range
+            // (Aerial units ignore lane restrictions - they can strike any lane in range)
             let nearestEnemyUnit = null;
             let minDistance = Infinity;
 
             for (const other of this.units) {
-                if (!other.alive || other.owner === unit.owner || other.lane !== unit.lane || other.isStealth) continue;
+                if (!other.alive || other.owner === unit.owner || other.isStealth) continue;
+                if (!unit.isAerial && other.lane !== unit.lane) continue;
+                if (unit.groundOnly && other.isAerial) continue; // Ground-only troops cannot shoot flyers
 
                 const dist = Math.hypot(other.x - unit.x, other.y - unit.y);
                 if (dist <= unit.range + 25 && dist < minDistance) {
@@ -1235,14 +1412,20 @@
             });
         }
 
-        applyDamage(entity, amount, source) {
+        applyDamage(entity, amount, source, opts = {}) {
             if (!entity) return;
+            const silent = Boolean(opts && opts.silent); // true = continuous DoT (burn/drains) - skip per-tick VFX text
 
             const isTower = Boolean(entity.isTower || (typeof entity.id === 'string' && entity.id.startsWith('t_')));
 
             // Heavy armor damage reduction (Mech Titan & Siege Colossus take 18% less damage)
             if (entity.isHeavy) {
                 amount *= 0.82;
+            }
+
+            // Aerial vulnerability: flying units are easy prey for tower fire (+25%)
+            if (entity.isAerial && source && (source.isTower || (typeof source.id === 'string' && source.id.startsWith('t_')))) {
+                amount *= 1.25;
             }
 
             // Tower vulnerability during Redline
@@ -1258,8 +1441,10 @@
             if (entity.shieldHp && entity.shieldHp > 0) {
                 if (entity.shieldHp >= amount) {
                     entity.shieldHp -= amount;
-                    this.emitEvent('shield_hit', { entityId: entity.id, absorbed: amount });
-                    this.emitEvent('damage_dealt', { x: entity.x, y: entity.y, amount: Math.round(amount), isShield: true });
+                    if (!silent) {
+                        this.emitEvent('shield_hit', { entityId: entity.id, absorbed: amount });
+                        this.emitEvent('damage_dealt', { x: entity.x, y: entity.y, amount: Math.round(amount), isShield: true });
+                    }
                     return;
                 } else {
                     amount -= entity.shieldHp;
@@ -1268,7 +1453,12 @@
             }
 
             entity.hp -= amount;
-            this.emitEvent('damage_dealt', { x: entity.x, y: entity.y, amount: Math.round(amount), isShield: false, isTower });
+            if (isTower && entity.lastHitTick !== undefined) {
+                entity.lastHitTick = this.currentTick; // pausing self-repair until the tower goes 5s unhit
+            }
+            if (!silent) {
+                this.emitEvent('damage_dealt', { x: entity.x, y: entity.y, amount: Math.round(amount), isShield: false, isTower });
+            }
 
             if (entity.hp <= 0) {
                 entity.alive = false;
@@ -1278,6 +1468,46 @@
                     this.emitEvent('tower_destroyed', { towerId: entity.id, x: entity.x, y: entity.y, owner: entity.owner });
                 } else {
                     this.emitEvent('unit_died', { unitId: entity.id, x: entity.x, y: entity.y });
+                }
+            }
+        }
+
+        updateTowerRegen() {
+            // Towers self-repair at 1% of max HP per second (up to 60% of max)
+            // once they have gone 5 full seconds without taking damage.
+            const REGEN_DELAY_TICKS = 100;
+            const REGEN_RATE_PER_SEC = 0.01;
+            for (const pnum of [1, 2]) {
+                const player = pnum === 1 ? this.p1 : this.p2;
+                for (const key of ['left', 'main', 'right']) {
+                    const t = player.towers[key];
+                    if (!t.alive || t.hp >= t.maxHp * 0.6) continue;
+                    if (this.currentTick - (t.lastHitTick || -9999) < REGEN_DELAY_TICKS) continue;
+                    t.hp = Math.min(t.maxHp * 0.6, t.hp + t.maxHp * REGEN_RATE_PER_SEC * (1 / ARENA.TICK_RATE));
+                }
+            }
+        }
+
+        updateTowerEnrage() {
+            for (const pnum of [1, 2]) {
+                const player = pnum === 1 ? this.p1 : this.p2;
+                const main = player.towers.main;
+                if (!main.alive) continue;
+
+                if (main.enragedTicks > 0) {
+                    main.enragedTicks--;
+                    if (main.enragedTicks === 0) {
+                        this.addCombatLog(`[الوصي] هدأت حالة غضب قلعة ${pnum === 1 ? 'القائد' : 'الخصم'} الرئيسية.`);
+                        this.emitEvent('tower_enrage_end', { owner: pnum, x: main.x, y: main.y });
+                    }
+                    continue;
+                }
+
+                // Guardian Wrath: once the citadel drops to 40% HP it roars for 15 seconds
+                if (main.hp <= main.maxHp * 0.4) {
+                    main.enragedTicks = 300; // 15 seconds at 20 tps
+                    this.addCombatLog(`[غضب الوصي] 🔥 استشاطت قلعة ${pnum === 1 ? 'القائد' : 'الخصم'} غضباً! (+40% ضرر، +30% مدى لمدة 15 ثانية)`);
+                    this.emitEvent('tower_enrage', { owner: pnum, x: main.x, y: main.y });
                 }
             }
         }
@@ -1298,6 +1528,11 @@
                     continue;
                 }
 
+                // Guardian Wrath multipliers (main citadel only)
+                const enraged = (tower.enragedTicks || 0) > 0;
+                const dmgMult = enraged ? 1.4 : 1.0;
+                const rngMult = enraged ? 1.3 : 1.0;
+
                 // Find closest enemy unit in range
                 let closestEnemy = null;
                 let minDist = Infinity;
@@ -1305,14 +1540,14 @@
                 for (const unit of this.units) {
                     if (!unit.alive || unit.owner === friendlyPlayer.id) continue;
                     const dist = Math.hypot(unit.x - tower.x, unit.y - tower.y);
-                    if (dist <= tower.range && dist < minDist) {
+                    if (dist <= tower.range * rngMult && dist < minDist) {
                         minDist = dist;
                         closestEnemy = unit;
                     }
                 }
 
                 if (closestEnemy) {
-                    this.applyDamage(closestEnemy, tower.damage, tower);
+                    this.applyDamage(closestEnemy, tower.damage * dmgMult, tower);
                     tower.attackCooldown = 0.8; // Fires every 0.8s
 
                     this.emitEvent('tower_laser_fire', {
@@ -1416,7 +1651,7 @@
             for (const t of towers) {
                 if (t.alive) {
                     const dmg = Math.max(2, Math.round(t.maxHp * pct));
-                    this.applyDamage(t, dmg, null);
+                    this.applyDamage(t, dmg, null, { silent: true });
                 }
             }
         }
@@ -1456,7 +1691,7 @@
                     player.isRedline = true;
                     player.energyDebt = -needed;
                     player.energy = 0;
-                    this.addCombatLog(`Player ${playerNum} entered REDLINE DEBT (-${needed.toFixed(1)} Energy)!`);
+                    this.addCombatLog(`[الخط الأحمر] ${playerNum === 1 ? 'القائد' : 'الخصم'} دخل دين الإكسير (-${needed.toFixed(1)} طاقة)!`);
                     this.emitEvent('redline_entered', { playerId: playerNum, debt: player.energyDebt });
                 } else {
                     return { success: false, reason: 'Insufficient energy (Max -2 debt)' };
@@ -1512,21 +1747,43 @@
             }
 
             this.emitEvent('card_played', { playerNum, cardId, laneIndex, x: customX, y: customY });
+
+            // Adaptive Bot intel: in local matches the bot studies the human commander's choices
+            if (this.isLocal && playerNum === 1) {
+                if (cardData.isAerial) this.botIntel.aerial++;
+                if (cardData.isHeavy) this.botIntel.heavy++;
+                if (cardData.count && cardData.count > 1) this.botIntel.swarm++;
+                if (cardData.isSpell) this.botIntel.spell++;
+                if (cardData.isBuilding) this.botIntel.building++;
+            }
+
             return { success: true };
         }
 
         spawnUnit(playerNum, cardData, laneIndex, lateralOffset = 0, isFusion = false, customX = null, customY = null) {
-            const lane = ARENA.LANES[laneIndex];
+            // The center bridge was removed for GROUND units: they are auto-rerouted to the
+            // nearest flank lane. Aerial units keep the Air Hyper-Lane (straight flight path).
+            let effectiveLane = laneIndex;
+            const rawAnchorX = customX !== null ? customX : ARENA.LANES[laneIndex].x;
+            if (!cardData.isAerial && effectiveLane === 1) {
+                effectiveLane = rawAnchorX < 540 ? 0 : 2;
+            }
+            const lane = ARENA.LANES[effectiveLane];
             const isP1 = playerNum === 1;
             const defaultY = isP1 ? 1140 : 440;
-            const spawnX = customX !== null ? customX + lateralOffset : lane.x + lateralOffset;
+            // When a ground unit was rerouted off the removed center bridge, snap its spawn
+            // point onto the new flank bridge so it appears where it actually will fight.
+            const rerouted = effectiveLane !== laneIndex;
+            const spawnX = (customX !== null && !rerouted) ? customX + lateralOffset : lane.x + lateralOffset;
             const spawnY = customY !== null ? customY : defaultY;
             const initAngle = isP1 ? -Math.PI / 2 : Math.PI / 2;
 
             // Scale unit HP, damage, and healRate based on card level (Level 1 to 10)
             const cardLevels = isP1 ? this.p1CardLevels : this.p2CardLevels;
             const unitLevel = Math.min(10, Math.max(1, (cardLevels && cardLevels[cardData.id]) ? cardLevels[cardData.id] : 1));
-            const mult = 1 + (unitLevel - 1) * 0.10;
+            let mult = 1 + (unitLevel - 1) * 0.10;
+            // Daily Champion boost
+            if (this.dailyChampionCardId && cardData.id === this.dailyChampionCardId) mult *= 1.2;
             const scaledHp = Math.round(cardData.hp * mult);
             const scaledDamage = Math.round(cardData.damage * mult);
             const scaledHeal = cardData.healRate ? Math.round(cardData.healRate * mult) : 0;
@@ -1537,7 +1794,7 @@
                 cardId: cardData.id,
                 name: cardData.name,
                 role: cardData.role,
-                lane: laneIndex,
+                lane: effectiveLane,
                 x: spawnX,
                 y: spawnY,
                 angle: initAngle,
@@ -1554,10 +1811,16 @@
                 targetPref: cardData.targetPref,
                 splashRadius: cardData.splashRadius || 0,
                 isHeavy: cardData.isHeavy || false,
+                isAerial: Boolean(cardData.isAerial),
+                groundOnly: Boolean(cardData.groundOnly),
+                energyRegen: cardData.energyRegen || 0,
+                regenInterval: cardData.regenInterval || 0,
+                regenTimer: 0,
                 isBuilding: cardData.isBuilding || false,
                 minRange: cardData.minRange || 0,
                 omniTargeting: Boolean(cardData.omniTargeting || cardData.isBuilding),
                 decayTimer: cardData.decayTimer || 0,
+                decayTotal: cardData.decayTimer || 0,
                 healer: cardData.healer || false,
                 healRate: scaledHeal,
                 healingTargetId: null,
@@ -1566,6 +1829,8 @@
                 attackCooldown: 0,
                 stunTimer: 0,
                 freezeTimer: 0,
+                slowTimer: 0,
+                burnTimer: 0,
                 isSpawner: cardData.isSpawner || false,
                 spawnCardId: cardData.spawnCardId || null,
                 spawnCount: cardData.spawnCount || 2,
@@ -1582,9 +1847,9 @@
             };
 
             this.units.push(unit);
-            const laneNames = ['الأيسر', 'الأوسط (فائق)', 'الأيمن'];
+            const laneNames = ['الأيسر', 'الممر الجوي', 'الأيمن'];
             const ownerName = playerNum === 1 ? 'القائد' : 'الخصم';
-            this.addCombatLog(`[استدعاء] ${ownerName}: ${unit.name} (Lv.${unitLevel}) (مسار ${laneNames[laneIndex]})`);
+            this.addCombatLog(`[استدعاء] ${ownerName}: ${unit.name} (Lv.${unitLevel}) ${unit.isAerial ? '🛸 (طيران جوي)' : '(مسار ' + laneNames[effectiveLane] + ')'}`);
             return unit;
         }
 
@@ -1627,7 +1892,9 @@
             // Spell potency scales +10% per card level above Lv 1
             const cardLevels = isP1 ? this.p1CardLevels : this.p2CardLevels;
             const spellLevel = Math.min(10, Math.max(1, (cardLevels && cardLevels[spellCard.id]) ? cardLevels[spellCard.id] : 1));
-            const mult = 1 + (spellLevel - 1) * 0.10;
+            let mult = 1 + (spellLevel - 1) * 0.10;
+            // Daily Champion boost
+            if (this.dailyChampionCardId && spellCard.id === this.dailyChampionCardId) mult *= 1.2;
 
             if (spellCard.id === 'emp_overcharge') {
                 // EMP Cascade: 320 burst dmg + 2.8s stun + strips all shields + 3s tower shutdown
@@ -1699,8 +1966,9 @@
                             if (!u.isHeavy && !u.isBuilding) {
                                 u.y = Math.max(200, Math.min(1700, u.y + knockbackDir * 40));
                             }
-                            // Burn effect slow
+                            // Lingering fire: 40% slow + 65 DPS burn for 3s
                             u.slowTimer = Math.max(u.slowTimer || 0, 3.0);
+                            u.burnTimer = Math.max(u.burnTimer || 0, 3.0);
                         }
                     }
                 }
@@ -1780,7 +2048,68 @@
                 }
                 this.emitEvent('cryo_freeze_pulse', { x: effectX, y: effectY, radius: SPELL_RADIUS, duration: freezeDur });
                 this.addCombatLog(`[التجميد المطلق Lv.${spellLevel}] تجميد كامل للأعداء والأبراج لمدة ${freezeDur} ثوانٍ مع تفتيت الأسراب!`);
+            } else if (spellCard.id === 'sky_zap') {
+                // Sky Zap: AERIAL-ONLY counter-strike (damage + micro-stun + slow)
+                const zapDmg = Math.round((spellCard.zapDamage || 200) * mult);
+                let hitCount = 0;
+                for (const u of this.units) {
+                    if (!u.alive || u.owner === playerNum || !u.isAerial) continue;
+                    const dist = Math.hypot(u.x - effectX, u.y - effectY);
+                    if (dist <= SPELL_RADIUS) {
+                        this.applyDamage(u, zapDmg, null);
+                        u.stunTimer = Math.max(u.stunTimer || 0, spellCard.zapStun || 0.8);
+                        u.slowTimer = Math.max(u.slowTimer || 0, spellCard.zapSlow || 2.5);
+                        hitCount++;
+                    }
+                }
+                this.emitEvent('sky_zap_pulse', { x: effectX, y: effectY, radius: SPELL_RADIUS, hits: hitCount });
+                this.addCombatLog(`[الصاعقة السحابية Lv.${spellLevel}] ⚡ مضاد جوي فوري! صعق وإبطاء ${hitCount} من الطائرات المعادية (${zapDmg} ضرر) بنطاق 340px!`);
             }
+        }
+
+        // --- THERMAL STORMS: recurring heat cells over the Air Hyper-Lane ---
+        // Aerial units fly through a straight corridor, so a telegraphed storm forces
+        // timing decisions (or a hard bank to the lane edge to slip past the fire).
+        updateThermalStorms() {
+            // Spawn: up to 4 cells per match; first appears between 35-45s
+            if (this.thermalStormCount < 4 && this.currentTick >= this.nextThermalStormTick && this.currentTick < 2300) {
+                const sx = 455 + Math.random() * 170; // inside the air lane (x 420-660)
+                const sy = 380 + Math.random() * 960; // 380..1340
+                this.thermalStorms.push({
+                    id: this.nextStormId++,
+                    x: sx, y: sy, radius: 105,
+                    warnTicks: 60, activeTicks: 100,
+                    active: false
+                });
+                this.thermalStormCount++;
+                this.nextThermalStormTick = this.currentTick + 360 + Math.floor(Math.random() * 200); // 18-28s later
+                this.addCombatLog('🌪️ [إنذار جوي] عاصفة حرارية تتشكل فوق الممر الجوي — ابعُد طائراتك عن المنطقة!');
+                this.emitEvent('thermal_storm', { x: sx, y: sy, radius: 105, phase: 'warning' });
+            }
+
+            for (const s of this.thermalStorms) {
+                if (!s.active) {
+                    s.warnTicks--;
+                    if (s.warnTicks <= 0) {
+                        s.active = true;
+                        this.addCombatLog('🔥 انفجرت العاصفة الحرارية! أضرار حارقة (55/ث) لكل طائرة في قلبها.');
+                        this.emitEvent('thermal_storm', { x: s.x, y: s.y, radius: s.radius, phase: 'active' });
+                    }
+                    continue;
+                }
+                s.activeTicks--;
+                for (const u of this.units) {
+                    if (!u.alive || !u.isAerial) continue;
+                    if (Math.hypot(u.x - s.x, u.y - s.y) <= s.radius) {
+                        this.applyDamage(u, 55 / ARENA.TICK_RATE, null, { silent: true });
+                    }
+                }
+                if (s.activeTicks <= 0) {
+                    s.done = true;
+                    this.emitEvent('thermal_storm', { x: s.x, y: s.y, radius: s.radius, phase: 'ended' });
+                }
+            }
+            this.thermalStorms = this.thermalStorms.filter(s => !s.done);
         }
 
         // --- DYNAMIC ARENA HAZARD EVENTS ---
@@ -1869,8 +2198,15 @@
             targetUnit.splashRadius = fusedData.splashRadius || 0;
             targetUnit.fusionTier = 1;
             targetUnit.shieldHp = (targetUnit.shieldHp || 0) + 200;
+            // Inherit flight capability from the base unit (drones stay airborne after fusion)
+            targetUnit.isAerial = Boolean(baseCard.isAerial);
+            // Inherit ground-only targeting (tanks & mortars stay grounded after fusion)
+            targetUnit.groundOnly = Boolean(fusedData.groundOnly || baseCard.groundOnly);
+            if (fusedData.decayTimer) {
+                targetUnit.decayTotal = fusedData.decayTimer;
+            }
 
-            this.addCombatLog(`FUSION EVOLUTION: ${targetUnit.name} forged!`);
+            this.addCombatLog(`[صهر] ${playerNum === 1 ? 'القائد' : 'الخصم'} طور وحدته ميدانياً إلى: ${targetUnit.name}!`);
             this.emitEvent('unit_fused', { unitId: targetUnit.id, fusionName: targetUnit.name, x: targetUnit.x, y: targetUnit.y, owner: targetUnit.owner });
             return { success: true };
         }
@@ -1893,72 +2229,241 @@
                 this.applyDamage(u, 140, null);
             }
 
-            this.addCombatLog(`Player ${playerNum} fired Command Turret on Lane ${laneIndex}!`);
+            {
+                const ownerName = playerNum === 1 ? 'القائد' : 'الخصم';
+                const laneNamesC = ['الأيسر', 'الممر الجوي', 'الأيمن'];
+                this.addCombatLog(`[مدفع القيادة] ${ownerName} أطلق المدفع التكتيكي على المسار ${laneNamesC[laneIndex] || 'المباشر'}!`);
+            }
             this.emitEvent('cannon_fired', { playerNum, laneIndex, x: lane.x });
             return { success: true };
         }
 
-        // --- HEURISTIC TACTICAL BOT AI ---
+        // --- HEURISTIC TACTICAL BOT AI v2 (Threat-Aware) ---
+        // Finds the densest cluster of enemy units (used for smart spell targeting).
+        findEnemyCluster(radius, yLimit = 900) {
+            let best = null;
+            for (const u of this.units) {
+                if (!u.alive || u.owner !== 1 || u.y > yLimit) continue;
+                let count = 0, cx = 0, cy = 0, hasHeavy = false;
+                for (const v of this.units) {
+                    if (!v.alive || v.owner !== 1) continue;
+                    if (Math.hypot(v.x - u.x, v.y - u.y) <= radius) {
+                        count++;
+                        cx += v.x;
+                        cy += v.y;
+                        if (v.isHeavy) hasHeavy = true;
+                    }
+                }
+                if (!best || count > best.count) {
+                    best = { x: cx / count, y: cy / count, count, hasHeavy };
+                }
+            }
+            return best;
+        }
+
         updateBotAI() {
+            // CRITICAL: the bot only co-pilots LOCAL (AI) matches.
+            // In online rooms both sides are humans - never auto-play their cards!
+            if (!this.isLocal) return;
+
             if (this.botAITickCooldown > 0) {
                 this.botAITickCooldown--;
                 return;
             }
 
-            // Humanized Bot: acts every 3.2 - 4.5 seconds (65-90 ticks)
-            // In Triple Elixir mode, bot reacts much faster (20-32 ticks) to match 300% elixir flow
+            // Humanized reaction cycle: ~2.75-4.25s (faster in Triple Elixir)
             if (this.isTripleElixirMode) {
-                this.botAITickCooldown = 20 + Math.floor(Math.random() * 12);
-                if (this.p2.energy < 3.0) return;
+                this.botAITickCooldown = 18 + Math.floor(Math.random() * 14);
             } else {
-                this.botAITickCooldown = 65 + Math.floor(Math.random() * 25);
-                // Conservative behavior: Wait until at least 5 energy
-                if (this.p2.energy < 5.0) return;
+                this.botAITickCooldown = 55 + Math.floor(Math.random() * 30);
             }
 
-            // 1. Analyze threat lanes: Does P1 have units threatening top towers?
-            let threatLane = null;
+            const bot = this.p2;
+            const minEnergy = (this.overtime || this.isTripleElixirMode) ? 3.0 : 4.0;
+            if (bot.energy < minEnergy) return;
+
+            // 1. Per-lane threat assessment: enemy units that crossed into bot territory
+            const laneThreat = [0, 0, 0];
+            let totalThreat = 0;
             for (const u of this.units) {
-                if (u.alive && u.owner === 1 && u.y < 800) {
-                    threatLane = u.lane;
-                    break;
+                if (!u.alive || u.owner !== 1 || u.y > 880) continue;
+                const hpPct = u.hp / u.maxHp;
+                const dmgNorm = Math.min(2.0, u.damage / 150);
+                const heavyBonus = u.isHeavy ? 1.6 : 1.0;
+                const proximity = 1 + Math.max(0, (820 - u.y) / 500); // closer to towers = more dangerous
+                const t = (0.5 + hpPct) * (1 + dmgNorm) * heavyBonus * proximity;
+                laneThreat[u.lane] += t;
+                totalThreat += t;
+            }
+            let threatLane = 1;
+            if (laneThreat[0] >= laneThreat[1] && laneThreat[0] >= laneThreat[2]) threatLane = 0;
+            else if (laneThreat[2] >= laneThreat[1] && laneThreat[2] >= laneThreat[0]) threatLane = 2;
+            const hasThreat = totalThreat >= 1.2;
+
+            // 2. Command Cannon: punish deep enemy stacks in bot territory
+            if (bot.cannonCooldown <= 0 && bot.energy >= 2.0) {
+                for (let lane = 0; lane < 3; lane++) {
+                    let deepEnemies = 0;
+                    for (const u of this.units) {
+                        if (!u.alive || u.owner !== 1 || u.lane !== lane || u.y >= 760) continue;
+                        deepEnemies++;
+                    }
+                    if (deepEnemies >= 2 && Math.random() < 0.55) {
+                        this.triggerCommandCannon(2, lane);
+                        return;
+                    }
                 }
             }
 
-            // 2. Decide lane to play
-            let chosenLane = threatLane !== null ? threatLane : Math.floor(Math.random() * 3);
-
-            // 3. Contest Relay Core: Moderate priority (30%)
-            if (this.relayCore.cooldownTicks === 0 && Math.random() < 0.3) {
-                chosenLane = 1;
-            }
-
-            // 4. Tactical spell usage: if bot has orbital_salvo or emp_overcharge and player has clustered units
-            const spellCard = this.p2.hand.find(id => {
+            // 3. Field Fusion: evolve a compatible surviving unit when a catalyst is in hand
+            const catalystId = bot.hand.find(id => {
                 const c = CARD_DATABASE[id];
-                return c && c.isSpell && c.cost <= this.p2.energy;
+                return c && c.isSpell && Array.isArray(c.catalystFor) && c.catalystFor.length > 0 && c.cost <= bot.energy;
             });
-
-            if (spellCard && threatLane !== null && Math.random() < 0.35) {
-                const targetX = ARENA.LANES[threatLane].x;
-                const targetY = 700;
-                this.deployCard(2, spellCard, targetX, targetY);
-                return;
+            if (catalystId && Math.random() < 0.5) {
+                const targetUnit = this.units.find(u => {
+                    if (!u.alive || u.owner !== 2 || (u.fusionTier || 0) > 0) return false;
+                    if (u.hp < u.maxHp * 0.35) return false;
+                    const base = CARD_DATABASE[u.cardId];
+                    return base && base.fusionTarget === catalystId;
+                });
+                if (targetUnit) {
+                    const res = this.attemptFusion(2, catalystId, targetUnit.id);
+                    if (res && res.success) return;
+                }
             }
 
-            // 5. Playable unit deployment
-            const playableCards = this.p2.hand.filter(cardId => {
+            // 4. Smart tactical spells (context-dependent targeting)
+            const spellId = bot.hand.find(id => {
+                const c = CARD_DATABASE[id];
+                return c && c.isSpell && c.cost <= bot.energy;
+            });
+            if (spellId) {
+                let action = null;
+                if (spellId === 'nano_repair') {
+                    // Shield & heal a wounded friendly group in bot territory
+                    const wounded = this.units.filter(u => u.alive && u.owner === 2 && u.y < 900 && u.hp < u.maxHp * 0.6);
+                    if (wounded.length >= 2) {
+                        action = {
+                            x: wounded.reduce((s, u) => s + u.x, 0) / wounded.length,
+                            y: wounded.reduce((s, u) => s + u.y, 0) / wounded.length
+                        };
+                    }
+                } else if (spellId === 'emp_overcharge') {
+                    // Silence enemy heavies, or break up a cluster
+                    const heavy = this.units.find(u => u.alive && u.owner === 1 && u.isHeavy && u.y < 900);
+                    const cluster = this.findEnemyCluster(280);
+                    if (heavy) action = { x: heavy.x, y: heavy.y };
+                    else if (cluster && cluster.count >= 2) action = { x: cluster.x, y: cluster.y };
+                } else if (spellId === 'cryo_freeze') {
+                    const cluster = this.findEnemyCluster(300);
+                    if (cluster && cluster.count >= 2) action = { x: cluster.x, y: cluster.y };
+                } else if (spellId === 'orbital_salvo') {
+                    // Snipe a damaged, lightly-defended enemy tower; otherwise hit a big cluster
+                    let towerTarget = null;
+                    for (const tKey of ['left', 'main', 'right']) {
+                        const t = this.p1.towers[tKey];
+                        if (!t.alive || t.hp >= t.maxHp * 0.55) continue;
+                        const defenders = this.units.filter(u => u.alive && u.owner === 1 && Math.hypot(u.x - t.x, u.y - t.y) <= 160).length;
+                        if (defenders <= 1) { towerTarget = t; break; }
+                    }
+                    const cluster = this.findEnemyCluster(300);
+                    if (towerTarget) action = { x: towerTarget.x, y: towerTarget.y };
+                    else if (cluster && cluster.count >= 3) action = { x: cluster.x, y: cluster.y };
+                } else {
+                    // plasma_mod as pure damage when not reserved for fusion
+                    const cluster = this.findEnemyCluster(300);
+                    if (cluster && cluster.count >= 2) action = { x: cluster.x, y: cluster.y };
+                }
+
+                if (action && Math.random() < 0.75) {
+                    const ax = Math.max(80, Math.min(1000, action.x));
+                    const ay = Math.max(220, Math.min(1500, action.y));
+                    this.deployCard(2, spellId, ax, ay);
+                    return;
+                }
+            }
+
+            // 5. Unit deployment: defend the hot lane, otherwise attack the weakest
+            const playableCards = bot.hand.filter(cardId => {
                 const c = CARD_DATABASE[cardId];
-                return c && !c.isSpell && c.cost <= this.p2.energy;
+                return c && !c.isSpell && c.cost <= bot.energy;
             });
+            if (playableCards.length === 0) return;
 
-            if (playableCards.length > 0) {
-                const selectedCard = playableCards[Math.floor(Math.random() * playableCards.length)];
-                const cData = CARD_DATABASE[selectedCard];
-                const botSpawnY = (cData && cData.isBuilding) ? 440 : 360 + Math.floor(Math.random() * 80);
-                const botSpawnX = ARENA.LANES[chosenLane].x + (Math.random() - 0.5) * 60;
-                this.deployCard(2, selectedCard, botSpawnX, botSpawnY);
+            // 5a. Relay Core: fly an aerial unit down the air lane to capture it
+            // (hold aerials back while a heat cell is brewing on the flight corridor)
+            const stormInPath = this.thermalStorms.some(s => (s.active || s.warnTicks < 40) && s.y < 1250);
+            if (this.relayCore.cooldownTicks === 0 && !stormInPath && Math.random() < 0.45) {
+                const aerialCard = bot.hand.find(id => {
+                    const c = CARD_DATABASE[id];
+                    return c && c.isAerial && c.cost <= bot.energy;
+                });
+                if (aerialCard) {
+                    const ax = 540 + (Math.random() - 0.5) * 50;
+                    this.deployCard(2, aerialCard, ax, 440);
+                    return;
+                }
             }
+
+            const shouldDefend = hasThreat && Math.random() < 0.8;
+            let chosenLane;
+            if (shouldDefend) {
+                // Ground defense on the flanks only (the center air lane is not walkable)
+                chosenLane = (threatLane === 1) ? (Math.random() < 0.5 ? 0 : 2) : threatLane;
+            } else {
+                // Attack scoring on the flank lanes: prefer lanes with fewer friendly attackers
+                const myPresence = [0, 0, 0];
+                for (const u of this.units) {
+                    if (u.alive && u.owner === 2 && u.y > 850) myPresence[u.lane] += 1;
+                }
+                const scores = [0, 1, 2].map(l => (l === 1 ? 10 : 0) + myPresence[l] + laneThreat[l] * 0.3);
+                chosenLane = scores.indexOf(Math.min(scores[0], scores[1], scores[2]));
+            }
+
+            const roleBias = shouldDefend
+                ? { sentry_bunker: 3.0, inferno_tower: 2.6, mortar_cannon: 2.2, aero_repairer: 2.0, cyber_trooper: 1.6, electro_striker: 1.5, swarm_droids: 1.3, scout_drone: 1.3, plasma_caster: 1.2, ghost_sniper: 1.0, drone_factory: 1.0, mech_titan: 0.6 }
+                : { mech_titan: 1.7, ghost_sniper: 1.5, scout_drone: 1.4, swarm_droids: 1.3, plasma_caster: 1.3, electro_striker: 1.3, cyber_trooper: 1.2, drone_factory: 1.2, mortar_cannon: 1.0, sentry_bunker: 0.6, aero_repairer: 0.8, inferno_tower: 0.8 };
+
+            // --- Adaptive Bot: counter the human commander's observed playstyle ---
+            // The bot counts what the player has played (botIntel) and shifts its own
+            // deck priorities: lots of flyers -> shore up anti-air, lots of heavies -> swarms.
+            if (this.botIntel.aerial >= 2) {
+                roleBias.sentry_bunker = (roleBias.sentry_bunker || 1.0) + 0.8;
+                roleBias.ghost_sniper = (roleBias.ghost_sniper || 1.0) + 0.9;
+                roleBias.mech_titan = Math.max(0.4, (roleBias.mech_titan || 1.0) - 0.5);
+                if (!this.botIntel.announced.air) {
+                    this.botIntel.announced.air = true;
+                    this.addCombatLog('🤖 [تكيف] رصد البوت استراتيجيتك الجوية… يعزز مضاداته الهوائية!');
+                    this.emitEvent('bot_adapted', { focus: 'air' });
+                }
+            }
+            if (this.botIntel.heavy >= 2) {
+                roleBias.swarm_droids = (roleBias.swarm_droids || 1.0) + 0.8;
+                roleBias.ghost_sniper = (roleBias.ghost_sniper || 1.0) + 0.4;
+                if (!this.botIntel.announced.heavy) {
+                    this.botIntel.announced.heavy = true;
+                    this.addCombatLog('🤖 [تكيف] البوت يقرأ خطتك المدرعة… سيعيد الأسراب لكسر الدروع!');
+                    this.emitEvent('bot_adapted', { focus: 'heavy' });
+                }
+            }
+
+            let selectedCard = null;
+            let bestScore = -Infinity;
+            for (const cardId of playableCards) {
+                const c = CARD_DATABASE[cardId];
+                let s = (roleBias[cardId] !== undefined ? roleBias[cardId] : 1.0) + Math.random() * 0.8;
+                if (this.overtime && (c.isHeavy || c.role === 'striker')) s += 0.8; // push hard in sudden death
+                if (s > bestScore) { bestScore = s; selectedCard = cardId; }
+            }
+            if (!selectedCard) return;
+
+            const cData = CARD_DATABASE[selectedCard];
+            const laneX = ARENA.LANES[chosenLane].x;
+            const jitter = (Math.random() - 0.5) * 70;
+            const botSpawnX = Math.max(100, Math.min(980, laneX + jitter));
+            const botSpawnY = cData.isBuilding ? 430 : (360 + Math.floor(Math.random() * 90));
+            this.deployCard(2, selectedCard, botSpawnX, botSpawnY);
         }
 
         // --- SERIALIZATION FOR CLIENT INTERPOLATION ---
@@ -1973,6 +2478,7 @@
                 tick: this.currentTick,
                 state: this.state,
                 winner: this.winner,
+                dailyChampion: this.dailyChampionCardId,
                 overtime: this.overtime,
                 isOvertime: this.overtime,
                 isDoubleEnergy: (this.currentTick >= ARENA.DOUBLE_ENERGY_TICK || this.overtime || this.isTripleElixirMode),
@@ -1988,9 +2494,9 @@
                     nextCard: this.p1.queue[0] || null,
                     cannonCooldown: Math.ceil(this.p1.cannonCooldown / ARENA.TICK_RATE),
                     towers: {
-                        left: { x: this.p1.towers.left.x, y: this.p1.towers.left.y, hp: this.p1.towers.left.hp, maxHp: this.p1.towers.left.maxHp, alive: this.p1.towers.left.alive, isFrozen: (this.p1.towers.left.freezeTimer || 0) > 0 },
-                        main: { x: this.p1.towers.main.x, y: this.p1.towers.main.y, hp: this.p1.towers.main.hp, maxHp: this.p1.towers.main.maxHp, alive: this.p1.towers.main.alive, isFrozen: (this.p1.towers.main.freezeTimer || 0) > 0 },
-                        right: { x: this.p1.towers.right.x, y: this.p1.towers.right.y, hp: this.p1.towers.right.hp, maxHp: this.p1.towers.right.maxHp, alive: this.p1.towers.right.alive, isFrozen: (this.p1.towers.right.freezeTimer || 0) > 0 }
+                        left: { id: this.p1.towers.left.id, x: this.p1.towers.left.x, y: this.p1.towers.left.y, hp: this.p1.towers.left.hp, maxHp: this.p1.towers.left.maxHp, alive: this.p1.towers.left.alive, isFrozen: (this.p1.towers.left.freezeTimer || 0) > 0, isEnraged: (this.p1.towers.left.enragedTicks || 0) > 0 },
+                        main: { id: this.p1.towers.main.id, x: this.p1.towers.main.x, y: this.p1.towers.main.y, hp: this.p1.towers.main.hp, maxHp: this.p1.towers.main.maxHp, alive: this.p1.towers.main.alive, isFrozen: (this.p1.towers.main.freezeTimer || 0) > 0, isEnraged: (this.p1.towers.main.enragedTicks || 0) > 0 },
+                        right: { id: this.p1.towers.right.id, x: this.p1.towers.right.x, y: this.p1.towers.right.y, hp: this.p1.towers.right.hp, maxHp: this.p1.towers.right.maxHp, alive: this.p1.towers.right.alive, isFrozen: (this.p1.towers.right.freezeTimer || 0) > 0, isEnraged: (this.p1.towers.right.enragedTicks || 0) > 0 }
                     }
                 },
                 p2: {
@@ -1999,15 +2505,22 @@
                     isRedline: this.p2.isRedline,
                     cannonCooldown: Math.ceil(this.p2.cannonCooldown / ARENA.TICK_RATE),
                     towers: {
-                        left: { x: this.p2.towers.left.x, y: this.p2.towers.left.y, hp: this.p2.towers.left.hp, maxHp: this.p2.towers.left.maxHp, alive: this.p2.towers.left.alive, isFrozen: (this.p2.towers.left.freezeTimer || 0) > 0 },
-                        main: { x: this.p2.towers.main.x, y: this.p2.towers.main.y, hp: this.p2.towers.main.hp, maxHp: this.p2.towers.main.maxHp, alive: this.p2.towers.main.alive, isFrozen: (this.p2.towers.main.freezeTimer || 0) > 0 },
-                        right: { x: this.p2.towers.right.x, y: this.p2.towers.right.y, hp: this.p2.towers.right.hp, maxHp: this.p2.towers.right.maxHp, alive: this.p2.towers.right.alive, isFrozen: (this.p2.towers.right.freezeTimer || 0) > 0 }
+                        left: { id: this.p2.towers.left.id, x: this.p2.towers.left.x, y: this.p2.towers.left.y, hp: this.p2.towers.left.hp, maxHp: this.p2.towers.left.maxHp, alive: this.p2.towers.left.alive, isFrozen: (this.p2.towers.left.freezeTimer || 0) > 0, isEnraged: (this.p2.towers.left.enragedTicks || 0) > 0 },
+                        main: { id: this.p2.towers.main.id, x: this.p2.towers.main.x, y: this.p2.towers.main.y, hp: this.p2.towers.main.hp, maxHp: this.p2.towers.main.maxHp, alive: this.p2.towers.main.alive, isFrozen: (this.p2.towers.main.freezeTimer || 0) > 0, isEnraged: (this.p2.towers.main.enragedTicks || 0) > 0 },
+                        right: { id: this.p2.towers.right.id, x: this.p2.towers.right.x, y: this.p2.towers.right.y, hp: this.p2.towers.right.hp, maxHp: this.p2.towers.right.maxHp, alive: this.p2.towers.right.alive, isFrozen: (this.p2.towers.right.freezeTimer || 0) > 0, isEnraged: (this.p2.towers.right.enragedTicks || 0) > 0 }
                     }
                 },
                 relayCore: {
                     owner: this.relayCore.owner,
                     cooldown: Math.ceil(this.relayCore.cooldownTicks / ARENA.TICK_RATE)
                 },
+                thermalStorms: this.thermalStorms.map(s => ({
+                    id: s.id,
+                    x: s.x, y: s.y, radius: s.radius,
+                    active: s.active,
+                    warnTicks: Math.max(0, s.warnTicks),
+                    activeTicks: Math.max(0, s.activeTicks)
+                })),
                 units: this.units.map(u => ({
                     id: u.id,
                     owner: u.owner,
@@ -2031,7 +2544,15 @@
                     healer: !!u.healer,
                     healingTargetId: u.healingTargetId || null,
                     level: u.level || 1,
-                    state: u.state
+                    state: u.state,
+                    isRamping: !!u.isRamping,
+                    beamTargetId: u.beamTargetId || null,
+                    beamDuration: Math.round((u.beamDuration || 0) * 100) / 100,
+                    maxRampDamage: u.maxRampDamage || 0,
+                    decayTimer: u.decayTimer > 0 ? Math.round(u.decayTimer * 10) / 10 : 0,
+                    decayTotal: u.decayTotal || 0,
+                    isSlowed: (u.slowTimer || 0) > 0,
+                    isBurning: (u.burnTimer || 0) > 0
                 })),
                 combatFeed: this.combatFeed.slice(0, 15)
             };
