@@ -1,0 +1,27 @@
+{
+  "name": "cyberclash",
+  "version": "1.1.0",
+  "description": "CyberClash - Real-time Tactical Cyber Arena with WebSockets & Render Deployment",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "game",
+    "real-time",
+    "tactical",
+    "multiplayer",
+    "clash-royale-style",
+    "cyberpunk"
+  ],
+  "author": "Commander",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

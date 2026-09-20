@@ -1,25 +1,18 @@
 {
-  "name": "cyberclash",
-  "version": "1.1.0",
-  "description": "CyberClash - Real-time Tactical Cyber Arena with WebSockets & Render Deployment",
+  "name": "masna3",
+  "version": "0.1.0",
+  "description": "MASNA3 - Car Company Tycoon (Arabic, turn-based management game)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node test_engine.js"
   },
-  "keywords": [
-    "game",
-    "real-time",
-    "tactical",
-    "multiplayer",
-    "clash-royale-style",
-    "cyberpunk"
-  ],
+  "keywords": ["game", "tycoon", "cars", "management", "arabic"],
   "author": "Commander",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.19.2",
-    "ws": "^8.18.0"
+    "express": "^4.19.2"
   },
   "engines": {
     "node": ">=18.0.0"

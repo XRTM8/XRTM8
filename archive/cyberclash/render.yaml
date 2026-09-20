@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: masna3
+    name: cyberclash
     env: node
     plan: free
     buildCommand: npm install
