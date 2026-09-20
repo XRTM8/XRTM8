@@ -6725,11 +6725,31 @@
                                 </div>
                                 <div class="codex-row">
                                     <span class="codex-tag cyan">حرية الإنزال</span>
-                                    <span>يمكنك إنزال وحداتك بأي نقطة في نصف ملعبك، وسيتوجهون تلقائياً نحو أقرب جسر عبور لمهاجمة أبراج العدو.</span>
+                                    <span>انزل وحداتك الأرضية بأي نقطة في نصف ملعبك، وسيتوجهون تلقائياً نحو أقرب جسر جانبي (الجسر الأوسط أزيل عن الأرض!).</span>
+                                </div>
+                                <div class="codex-row">
+                                    <span class="codex-tag gold">الممر الجوي الفائق AIR HYPER-LANE</span>
+                                    <span>الوحدات الجوية (✈️) تحلق فوق الشق بخط مستقيم صوب القلعة الرئيسية وتسيطر على نواة الطاقة المركزية — لكنها تتلقى +25% ضرراً من الأبراج!</span>
+                                </div>
+                                <div class="codex-row">
+                                    <span class="codex-tag red">أرضي / جوي</span>
+                                    <span>المدرعات الثقيلة والهاون والمشاة لا يستهدفون الجوي! استخدم خنادق 360° والوحدات الشاملة والمدفع المضاد الجوي.</span>
+                                </div>
+                                <div class="codex-row">
+                                    <span class="codex-tag gold">غضب الوصي</span>
+                                    <span>عند نزول القلعة الرئيسية تحت 40% صحة تستشعل 15 ثانية: +40% ضرر و +30% مدى. حسم النزال قبل الغضب!</span>
+                                </div>
+                                <div class="codex-row">
+                                    <span class="codex-tag red">العاصفة الحرارية THERMAL STORM</span>
+                                    <span>خلايا حرارية متكررة فوق الممر الجوي تحرق الطائرات (55 ضرر/ث) — تحذير مسبق 3 ثوانٍ: اعبر حواف الممر أو زامن إنزال سربك خارج الانفجار.</span>
+                                </div>
+                                <div class="codex-row">
+                                    <span class="codex-tag cyan">البوت التكيّفي ADAPTIVE BOT</span>
+                                    <span>بوت الحاسب يقرأ بطاقاتك أثناء النزال: كثرة الطيران تعزز مضاداته الهوائية، وكثرة المدرعات تستدعي أسرابه — غيّر أسلوبك!</span>
                                 </div>
                                 <div class="codex-row">
                                     <span class="codex-tag gold">دمج النجوم STAR FUSION</span>
-                                    <span>إنزال وحدتين من نفس النوع في مسار واحد يصهرهم في وحدة خارقة برتبة نجمة ⭐ ذات درع مضاعف وضرر فتاك!</span>
+                                    <span>إنزال وحدتين من نفس النوع في مسار واحد يصهرهم في وحدة خارقة برتبة نجمة ⭐ ذات درع مضاعف وضرر فتاك (الجوي يبقى جوياً بعد الدمج)!</span>
                                 </div>
                                 <div class="codex-row">
                                     <span class="codex-tag cyan">مدفع القيادة CANNON</span>
@@ -6813,7 +6833,7 @@
                     <div class="bar-track"><div id="pressure-lane-0" class="bar-fill" style="width: 50%;"></div></div>
                 </div>
                 <div class="lane-bar-row">
-                    <span style="min-width: 65px; color: var(--amber-gold);">الأوسط:</span>
+                    <span style="min-width: 65px; color: #38BDF8;">✈️ الجوي:</span>
                     <div class="bar-track"><div id="pressure-lane-1" class="bar-fill hyper" style="width: 50%;"></div></div>
                 </div>
                 <div class="lane-bar-row">
@@ -8365,7 +8385,9 @@
             drone_factory: { ar: 'مصنع درويدات السايبر', en: 'Drone Factory', roleAr: 'مبنى إنتاج', roleEn: 'Spawner Building' },
             cryo_freeze: { ar: 'نبضة الصقيع الكريستالية', en: 'Cryo Freeze', roleAr: 'تعويذة تجميد', roleEn: 'Freeze Spell' },
             inferno_tower: { ar: 'برج الصهر الحراري', en: 'Inferno Tower', roleAr: 'برج حارق', roleEn: 'Beam Tower' },
-            electro_striker: { ar: 'صاعق الكوانتوم المكهرب', en: 'Electro Striker', roleAr: 'مشاة صعق', roleEn: 'Chain Striker' }
+            electro_striker: { ar: 'صاعق الكوانتوم المكهرب', en: 'Electro Striker', roleAr: 'مشاة صعق', roleEn: 'Chain Striker' },
+            quantum_reactor: { ar: 'المفاعل الكوانتي للطاقة', en: 'Quantum Reactor', roleAr: 'مبنى اقتصاد', roleEn: 'Energy Economy' },
+            sky_zap: { ar: 'الصاعقة السحابية', en: 'Sky Zap', roleAr: 'مضاد جوي', roleEn: 'Anti-Air Spell' }
         };
 
         function getCardDisplayName(cardId) {
@@ -8651,7 +8673,7 @@
             swarm_droids: 1, emp_overcharge: 1, nano_repair: 1, plasma_mod: 1,
             ghost_sniper: 1, sentry_bunker: 1, orbital_salvo: 1, aero_repairer: 1,
             mortar_cannon: 1, drone_factory: 1, cryo_freeze: 1,
-            inferno_tower: 1, electro_striker: 1
+            inferno_tower: 1, electro_striker: 1, quantum_reactor: 1, sky_zap: 1
         };
 
         // All cards start with 2 required duplicates to reach Lv 2
@@ -8673,7 +8695,9 @@
             drone_factory: { count: 1, max: 2 },
             cryo_freeze: { count: 1, max: 2 },
             inferno_tower: { count: 1, max: 2 },
-            electro_striker: { count: 1, max: 2 }
+            electro_striker: { count: 1, max: 2 },
+            quantum_reactor: { count: 0, max: 2 },
+            sky_zap: { count: 1, max: 2 }
         };
 
         // 4 Cyber Chest Slots
@@ -10110,6 +10134,42 @@
   <circle cx="60" cy="22" r="4" fill="url(#es-spark)"/>
 </svg>`;
 
+                case 'sky_zap':
+                    return `<svg viewBox="0 0 100 100" class="card-unit-artwork" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sz-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0a1a33"/><stop offset="100%" stop-color="#030712"/></linearGradient>
+    <linearGradient id="sz-bolt" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#e0f2fe"/><stop offset="100%" stop-color="#38bdf8"/></linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="10" fill="url(#sz-bg)"/>
+  <path d="M18 38 Q30 22 48 30 Q58 20 72 28 Q88 24 86 40 Q92 50 78 54 L24 54 Q12 50 18 38 Z" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+  <polygon points="52,18 38,52 49,52 42,84 66,44 54,44 62,18" fill="url(#sz-bolt)" stroke="#e0f2fe" stroke-width="1"/>
+  <circle cx="26" cy="70" r="3" fill="#38bdf8"/>
+  <circle cx="74" cy="66" r="2.5" fill="#7dd3fc"/>
+  <circle cx="60" cy="78" r="2" fill="#e0f2fe"/>
+</svg>`;
+
+                case 'quantum_reactor':
+                    return `<svg viewBox="0 0 100 100" class="card-unit-artwork" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="qr-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#06231c"/><stop offset="100%" stop-color="#030712"/></linearGradient>
+    <radialGradient id="qr-core" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#ffffff"/><stop offset="45%" stop-color="#34d399"/><stop offset="100%" stop-color="rgba(16,185,129,0)"/></radialGradient>
+  </defs>
+  <rect width="100" height="100" rx="10" fill="url(#qr-bg)"/>
+  <polygon points="50,14 81,32 81,68 50,86 19,68 19,32" fill="#0b1220" stroke="#10b981" stroke-width="2"/>
+  <circle cx="50" cy="50" r="26" fill="none" stroke="rgba(52,211,153,0.65)" stroke-width="1.8" stroke-dasharray="7 6"/>
+  <circle cx="50" cy="50" r="14" fill="url(#qr-core)"/>
+  <circle cx="50" cy="50" r="5" fill="#ffffff"/>
+  <rect x="47" y="16" width="6" height="14" fill="rgba(52,211,153,0.75)"/>
+  <circle cx="27" cy="34" r="4" fill="#1e293b" stroke="#34d399" stroke-width="1.2"/>
+  <circle cx="73" cy="34" r="4" fill="#1e293b" stroke="#34d399" stroke-width="1.2"/>
+  <circle cx="27" cy="66" r="4" fill="#1e293b" stroke="#34d399" stroke-width="1.2"/>
+  <circle cx="73" cy="66" r="4" fill="#1e293b" stroke="#34d399" stroke-width="1.2"/>
+  <line x1="30" y1="36" x2="44" y2="46" stroke="rgba(52,211,153,0.4)" stroke-width="1.2"/>
+  <line x1="70" y1="36" x2="56" y2="46" stroke="rgba(52,211,153,0.4)" stroke-width="1.2"/>
+  <line x1="30" y1="64" x2="44" y2="54" stroke="rgba(52,211,153,0.4)" stroke-width="1.2"/>
+  <line x1="70" y1="64" x2="56" y2="54" stroke="rgba(52,211,153,0.4)" stroke-width="1.2"/>
+</svg>`;
+
                 default:
                     return `<svg viewBox="0 0 100 100" class="card-unit-artwork" xmlns="http://www.w3.org/2000/svg">
   <rect width="100" height="100" rx="10" fill="#0b1220"/>
@@ -10471,6 +10531,7 @@
                 else if (m.tier1Claimed) masteryStars = '⭐';
 
                 const rarity = c.rarity || 'common';
+                const isDailyChampion = (id === getDailyChampionCardId());
                 const cardEl = document.createElement('div');
                 cardEl.className = 'cr-card-clean rarity-' + rarity + (inDeck ? ' in-active-deck' : '') + (c.isSpell ? ' spell-type' : '') + (canAffordUpgrade ? ' can-upgrade' : '');
                 cardEl.setAttribute('data-card-id', id);
@@ -10479,6 +10540,7 @@
                     <div class="cr-card-elixir"><span>${c.cost}</span></div>
                     <span class="cr-card-level">Lv.${lvl}</span>
                     ${inDeck ? `<div class="cr-card-in-deck-pill">✓ بالتشكيلة</div>` : ''}
+                    ${isDailyChampion ? `<div class="cr-card-in-deck-pill" style="top: 76px; background: linear-gradient(135deg, rgba(251, 191, 36, 0.95), rgba(217, 119, 6, 0.95)); border-color: #FCD34D;">⭐ بطاقة اليوم</div>` : ''}
                     ${masteryStars ? `<span class="cr-card-mastery-stars">${masteryStars}</span>` : ''}
                     <div class="cr-card-art-frame">
                         ${getCardIllustration(id)}
@@ -13661,6 +13723,17 @@
 
         currentMatchWagerTier = null;
 
+        // Daily Champion Card (same deterministic algorithm as the server)
+        function getDailyChampionCardId() {
+            try {
+                const keys = Object.keys(TacticalGameRoom.CARD_DATABASE);
+                const d = new Date();
+                const seed = d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate();
+                return keys[seed % keys.length];
+            } catch (_) { return null; }
+        }
+        window.getDailyChampionCardId = getDailyChampionCardId;
+
         // Start Battle Buttons Handlers
         function startBattleAction(e, multiplayerData = null) {
             console.log('startBattleAction triggered!', multiplayerData ? 'ONLINE MULTIPLAYER' : 'LOCAL AI BOT');
@@ -13790,6 +13863,43 @@
                     }
                 }
             }
+            else if (evt.type === 'tower_enrage') {
+                audio.playExplosion();
+                if (!isMultiplayerMatch && typeof triggerBotEmote === 'function') {
+                    setTimeout(() => triggerBotEmote('🔥', evt.owner === 2 ? 'قلعتي غاضبة! 🔥' : 'احذر القلعة الغاضبة! ⚠️'), 300);
+                }
+            }
+            else if (evt.type === 'energy_generated') {
+                if (evt.owner === 1) {
+                    try { audio.playDoubleEnergy(); } catch (_) {}
+                }
+            }
+            else if (evt.type === 'sky_zap_pulse') {
+                audio.playRedline();
+                if (!isMultiplayerMatch && typeof triggerBotEmote === 'function' && (evt.hits || 0) >= 2) {
+                    setTimeout(() => triggerBotEmote('🪽', 'سماؤك مشتعلة! ⚡'), 300);
+                }
+            }
+            else if (evt.type === 'daily_champion') {
+                try { audio.playDoubleEnergy(); } catch (_) {}
+            }
+            else if (evt.type === 'thermal_storm') {
+                if (evt.phase === 'warning') {
+                    audio.playHazardThunder(true);
+                } else if (evt.phase === 'active') {
+                    audio.playExplosion();
+                    if (!isMultiplayerMatch && typeof triggerBotEmote === 'function') {
+                        setTimeout(() => triggerBotEmote('🔥', 'سأدع الحرارة تفتك بسربك! 🔥'), 300);
+                    }
+                }
+            }
+            else if (evt.type === 'bot_adapted') {
+                try { audio.playRedline(); } catch (_) {}
+                if (!isMultiplayerMatch && typeof triggerBotEmote === 'function') {
+                    const adaptMsgs = { air: 'لاحظت طيرانك… مضاداتي الهوائية جاهزة! 🛡️', heavy: 'مدرعاتك؟ الأسراب تعشق الفولاذ! 🐝' };
+                    setTimeout(() => triggerBotEmote('🤖', adaptMsgs[evt.focus] || 'تكيفت مع أسلوبك! 🤖'), 300);
+                }
+            }
             else if (evt.type === 'sniper_fire') audio.playSniperFire();
             else if (evt.type === 'turret_fire') audio.playGatling();
             else if (evt.type === 'mortar_fire') audio.playMortarLaunch();
@@ -13820,9 +13930,11 @@
         }
 
         let currentOpponentDisplayName = 'الخصم التكتيكي';
+        let gameOverHandled = false; // Guards against double reward application (local + online paths)
 
         function initBattleMatch(multiplayerData = null) {
             currentHandCache = '';
+            gameOverHandled = false;
             if (gameLoopInterval) {
                 clearInterval(gameLoopInterval);
                 gameLoopInterval = null;
@@ -13857,6 +13969,7 @@
                     p1Deck: [...playerActiveDeck],
                     p1Level: isGrandChallengeMatch ? 5 : playerLevel,
                     p1CardLevels: { ...playerCardLevels },
+                    dailyChampionCardId: getDailyChampionCardId(),
                     onEvent: (evt) => handleBattleAudioEvent(evt)
                 });
                 gameRoom.start();
@@ -13884,6 +13997,7 @@
                     p1Deck: [...playerActiveDeck],
                     p1Level: playerLevel,
                     p1CardLevels: { ...playerCardLevels },
+                    dailyChampionCardId: getDailyChampionCardId(),
                     onEvent: (evt) => handleBattleAudioEvent(evt)
                 });
 
@@ -13910,14 +14024,38 @@
                     }
                 };
 
+                // Proxy fusion trigger over WebSocket to server
+                gameRoom.attemptFusion = (pNum, catalystCardId, unitId) => {
+                    if (activeMultiplayerWs && activeMultiplayerWs.readyState === WebSocket.OPEN) {
+                        activeMultiplayerWs.send(JSON.stringify({
+                            type: 'match_action_fusion',
+                            cardId: catalystCardId,
+                            unitId
+                        }));
+                    }
+                    return { success: true };
+                };
+
                 // Listen for server snapshots during live multiplayer
                 if (activeMultiplayerWs) {
                     activeMultiplayerWs.onmessage = (event) => {
                         try {
                             const msg = JSON.parse(event.data);
                             if (msg.type === 'game_snapshot') {
-                                renderer.feedSnapshot(msg.snapshot);
-                                updateUI(msg.snapshot);
+                                const s = msg.snapshot;
+                                // Mirror live server values onto the local room so HUD checks
+                                // (cannon cooldown, energy, redline, hand) stay accurate online
+                                if (gameRoom && gameRoom.p1 && s.p1) {
+                                    gameRoom.p1.energy = s.p1.energy;
+                                    gameRoom.p1.maxEnergy = s.p1.maxEnergy;
+                                    gameRoom.p1.isRedline = !!s.p1.isRedline;
+                                    gameRoom.p1.cannonCooldown = (s.p1.cannonCooldown || 0) * 20; // seconds -> ticks
+                                    if (Array.isArray(s.p1.hand) && s.p1.hand.length === 4) {
+                                        gameRoom.p1.hand = [...s.p1.hand];
+                                    }
+                                }
+                                renderer.feedSnapshot(s);
+                                updateUI(s);
                             } else if (msg.type === 'battle_event') {
                                 handleBattleAudioEvent(msg.event);
                             } else if (msg.type === 'match_finished') {
@@ -13942,9 +14080,15 @@
                     const card = TacticalGameRoom.CARD_DATABASE[cardId];
                     const hintEl = document.getElementById('tactical-dock-hint');
                     if (hintEl && card) {
-                        if (card.isSpell) {
+                        if (card.isSpell && Array.isArray(card.catalystFor) && card.catalystFor.length > 0) {
                             hintEl.className = 'tactical-dock-hint spell-active';
-                            hintEl.textContent = '⚡ تعويذة شاملة (دائرة 320px): تؤثر على جميع الجنود بالدائرة، أو اسحبها لوحدة لدمجها (Fusion)!';
+                            hintEl.textContent = '⚡ اسحب التعويذة على وحدة صديقة متوافقة لتفعيل الدمج (FUSION) أو ألقها كضربة تكتيكية شاملة!';
+                        } else if (card.isSpell) {
+                            hintEl.className = 'tactical-dock-hint spell-active';
+                            hintEl.textContent = '⚡ تعويذة شاملة (دائرة 340px): تؤثر على جميع الجنود داخل الدائرة!';
+                        } else if (card.isAerial) {
+                            hintEl.className = 'tactical-dock-hint unit-active';
+                            hintEl.textContent = '✈️ وحدة جوية: تعبر الشق مباشرة بخط مستقيم وتستطيع السيطرة على نواة الطاقة! (تتلقى +25% ضرراً من الأبراج)';
                         } else if (card.id === 'ghost_sniper') {
                             hintEl.className = 'tactical-dock-hint unit-active';
                             hintEl.textContent = '🎯 قناص شبح: تخفي بصري لمدة 2.5 ثانية واستهداف الوحدات الأقوى أولاً!';
@@ -13963,6 +14107,15 @@
                         } else if (card.id === 'electro_striker') {
                             hintEl.className = 'tactical-dock-hint unit-active';
                             hintEl.textContent = '⚡ الصاعق الأسطوري: صعق مزدوج مع شلل Micro-Stun لتعطيل الهجمات وتفريغ الشحن!';
+                        } else if (card.id === 'quantum_reactor') {
+                            hintEl.className = 'tactical-dock-hint unit-active';
+                            hintEl.textContent = '🔋 مفاعل الكوانتي: يولّد +1 طاقة كل 7 ثوانٍ (4 دورات) بجسم صلب 900 HP يمتص نيران العدو!';
+                        } else if (card.id === 'sky_zap') {
+                            hintEl.className = 'tactical-dock-hint spell-active';
+                            hintEl.textContent = '⚡ الصاعقة السحابية: مضاد جوي فوري! 200 ضرر + صعق + إبطاء لكل الطائرات المعادية في الدائرة (340px) — لا تؤثر على الأرضيين!';
+                        } else if (card.id === 'cyber_trooper' || card.id === 'mech_titan' || card.id === 'mortar_cannon') {
+                            hintEl.className = 'tactical-dock-hint unit-active';
+                            hintEl.textContent = '⚠️ وحدة أرضية: لا تستطيع استهداف الوحدات الجوية! اعتمد على الخنادق 360° والمضادات الجوية.';
                         } else if (card.isHeavy) {
                             hintEl.className = 'tactical-dock-hint unit-active';
                             hintEl.textContent = '🛡️ مدرعة ثقيلة: المس نصف ملعبك للإنزال الفوري والتقدم لأقرب جسر!';
@@ -14100,7 +14253,7 @@
             // Intel Updates
             intelRelayStatus.textContent = snapshot.relayCore.cooldown > 0
                 ? `تبريد (${snapshot.relayCore.cooldown}s)`
-                : 'جاهز للاستحواذ';
+                : 'جاهز (للجوي فقط)';
             intelRelayStatus.style.color = snapshot.relayCore.cooldown > 0 ? '#94A3B8' : 'var(--amber-gold)';
 
             intelBotCannon.textContent = snapshot.p2.cannonCooldown > 0
@@ -14193,15 +14346,15 @@
                 let typeBadge = '<span class="card-type-tag troop">وحدة</span>';
 
                 if (card.id === 'scout_drone') {
-                    typeBadge = '<span class="card-type-tag troop">استطلاع جوي</span>';
+                    typeBadge = '<span class="card-type-tag troop">✈️ استطلاع جوي</span>';
                 } else if (card.id === 'cyber_trooper') {
                     typeBadge = '<span class="card-type-tag troop">مشاة هجوم</span>';
                 } else if (card.id === 'mech_titan') {
                     typeBadge = '<span class="card-type-tag heavy">مدرعة ثقيلة</span>';
                 } else if (card.id === 'plasma_caster') {
-                    typeBadge = '<span class="card-type-tag heavy">مدفعية هاون</span>';
+                    typeBadge = '<span class="card-type-tag heavy">✈️ مدفعية جوية</span>';
                 } else if (card.id === 'swarm_droids') {
-                    typeBadge = '<span class="card-type-tag troop">سرب كاسح (x4)</span>';
+                    typeBadge = '<span class="card-type-tag troop">✈️ سرب كاسح (x4)</span>';
                 } else if (card.id === 'emp_overcharge') {
                     typeBadge = '<span class="card-type-tag spell">صعقة إلكترونية</span>';
                 } else if (card.id === 'nano_repair') {
@@ -14226,6 +14379,10 @@
                     typeBadge = '<span class="card-type-tag heavy">برج ليزر متصاعد</span>';
                 } else if (card.id === 'electro_striker') {
                     typeBadge = '<span class="card-type-tag troop">صاعق كهرومغناطيسي</span>';
+                } else if (card.id === 'quantum_reactor') {
+                    typeBadge = '<span class="card-type-tag heavy">🔋 مولد طاقة (اقتصاد)</span>';
+                } else if (card.id === 'sky_zap') {
+                    typeBadge = '<span class="card-type-tag spell">⚡ مضاد جوي</span>';
                 }
 
                 cardEl.innerHTML = `
@@ -14259,6 +14416,10 @@
 
         // --- NON-BLOCKING GAME OVER MODAL CONTROLLER ---
         function showGameOverModal(snapshot) {
+            // Rewards & battle log must be applied exactly once per match
+            if (gameOverHandled) return;
+            gameOverHandled = true;
+
             const modal = document.getElementById('modal-game-over');
             const iconEl = document.getElementById('game-over-icon');
             const titleEl = document.getElementById('game-over-title');

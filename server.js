@@ -18,6 +18,14 @@ const wss = new WebSocketServer({ server, path: '/ws' });
 
 const PORT = process.env.PORT || 3000;
 
+// Daily Champion Card: deterministic per calendar day (same algorithm on client & server)
+function getDailyChampionCardId() {
+    const keys = Object.keys(TacticalGameRoom.CARD_DATABASE);
+    const d = new Date();
+    const seed = d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate();
+    return keys[seed % keys.length];
+}
+
 // Middleware
 app.use(express.json({ limit: '2mb' }));
 app.use(express.static(path.join(__dirname)));
@@ -246,6 +254,18 @@ function handleClientMessage(ws, data) {
             match.room.triggerCommandCannon(playerNum, laneIndex);
             break;
         }
+
+        case 'match_action_fusion': {
+            if (!ws.currentRoomId) return;
+            const match = activeRooms.get(ws.currentRoomId);
+            if (!match || !match.room) return;
+
+            const playerNum = (ws === match.p1Ws) ? 1 : 2;
+            const unitId = parseInt(data.unitId, 10) || 0;
+            if (!data.cardId || !unitId) return;
+            match.room.attemptFusion(playerNum, data.cardId, unitId);
+            break;
+        }
     }
 }
 
@@ -267,6 +287,7 @@ function createMultiplayerMatch(player1, player2) {
         p1CardLevels: player1.cardLevels || {},
         p2CardLevels: player2.cardLevels || {},
         isTripleElixir: player1.isTripleElixir || player2.isTripleElixir,
+        dailyChampionCardId: getDailyChampionCardId(),
         onEvent: (evt) => {
             broadcastToRoom(roomId, { type: 'battle_event', event: evt });
         }
@@ -294,11 +315,24 @@ function createMultiplayerMatch(player1, player2) {
 
             if (snapshot.state === 'OVER') {
                 clearInterval(loopInterval);
-                broadcastToRoom(roomId, {
-                    type: 'match_finished',
-                    winner: snapshot.winner,
-                    snapshot
-                });
+                // P1 receives the raw perspective (winner 1 = P1 win)
+                if (player1.ws.readyState === WebSocket.OPEN) {
+                    player1.ws.send(JSON.stringify({
+                        type: 'match_finished',
+                        winner: snapshot.winner,
+                        snapshot
+                    }));
+                }
+                // P2 receives a perspective-corrected view: flipped snapshot + swapped winner,
+                // so the client's "winner === 1 means I won" logic stays true for both sides.
+                if (player2.ws.readyState === WebSocket.OPEN) {
+                    const p2Winner = snapshot.winner === 1 ? 2 : (snapshot.winner === 2 ? 1 : snapshot.winner);
+                    player2.ws.send(JSON.stringify({
+                        type: 'match_finished',
+                        winner: p2Winner,
+                        snapshot: createP2Snapshot(snapshot)
+                    }));
+                }
                 activeRooms.delete(roomId);
             }
         } catch (err) {
@@ -363,7 +397,14 @@ function createP2Snapshot(s) {
         inverted.relayCore.owner = inverted.relayCore.owner === 1 ? 2 : (inverted.relayCore.owner === 2 ? 1 : 0);
     }
 
-    // Build P2's friendly towers (which were P2 towers at top y: 450/330, mirrored to bottom y: 1160/1280)
+    // Invert thermal storm cells over the air corridor (x=540 maps onto itself)
+    inverted.thermalStorms = (inverted.thermalStorms || []).map(s => ({
+        ...s,
+        x: 1080 - s.x,
+        y: 1920 - s.y
+    }));
+
+    // Build P2's friendly towers (which were P2 towers at top y: 450/295, mirrored to bottom y: 1160/1315)
     const p2FriendlyTowers = {
         left: {
             x: 230,
@@ -371,15 +412,17 @@ function createP2Snapshot(s) {
             hp: s.p2.towers.right.hp,
             maxHp: s.p2.towers.right.maxHp,
             alive: s.p2.towers.right.alive,
-            isFrozen: s.p2.towers.right.isFrozen
+            isFrozen: s.p2.towers.right.isFrozen,
+            isEnraged: s.p2.towers.right.isEnraged
         },
         main: {
             x: 540,
-            y: 1280,
+            y: 1315,
             hp: s.p2.towers.main.hp,
             maxHp: s.p2.towers.main.maxHp,
             alive: s.p2.towers.main.alive,
-            isFrozen: s.p2.towers.main.isFrozen
+            isFrozen: s.p2.towers.main.isFrozen,
+            isEnraged: s.p2.towers.main.isEnraged
         },
         right: {
             x: 850,
@@ -387,11 +430,12 @@ function createP2Snapshot(s) {
             hp: s.p2.towers.left.hp,
             maxHp: s.p2.towers.left.maxHp,
             alive: s.p2.towers.left.alive,
-            isFrozen: s.p2.towers.left.isFrozen
+            isFrozen: s.p2.towers.left.isFrozen,
+            isEnraged: s.p2.towers.left.isEnraged
         }
     };
 
-    // Build P2's enemy towers (which were P1 towers at bottom y: 1160/1280, mirrored to top y: 450/330)
+    // Build P2's enemy towers (which were P1 towers at bottom y: 1160/1315, mirrored to top y: 450/295)
     const p2EnemyTowers = {
         left: {
             x: 230,
@@ -399,15 +443,17 @@ function createP2Snapshot(s) {
             hp: s.p1.towers.right.hp,
             maxHp: s.p1.towers.right.maxHp,
             alive: s.p1.towers.right.alive,
-            isFrozen: s.p1.towers.right.isFrozen
+            isFrozen: s.p1.towers.right.isFrozen,
+            isEnraged: s.p1.towers.right.isEnraged
         },
         main: {
             x: 540,
-            y: 330,
+            y: 295,
             hp: s.p1.towers.main.hp,
             maxHp: s.p1.towers.main.maxHp,
             alive: s.p1.towers.main.alive,
-            isFrozen: s.p1.towers.main.isFrozen
+            isFrozen: s.p1.towers.main.isFrozen,
+            isEnraged: s.p1.towers.main.isEnraged
         },
         right: {
             x: 850,
@@ -415,7 +461,8 @@ function createP2Snapshot(s) {
             hp: s.p1.towers.left.hp,
             maxHp: s.p1.towers.left.maxHp,
             alive: s.p1.towers.left.alive,
-            isFrozen: s.p1.towers.left.isFrozen
+            isFrozen: s.p1.towers.left.isFrozen,
+            isEnraged: s.p1.towers.left.isEnraged
         }
     };
 
