@@ -66,6 +66,23 @@ class Renderer {
         this.poolIndex = 0;
         this.particles = this.particlePool; // Backwards compatibility reference
 
+        // === Performance Overhaul: pre-render caches ===
+        // 60 FPS is won by remembering, not by redrawing:
+        //  - _glowCache: soft radial glow sprites (replaces per-frame shadowBlur)
+        //  - _bulletSpriteCache: fully painted projectile sprites per weapon+color
+        //  - _staticLayer: floor+grid+boundary+obstacles baked into one canvas per map
+        //  - _fowCache: Fog-of-War visibility polygon rebuilt at ~11Hz instead of 60Hz
+        //  - _vignette: red tension vignette baked per screen size
+        this._glowCache = new Map();
+        this._bulletSpriteCache = new Map();
+        this._staticLayer = null;
+        this._staticLayerKey = '';
+        this._fowCache = { ox: 0, oy: 0, t: 0, poly: null };
+        this._vignette = null;
+        this.perfTier = 2;          // 2 = full fx, 1 = reduced, 0 = minimal
+        this.perfMode = 'auto';     // 'auto' | 'quality' | 'turbo'
+        this._spriteSeatWarned = false;
+
         this.floatingTexts = [];
         this.announcements = [];
         this.damageIndicators = [];
@@ -132,6 +149,246 @@ class Renderer {
 
         this.ctx.resetTransform();
         this.ctx.scale(this.dpr * scale, this.dpr * scale);
+
+        // Resolution change invalidates screen-space caches
+        this._vignette = null;
+    }
+
+    /* ================= PERFORMANCE OVERHAUL CORE =================
+     * All glow is pre-rendered ONCE per color into soft sprites and then
+     * stamped with drawImage (GPU) instead of re-blurring shapes every
+     * frame with ctx.shadowBlur (CPU). This removes 100+ Gaussian blurs
+     * per frame during heavy fights.
+     */
+
+    setPerfTier(tier) {
+        this.perfTier = Math.max(0, Math.min(2, tier | 0));
+    }
+
+    getGlowSprite(color) {
+        let sprite = this._glowCache.get(color);
+        if (!sprite) {
+            const size = 128;
+            sprite = document.createElement('canvas');
+            sprite.width = size;
+            sprite.height = size;
+            const c = sprite.getContext('2d');
+            const g = c.createRadialGradient(size / 2, size / 2, 1, size / 2, size / 2, size / 2);
+            g.addColorStop(0, hexToRgba(color, 0.9));
+            g.addColorStop(0.3, hexToRgba(color, 0.45));
+            g.addColorStop(0.65, hexToRgba(color, 0.14));
+            g.addColorStop(1, hexToRgba(color, 0));
+            c.fillStyle = g;
+            c.fillRect(0, 0, size, size);
+            this._glowCache.set(color, sprite);
+        }
+        return sprite;
+    }
+
+    stampGlow(ctx, x, y, radius, color, alpha = 0.8) {
+        if (radius <= 0.5 || alpha <= 0.01) return;
+        const sprite = this.getGlowSprite(color);
+        ctx.globalAlpha = alpha;
+        ctx.drawImage(sprite, x - radius, y - radius, radius * 2, radius * 2);
+        ctx.globalAlpha = 1;
+    }
+
+    invalidateStaticLayer() {
+        this._staticLayer = null;
+        this._staticLayerKey = '';
+    }
+
+    /**
+     * Bakes the arena floor, neon grid, glowing boundary and ALL obstacles
+     * into a single offscreen canvas per map — the per-frame cost falls from
+     * ~200 path ops + dozens of shadowBlur calls to ONE drawImage.
+     */
+    renderStaticWorld(ctx, game) {
+        const size = game.arenaSize || 2200;
+        const obstacles = game.obstacles || [];
+
+        if (!this._staticLayer) {
+            if (this._staticLayerKey !== 'failed') {
+                this._buildStaticLayer(size, obstacles);
+            }
+        }
+        if (this._staticLayer) {
+            const c = this._staticLayer;
+            ctx.drawImage(c.canvas, -c.half, -c.half, c.dim, c.dim);
+            return;
+        }
+        // Fallback path (canvas allocation failed on a constrained device)
+        this.renderArena(ctx, size);
+        this.renderObstacles(ctx, obstacles);
+    }
+
+    _buildStaticLayer(size, obstacles) {
+        try {
+            const dim = Math.ceil(size + 48); // padding for neon glow bleed
+            const cnv = document.createElement('canvas');
+            cnv.width = dim;
+            cnv.height = dim;
+            const cc = cnv.getContext('2d');
+            if (!cc) throw new Error('no 2d ctx');
+
+            const half = size / 2;
+            cc.translate(dim / 2, dim / 2);
+
+            // Deep background
+            cc.fillStyle = '#06080e';
+            cc.fillRect(-dim / 2, -dim / 2, dim, dim);
+
+            // Tactical neon grid
+            cc.strokeStyle = 'rgba(0, 240, 255, 0.04)';
+            cc.lineWidth = 1;
+            cc.beginPath();
+            for (let x = -half; x <= half; x += 64) { cc.moveTo(x, -half); cc.lineTo(x, half); }
+            for (let y = -half; y <= half; y += 64) { cc.moveTo(-half, y); cc.lineTo(half, y); }
+            cc.stroke();
+
+            // Arena boundary — shadowBlur is baked in ONCE here
+            cc.strokeStyle = '#00f0ff';
+            cc.lineWidth = 4;
+            cc.shadowColor = '#00f0ff';
+            cc.shadowBlur = 12;
+            cc.strokeRect(-half, -half, size, size);
+            cc.shadowBlur = 0;
+
+            // Obstacles — fully baked with their neon glow
+            cc.lineWidth = 2;
+            for (let i = 0; i < obstacles.length; i++) {
+                const box = obstacles[i];
+                cc.fillStyle = '#0e1322';
+                cc.fillRect(box.x, box.y, box.w, box.h);
+                cc.strokeStyle = '#00f0ff';
+                cc.shadowColor = '#00f0ff';
+                cc.shadowBlur = 8;
+                cc.strokeRect(box.x, box.y, box.w, box.h);
+                cc.shadowBlur = 0;
+                cc.strokeStyle = 'rgba(0, 240, 255, 0.2)';
+                cc.strokeRect(box.x + 4, box.y + 4, box.w - 8, box.h - 8);
+            }
+
+            this._staticLayer = { canvas: cnv, dim: dim, half: dim / 2 };
+            this._staticLayerKey = `${size}`;
+        } catch (e) {
+            this._staticLayer = null;
+            this._staticLayerKey = 'failed';
+        }
+    }
+
+    /**
+     * Pre-rendered projectile sprites: each weapon's bullet body, its glow
+     * aura and white-hot core are painted ONCE; gameplay then stamps them
+     * with translate/rotate/drawImage (GPU) — zero per-frame shadowBlur.
+     */
+    getBulletSprite(wid, color, radius, meleeCombo) {
+        const key = meleeCombo !== undefined
+            ? `melee${meleeCombo}|${color}`
+            : `${wid}|${color}|r${Math.round(radius * 2)}`;
+        let sprite = this._bulletSpriteCache.get(key);
+        if (sprite) return sprite;
+
+        let w = 160, h = 96;
+        if (wid === 'vortex' ) { w = 96; h = 96; }
+        if (meleeCombo !== undefined) { w = 128; h = 128; }
+        sprite = document.createElement('canvas');
+        sprite.width = w;
+        sprite.height = h;
+        const c = sprite.getContext('2d');
+        c.translate(w / 2, h / 2);
+
+        if (meleeCombo !== undefined) {
+            // Glaive melee crescents — glow baked via sprite stamp + crisp arcs
+            const glowR = 52;
+            c.globalAlpha = 0.85;
+            c.drawImage(this.getGlowSprite(color), -glowR, -glowR, glowR * 2, glowR * 2);
+            c.globalAlpha = 1;
+            c.strokeStyle = color;
+            if (meleeCombo === 2) {
+                c.lineWidth = 5;
+                c.beginPath(); c.arc(0, 0, 24, 0, Math.PI * 2); c.stroke();
+                c.strokeStyle = '#ffffff';
+                c.lineWidth = 2.5;
+                c.beginPath(); c.arc(0, 0, 18, 0, Math.PI * 2); c.stroke();
+            } else if (meleeCombo === 1) {
+                c.lineWidth = 5;
+                c.beginPath(); c.arc(4, 0, 22, -Math.PI / 2.0, Math.PI / 2.0); c.stroke();
+                c.strokeStyle = '#ffffff';
+                c.lineWidth = 2.2;
+                c.beginPath(); c.arc(2, 0, 18, -Math.PI / 2.5, Math.PI / 2.5); c.stroke();
+            } else {
+                c.lineWidth = 4.5;
+                c.beginPath(); c.arc(-4, 0, 19, -Math.PI / 2.2, Math.PI / 2.2); c.stroke();
+                c.strokeStyle = '#ffffff';
+                c.lineWidth = 2;
+                c.beginPath(); c.arc(-2, 0, 15, -Math.PI / 3, Math.PI / 3); c.stroke();
+            }
+        } else if (wid === 'sniper') {
+            const len = 24, halfW = 2.6;
+            c.globalAlpha = 0.85;
+            c.drawImage(this.getGlowSprite(color), -64, -32, 128, 64);
+            c.globalAlpha = 1;
+            c.strokeStyle = 'rgba(217, 70, 239, 0.45)';
+            c.lineWidth = 1.2;
+            c.beginPath();
+            c.moveTo(len * 0.4, 0); c.lineTo(-len * 0.6, -14);
+            c.moveTo(len * 0.4, 0); c.lineTo(-len * 0.6, 14);
+            c.stroke();
+            c.fillStyle = color;
+            c.beginPath();
+            c.moveTo(len * 0.55, 0); c.lineTo(len * 0.15, halfW); c.lineTo(-len * 0.35, halfW);
+            c.lineTo(-len * 0.55, halfW * 0.65); c.lineTo(-len * 0.55, -halfW * 0.65);
+            c.lineTo(-len * 0.35, -halfW); c.lineTo(len * 0.15, -halfW);
+            c.closePath(); c.fill();
+            c.fillStyle = '#ffffff';
+            c.beginPath();
+            c.moveTo(len * 0.55, 0); c.lineTo(len * 0.05, halfW * 0.5); c.lineTo(-len * 0.45, halfW * 0.3);
+            c.lineTo(-len * 0.45, -halfW * 0.3); c.lineTo(len * 0.05, -halfW * 0.5);
+            c.closePath(); c.fill();
+        } else if (wid === 'shotgun') {
+            const len = 11, halfW = 2.8;
+            c.globalAlpha = 0.85;
+            c.drawImage(this.getGlowSprite(color), -40, -24, 80, 48);
+            c.globalAlpha = 1;
+            c.fillStyle = color;
+            c.beginPath();
+            c.ellipse(0, 0, len * 0.5, halfW, 0, 0, Math.PI * 2);
+            c.fill();
+            c.fillStyle = '#ffffff';
+            c.beginPath();
+            c.ellipse(len * 0.1, 0, len * 0.28, halfW * 0.5, 0, 0, Math.PI * 2);
+            c.fill();
+        } else if (wid === 'vortex') {
+            const r = radius || 7;
+            const glowR = r * 4;
+            c.globalAlpha = 0.9;
+            c.drawImage(this.getGlowSprite(color), -glowR, -glowR, glowR * 2, glowR * 2);
+            c.globalAlpha = 1;
+            c.fillStyle = color;
+            c.beginPath(); c.arc(0, 0, r, 0, Math.PI * 2); c.fill();
+            c.fillStyle = '#ffffff';
+            c.beginPath(); c.arc(0, 0, r * 0.4, 0, Math.PI * 2); c.fill();
+        } else {
+            // blaster
+            const len = 16, halfW = 2.2;
+            c.globalAlpha = 0.85;
+            c.drawImage(this.getGlowSprite(color), -56, -28, 112, 56);
+            c.globalAlpha = 1;
+            c.fillStyle = color;
+            c.beginPath();
+            c.moveTo(len * 0.5, 0); c.lineTo(len * 0.1, halfW); c.lineTo(-len * 0.35, halfW);
+            c.lineTo(-len * 0.5, halfW * 0.6); c.lineTo(-len * 0.5, -halfW * 0.6);
+            c.lineTo(-len * 0.35, -halfW); c.lineTo(len * 0.1, -halfW);
+            c.closePath(); c.fill();
+            c.fillStyle = '#ffffff';
+            c.beginPath();
+            c.moveTo(len * 0.5, 0); c.lineTo(0, halfW * 0.4); c.lineTo(-len * 0.25, 0); c.lineTo(0, -halfW * 0.4);
+            c.closePath(); c.fill();
+        }
+
+        this._bulletSpriteCache.set(key, sprite);
+        return sprite;
     }
 
     addScreenShake(amount) {
@@ -141,6 +398,9 @@ class Renderer {
     spawnParticles(x, y, color, count = 10, speedMax = 260, normal = null) {
         if (this.particleDensity === 'low') count = Math.ceil(count * 0.35);
         else if (this.particleDensity === 'medium') count = Math.ceil(count * 0.65);
+        // Performance Overhaul: adaptive perf-tier budget (auto governor / turbo mode)
+        const tierF = this.perfTier === 0 ? 0.4 : (this.perfTier === 1 ? 0.65 : 1.0);
+        count = Math.ceil(count * tierF);
         for (let i = 0; i < count; i++) {
             let angle;
             if (normal && (normal.x !== 0 || normal.y !== 0)) {
@@ -357,8 +617,8 @@ class Renderer {
         ctx.scale(this.camera.zoom, this.camera.zoom);
         ctx.translate(-this.camera.x, -this.camera.y);
 
-        // 1. Draw Arena Floor & Grid
-        this.renderArena(ctx, game.arenaSize);
+        // 1. Draw Baked Static World Layer (floor, grid, boundary, obstacles — one drawImage)
+        this.renderStaticWorld(ctx, game);
 
         // 1.0 Energy Scorch Floor Decals (Phase 5)
         if (game.floorDecals && game.floorDecals.length > 0) {
@@ -410,8 +670,7 @@ class Renderer {
             this.renderMuzzleFlashGroundReflections(ctx, game.players);
         }
 
-        // 2. Draw Obstacles & Dynamic Doors
-        this.renderObstacles(ctx, game.obstacles);
+        // 2. Dynamic Doors (obstacles are baked into the static layer already)
         if (game.mapManager && game.mapManager.currentMap && game.mapManager.currentMap.dynamicDoors) {
             this.renderDynamicDoors(ctx, game.mapManager.currentMap.dynamicDoors);
         }
@@ -523,11 +782,10 @@ class Renderer {
         else if (zone.owner === 'blue') glowColor = '#3b82f6';
         else if (zone.owner === 'red') glowColor = '#ef4444';
 
-        // Outer Pulsing Hologram Circle
+        // Outer Pulsing Hologram Circle (sprite glow, no shadowBlur)
         const pulse = Math.sin(performance.now() * 0.005) * 6;
+        this.stampGlow(ctx, 0, 0, zone.radius * 1.35, glowColor, 0.35);
         ctx.strokeStyle = glowColor;
-        ctx.shadowColor = glowColor;
-        ctx.shadowBlur = 15;
         ctx.lineWidth = 3;
         ctx.setLineDash([12, 8]);
         ctx.beginPath();
@@ -564,8 +822,6 @@ class Renderer {
                 // Flashing bright amber/red warning zone
                 const blink = Math.sin(performance.now() * 0.02) > 0;
                 ctx.strokeStyle = blink ? '#f59e0b' : '#ef4444';
-                ctx.shadowColor = '#ef4444';
-                ctx.shadowBlur = 14;
                 ctx.lineWidth = 2;
                 ctx.strokeRect(h.x, h.y, h.w, h.h);
 
@@ -582,14 +838,13 @@ class Renderer {
                 ctx.fillStyle = 'rgba(239, 68, 68, 0.35)';
                 ctx.fillRect(h.x, h.y, h.w, h.h);
 
-                // Intense White-Red Laser Core
+                // Intense White-Red Laser Core (sprite glow halo + hot bar, no shadowBlur)
                 ctx.fillStyle = '#ffffff';
-                ctx.shadowColor = '#ef4444';
-                ctx.shadowBlur = 24;
-
                 if (h.w > h.h) {
+                    this.stampGlow(ctx, h.x + h.w / 2, h.y + h.h / 2, h.h * 1.6, '#ef4444', 0.5);
                     ctx.fillRect(h.x, h.y + h.h * 0.3, h.w, h.h * 0.4);
                 } else {
+                    this.stampGlow(ctx, h.x + h.w / 2, h.y + h.h / 2, h.w * 1.6, '#ef4444', 0.5);
                     ctx.fillRect(h.x + h.w * 0.3, h.y, h.w * 0.4, h.h);
                 }
             }
@@ -606,15 +861,11 @@ class Renderer {
             ctx.fillRect(pad.x, pad.y, pad.w, pad.h);
 
             ctx.strokeStyle = pad.color;
-            ctx.shadowColor = pad.color;
-            ctx.shadowBlur = 10;
             ctx.lineWidth = 2;
             ctx.strokeRect(pad.x, pad.y, pad.w, pad.h);
 
-            // Draw scrolling kinetic chevron arrows
+            // Draw scrolling kinetic chevron arrows (shadowBlur removed — perf)
             ctx.strokeStyle = pad.color;
-            ctx.shadowColor = pad.color;
-            ctx.shadowBlur = 8;
             ctx.lineWidth = 3;
             const arrowSpacing = 80;
             const offset = (pad.boostVx > 0 ? (now * 80) : (-now * 80)) % arrowSpacing;
@@ -648,8 +899,6 @@ class Renderer {
                 ctx.fillRect(d.x, d.y, d.w, d.h);
 
                 ctx.strokeStyle = '#ef4444';
-                ctx.shadowColor = '#ef4444';
-                ctx.shadowBlur = 16;
                 ctx.lineWidth = 2.5;
                 ctx.strokeRect(d.x, d.y, d.w, d.h);
 
@@ -676,17 +925,10 @@ class Renderer {
             const bobOffset = Math.sin(p.bobTime) * 6;
             ctx.translate(p.x, p.y + bobOffset);
 
-            // Dynamic Ambient Floor Glow (Phase 25 Optics)
+            // Dynamic Ambient Floor Glow (Performance: glow sprite stamp, no per-frame gradient)
             ctx.save();
             ctx.scale(1, 0.45);
-            const floorGrad = ctx.createRadialGradient(0, 0, 2, 0, 0, p.radius * 3.2);
-            floorGrad.addColorStop(0, p.color || '#00f0ff');
-            floorGrad.addColorStop(0.4, 'rgba(0, 240, 255, 0.2)');
-            floorGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = floorGrad;
-            ctx.beginPath();
-            ctx.arc(0, 0, p.radius * 3.2, 0, Math.PI * 2);
-            ctx.fill();
+            this.stampGlow(ctx, 0, 0, p.radius * 3.2, p.color || '#00f0ff', 0.5);
             ctx.restore();
 
             // Glowing ground beacon ring
@@ -699,11 +941,10 @@ class Renderer {
             ctx.stroke();
             ctx.restore();
 
-            // Rotating Core shape
+            // Rotating Core shape (glow sprite glow, no shadowBlur)
             ctx.rotate(p.angle);
+            this.stampGlow(ctx, 0, 0, p.radius * 2.2, p.color || '#00f0ff', 0.5);
             ctx.fillStyle = p.color;
-            ctx.shadowColor = p.color;
-            ctx.shadowBlur = 18;
 
             if (p.type === 'overdrive') {
                 // Diamond shape
@@ -756,8 +997,6 @@ class Renderer {
             ctx.font = 'bold 10px "Inter", sans-serif';
             ctx.textAlign = 'center';
             ctx.fillStyle = p.color;
-            ctx.shadowColor = p.color;
-            ctx.shadowBlur = 6;
             ctx.fillText(p.name, p.x, p.y - p.radius - 14 + bobOffset);
             ctx.restore();
         }
@@ -788,6 +1027,7 @@ class Renderer {
     }
 
     renderDashGhosts(ctx, players) {
+        if (this.perfTier === 0) return; // Performance Overhaul: ghosts dropped on minimal tier
         for (let p of players) {
             for (let g of p.dashGhosts) {
                 if (!this.isPointInFrustum(g.x, g.y, p.radius + 40)) continue;
@@ -807,25 +1047,27 @@ class Renderer {
     renderBullets(ctx, bullets) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter'; // Additive Bloom for intense neon projectile radiance
+        ctx.lineCap = 'round';
         for (let i = 0; i < bullets.length; i++) {
             const b = bullets[i];
             if (b.isDead) continue;
             // Phase 12 Frustum Culling: Skip off-screen bullets
             if (!this.isPointInFrustum(b.x, b.y, 80)) continue;
 
-            const bSpeed = Math.hypot(b.vx, b.vy);
             const bAng = Math.atan2(b.vy, b.vx);
 
-            // 1. Draw Supersonic Tracer Wake (Dual-layer: outer ionized glow + inner incandescent filament)
-            if (b.trail.length > 1) {
+            // 1. Draw Supersonic Tracer Wake (Dual-layer) from zero-GC ring buffer
+            const tc = b.trailCount || 0;
+            if (tc > 1) {
                 // Outer ionized envelope
                 ctx.strokeStyle = b.trailColor;
                 ctx.lineWidth = b.radius * 1.6;
-                ctx.lineCap = 'round';
                 ctx.beginPath();
-                ctx.moveTo(b.trail[0].x, b.trail[0].y);
-                for (let t = 1; t < b.trail.length; t++) {
-                    ctx.lineTo(b.trail[t].x, b.trail[t].y);
+                let pt = b.getTrailPointAt(0);
+                ctx.moveTo(pt.x, pt.y);
+                for (let t = 1; t < tc; t++) {
+                    pt = b.getTrailPointAt(t);
+                    ctx.lineTo(pt.x, pt.y);
                 }
                 ctx.stroke();
 
@@ -833,204 +1075,60 @@ class Renderer {
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = Math.max(1.2, b.radius * 0.65);
                 ctx.beginPath();
-                const startIdx = Math.max(0, b.trail.length - 4);
-                ctx.moveTo(b.trail[startIdx].x, b.trail[startIdx].y);
-                for (let t = startIdx + 1; t < b.trail.length; t++) {
-                    ctx.lineTo(b.trail[t].x, b.trail[t].y);
+                const startIdx = Math.max(0, tc - 4);
+                pt = b.getTrailPointAt(startIdx);
+                ctx.moveTo(pt.x, pt.y);
+                for (let t = startIdx + 1; t < tc; t++) {
+                    pt = b.getTrailPointAt(t);
+                    ctx.lineTo(pt.x, pt.y);
                 }
                 ctx.lineTo(b.x, b.y);
                 ctx.stroke();
             }
 
-            // 2. Draw bullet core or combo slash
+            // 2. Stamp pre-rendered projectile sprite (glow + body + core baked in)
+            const wid = b.weaponId || (b.isExplosive ? 'vortex' : (b.radius >= 5 ? 'sniper' : 'blaster'));
+            ctx.save();
+            ctx.translate(b.x, b.y);
+            ctx.rotate(bAng);
+
             if (b.isMeleeSlash) {
-                ctx.save();
-                ctx.translate(b.x, b.y);
-                ctx.rotate(bAng);
-
-                const combo = b.comboStep || 0;
-                if (combo === 2) {
-                    // Whirlwind Finisher: Full spinning shock disc
-                    ctx.strokeStyle = b.color;
-                    ctx.shadowColor = b.color;
-                    ctx.shadowBlur = 24;
-                    ctx.lineWidth = 5;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 24, 0, Math.PI * 2);
-                    ctx.stroke();
-
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2.5;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, 18, 0, Math.PI * 2);
-                    ctx.stroke();
-                } else if (combo === 1) {
-                    // Slash B: Backhand heavy violet crescent
-                    ctx.strokeStyle = b.color;
-                    ctx.shadowColor = b.color;
-                    ctx.shadowBlur = 18;
-                    ctx.lineWidth = 5;
-                    ctx.beginPath();
-                    ctx.arc(4, 0, 22, -Math.PI / 2.0, Math.PI / 2.0);
-                    ctx.stroke();
-
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2.2;
-                    ctx.beginPath();
-                    ctx.arc(2, 0, 18, -Math.PI / 2.5, Math.PI / 2.5);
-                    ctx.stroke();
-                } else {
-                    // Slash A: Forehand cyan crescent blade
-                    ctx.strokeStyle = b.color;
-                    ctx.shadowColor = b.color;
-                    ctx.shadowBlur = 16;
-                    ctx.lineWidth = 4.5;
-                    ctx.beginPath();
-                    ctx.arc(-4, 0, 19, -Math.PI / 2.2, Math.PI / 2.2);
-                    ctx.stroke();
-
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.arc(-2, 0, 15, -Math.PI / 3, Math.PI / 3);
-                    ctx.stroke();
-                }
-                ctx.restore();
+                const sprite = this.getBulletSprite('glaive', b.color, b.radius, b.comboStep || 0);
+                ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2);
+            } else if (wid === 'vortex' || b.isExplosive) {
+                const sprite = this.getBulletSprite('vortex', b.color, b.radius);
+                ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2);
+                // Orbiting accretion filament stays live (cheap stroke, spins over time)
+                const r = b.radius || 7;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.8;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, r * 1.35, r * 0.55, (b.life || 0) * 14, 0, Math.PI * 2);
+                ctx.stroke();
             } else {
-                // Ballistic Ranged Projectiles: Aerodynamic Spitzer/Ogive Silhouette & Caliber Detailing
-                ctx.save();
-                ctx.translate(b.x, b.y);
-                ctx.rotate(bAng);
-
-                const wid = b.weaponId || (b.isExplosive ? 'vortex' : (b.radius >= 5 ? 'sniper' : 'blaster'));
-
-                if (wid === 'sniper' || (b.radius >= 5 && bSpeed > 1400)) {
-                    // Apex Sniper: Long Hyper-Velocity Sabot Kinetic Dart & Supersonic Mach Shockwave
-                    const len = 24;
-                    const halfW = 2.6;
-
-                    // Supersonic Mach Shock Cones (\ /)
-                    ctx.strokeStyle = 'rgba(217, 70, 239, 0.45)';
-                    ctx.lineWidth = 1.2;
-                    ctx.beginPath();
-                    ctx.moveTo(len * 0.4, 0);
-                    ctx.lineTo(-len * 0.6, -14);
-                    ctx.moveTo(len * 0.4, 0);
-                    ctx.lineTo(-len * 0.6, 14);
-                    ctx.stroke();
-
-                    // Aerodynamic Spitzer Bullet Body
-                    ctx.fillStyle = b.color;
-                    ctx.shadowColor = b.color;
-                    ctx.shadowBlur = 16;
-                    ctx.beginPath();
-                    ctx.moveTo(len * 0.55, 0); // Pointed tip
-                    ctx.lineTo(len * 0.15, halfW); // Shoulder
-                    ctx.lineTo(-len * 0.35, halfW); // Cylindrical body
-                    ctx.lineTo(-len * 0.55, halfW * 0.65); // Boat-tail taper
-                    ctx.lineTo(-len * 0.55, -halfW * 0.65);
-                    ctx.lineTo(-len * 0.35, -halfW);
-                    ctx.lineTo(len * 0.15, -halfW);
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // Searing White-Hot Tungsten Penetrator Core
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath();
-                    ctx.moveTo(len * 0.55, 0);
-                    ctx.lineTo(len * 0.05, halfW * 0.5);
-                    ctx.lineTo(-len * 0.45, halfW * 0.3);
-                    ctx.lineTo(-len * 0.45, -halfW * 0.3);
-                    ctx.lineTo(len * 0.05, -halfW * 0.5);
-                    ctx.closePath();
-                    ctx.fill();
-                } else if (wid === 'shotgun') {
-                    // Plasma Shotgun: Heavy kinetic buckshot slug
-                    const len = 11;
-                    const halfW = 2.8;
-
-                    ctx.fillStyle = b.color;
-                    ctx.shadowColor = b.color;
-                    ctx.shadowBlur = 12;
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, len * 0.5, halfW, 0, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Incandescent core
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath();
-                    ctx.ellipse(len * 0.1, 0, len * 0.28, halfW * 0.5, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                } else if (wid === 'vortex' || b.isExplosive) {
-                    // Vortex Cannon: Gravitational Singularity Core with Orbiting Accretion Filament
-                    const r = b.radius || 7;
-                    ctx.fillStyle = b.color;
-                    ctx.shadowColor = b.color;
-                    ctx.shadowBlur = 18;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, r, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Pulsing Accretion Ring
-                    const spin = (b.life || 0) * 14;
-                    ctx.strokeStyle = '#ffffff';
-                    ctx.lineWidth = 1.8;
-                    ctx.beginPath();
-                    ctx.ellipse(0, 0, r * 1.35, r * 0.55, spin, 0, Math.PI * 2);
-                    ctx.stroke();
-
-                    // White-hot core
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath();
-                    ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2);
-                    ctx.fill();
-                } else {
-                    // Pulse Blaster (Standard Tactical Kinetic Spitzer Round)
-                    const len = 16;
-                    const halfW = 2.2;
-
-                    ctx.fillStyle = b.color;
-                    ctx.shadowColor = b.color;
-                    ctx.shadowBlur = 12;
-                    ctx.beginPath();
-                    ctx.moveTo(len * 0.5, 0); // Pointed nose
-                    ctx.lineTo(len * 0.1, halfW); // Shoulder
-                    ctx.lineTo(-len * 0.35, halfW); // Body
-                    ctx.lineTo(-len * 0.5, halfW * 0.6); // Boat tail
-                    ctx.lineTo(-len * 0.5, -halfW * 0.6);
-                    ctx.lineTo(-len * 0.35, -halfW);
-                    ctx.lineTo(len * 0.1, -halfW);
-                    ctx.closePath();
-                    ctx.fill();
-
-                    // Incandescent penetrator tip
-                    ctx.fillStyle = '#ffffff';
-                    ctx.beginPath();
-                    ctx.moveTo(len * 0.5, 0);
-                    ctx.lineTo(0, halfW * 0.4);
-                    ctx.lineTo(-len * 0.25, 0);
-                    ctx.lineTo(0, -halfW * 0.4);
-                    ctx.closePath();
-                    ctx.fill();
-                }
-
-                ctx.restore();
+                const sprite = this.getBulletSprite(wid === 'shotgun' ? 'shotgun' : (wid === 'sniper' || (b.radius >= 5 && Math.hypot(b.vx, b.vy) > 1400) ? 'sniper' : 'blaster'), b.color, b.radius);
+                ctx.drawImage(sprite, -sprite.width / 2, -sprite.height / 2);
             }
+            ctx.restore();
         }
         ctx.restore();
     }
 
     renderParticles(ctx) {
         ctx.save();
+        const zoom = this.camera.zoom || 1.0;
         for (let i = 0; i < this.maxParticles; i++) {
             const p = this.particlePool[i];
-            if (!p.active) continue;
-            ctx.globalAlpha = Math.max(0, p.alpha);
+            if (!p.active || p.alpha <= 0.03) continue;
+            // Performance Overhaul: skip filling dead-invisible or off-screen particles
+            if (!this.isPointInFrustum(p.x, p.y, p.radius * zoom + 8)) continue;
+            ctx.globalAlpha = p.alpha > 1 ? 1 : p.alpha;
             ctx.fillStyle = p.color;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
             ctx.fill();
         }
+        ctx.globalAlpha = 1;
         ctx.restore();
     }
 
@@ -1061,12 +1159,11 @@ class Renderer {
                 ctx.scale(1.15, 1.15);
             }
 
-            // 0. Power-Up Tactical Visual Auras
+            // 0. Power-Up Tactical Visual Auras (Performance: glow sprites, zero shadowBlur)
             if (p.phaseTimer > 0) {
                 ctx.save();
+                this.stampGlow(ctx, 0, 0, (p.radius + 6) * 2.0, '#d946ef', 0.4);
                 ctx.strokeStyle = '#d946ef';
-                ctx.shadowColor = '#d946ef';
-                ctx.shadowBlur = 16;
                 ctx.lineWidth = 2.5;
                 ctx.beginPath();
                 ctx.arc(0, 0, p.radius + 6, 0, Math.PI * 2);
@@ -1076,9 +1173,8 @@ class Renderer {
 
             if (p.overdriveTimer > 0) {
                 ctx.save();
+                this.stampGlow(ctx, 0, 0, (p.radius + 6) * 2.0, '#ffb703', 0.4);
                 ctx.strokeStyle = '#ffb703';
-                ctx.shadowColor = '#ffb703';
-                ctx.shadowBlur = 18;
                 ctx.lineWidth = 2.5;
                 const sparkAngle = Math.random() * Math.PI * 2;
                 const sparkR = p.radius + 7 + Math.random() * 8;
@@ -1093,9 +1189,8 @@ class Renderer {
 
             if (p.shield > 50) {
                 ctx.save();
+                this.stampGlow(ctx, 0, 0, (p.radius + 9) * 1.9, '#00f0ff', 0.35);
                 ctx.strokeStyle = '#00f0ff';
-                ctx.shadowColor = '#00f0ff';
-                ctx.shadowBlur = 12;
                 ctx.lineWidth = 2;
                 ctx.setLineDash([6, 4]);
                 ctx.beginPath();
@@ -1108,9 +1203,8 @@ class Renderer {
             if (p.spawnProtectionTimer && p.spawnProtectionTimer > 0) {
                 ctx.save();
                 const pulse = (Math.sin(performance.now() * 0.01) + 1) * 0.5;
+                this.stampGlow(ctx, 0, 0, (p.radius + 12) * 2.1, '#38bdf8', 0.3 + pulse * 0.25);
                 ctx.strokeStyle = '#38bdf8';
-                ctx.shadowColor = '#38bdf8';
-                ctx.shadowBlur = 18 + pulse * 10;
                 ctx.lineWidth = 3;
                 ctx.setLineDash([8, 4]);
                 ctx.lineDashOffset = -performance.now() * 0.02;
@@ -1130,9 +1224,8 @@ class Renderer {
                 ctx.save();
                 const parryProgress = 1 - (p.parryTimer / p.parryDuration);
                 const bubbleRadius = p.radius + 14 + Math.sin(parryProgress * Math.PI) * 4;
+                this.stampGlow(ctx, 0, 0, bubbleRadius * 2.0, '#00f0ff', 0.5);
                 ctx.strokeStyle = '#ffffff';
-                ctx.shadowColor = '#00f0ff';
-                ctx.shadowBlur = 20;
                 ctx.lineWidth = 3.5;
                 ctx.beginPath();
                 ctx.arc(0, 0, bubbleRadius, 0, Math.PI * 2);
@@ -1187,12 +1280,11 @@ class Renderer {
                 ctx.save();
                 ctx.translate(tipX, 0);
 
-                // 1. Incandescent White Diamond Core
-                ctx.fillStyle = '#ffffff';
-                ctx.shadowColor = flashCol;
-                ctx.shadowBlur = 12;
-                ctx.beginPath();
+                // 1. Incandescent White Diamond Core (glow sprite, no shadowBlur)
                 const coreR = (3.2 + (wep.screenShake || 2) * 0.4) * flashProgress;
+                this.stampGlow(ctx, 0, 0, coreR * 5, flashCol, 0.65 * flashProgress);
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
                 ctx.arc(0, 0, coreR, 0, Math.PI * 2);
                 ctx.fill();
 
@@ -1224,7 +1316,8 @@ class Renderer {
             }
 
             // Player Tactical Cyber Operative
-            // Base Torso
+            // Base Torso (with baked neon halo underneath — replaces per-frame shadowBlur)
+            this.stampGlow(ctx, 0, 0, p.radius * 2.3, p.baseColor, 0.42);
             ctx.fillStyle = '#0a0f1d';
             ctx.beginPath();
             ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
@@ -1243,24 +1336,19 @@ class Renderer {
             ctx.arc(14 - kick * 0.5, 5, 3.2, 0, Math.PI * 2);
             ctx.fill();
 
-            // Neon Outer Armor Trim
+            // Neon Outer Armor Trim (glow supplied by the baked halo above)
             ctx.strokeStyle = p.baseColor;
             ctx.lineWidth = 2.5;
-            ctx.shadowColor = p.baseColor;
-            ctx.shadowBlur = 8;
             ctx.beginPath();
             ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
             ctx.stroke();
-            ctx.shadowBlur = 0;
 
-            // Tactical Glowing Cyber Visor
+            // Tactical Glowing Cyber Visor (glow sprite, no shadowBlur)
+            this.stampGlow(ctx, p.radius * 0.55, 0, 9, p.baseColor, 0.6);
             ctx.fillStyle = '#ffffff';
-            ctx.shadowColor = p.baseColor;
-            ctx.shadowBlur = 8;
             ctx.beginPath();
             ctx.ellipse(p.radius * 0.55, 0, 3.0, 5.0, 0, 0, Math.PI * 2);
             ctx.fill();
-            ctx.shadowBlur = 0;
 
             ctx.restore(); // Restore rotation
 
@@ -1937,15 +2025,25 @@ class Renderer {
         const maxAlpha = ((35 - health) / 35) * 0.65;
         const alpha = 0.2 + pulse * maxAlpha;
 
-        const grad = ctx.createRadialGradient(
-            width / 2, height / 2, Math.min(width, height) * 0.35,
-            width / 2, height / 2, Math.max(width, height) * 0.75
-        );
-        grad.addColorStop(0, 'rgba(239, 68, 68, 0)');
-        grad.addColorStop(1, `rgba(239, 68, 68, ${alpha})`);
+        // Performance Overhaul: full-screen gradient baked once per resolution — no per-frame gradient build
+        if (!this._vignette) {
+            const off = document.createElement('canvas');
+            off.width = Math.max(4, width);
+            off.height = Math.max(4, height);
+            const oc = off.getContext('2d');
+            const grad = oc.createRadialGradient(
+                width / 2, height / 2, Math.min(width, height) * 0.35,
+                width / 2, height / 2, Math.max(width, height) * 0.75
+            );
+            grad.addColorStop(0, 'rgba(239, 68, 68, 0)');
+            grad.addColorStop(1, 'rgba(239, 68, 68, 1)');
+            oc.fillStyle = grad;
+            oc.fillRect(0, 0, width, height);
+            this._vignette = off;
+        }
 
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, width, height);
+        ctx.globalAlpha = Math.min(1, alpha);
+        ctx.drawImage(this._vignette, 0, 0, width, height);
         ctx.restore();
 
         // Trigger periodic heartbeat sound
@@ -2827,14 +2925,10 @@ class Renderer {
             ctx.rotate(c.rot);
 
             if (c.type === 'plasma') {
-                ctx.fillStyle = '#10b981';
-                ctx.shadowColor = '#10b981';
-                ctx.shadowBlur = 6;
+                ctx.fillStyle = '#10b981'; // glow drop: invisible on 6px rects — saves up to 80 blurs/frame
                 ctx.fillRect(-3, -1.5, 6, 3);
             } else if (c.type === 'slug') {
                 ctx.fillStyle = '#d946ef';
-                ctx.shadowColor = '#d946ef';
-                ctx.shadowBlur = 6;
                 ctx.fillRect(-4, -1.5, 8, 3);
             } else {
                 // Brass casing
@@ -3022,7 +3116,23 @@ class Renderer {
      */
     renderFogOfWar(ctx, originX, originY, obstacles, arenaSize = 2200) {
         if (!this.fogOfWarEnabled) return;
-        const poly = this.buildVisibilityPolygon(originX, originY, obstacles, 980);
+
+        // Performance Overhaul: the raycast visibility polygon is rebuilt at
+        // ~11Hz / on meaningful movement instead of every frame. Shadows only
+        // move with the player, so a sub-100ms window is visually invisible.
+        const fc = this._fowCache;
+        const now = performance.now();
+        const mdx = originX - fc.ox;
+        const mdy = originY - fc.oy;
+        let poly = fc.poly;
+        if (!poly || (now - fc.t > 90) || (mdx * mdx + mdy * mdy > 784)) {
+            poly = this.buildVisibilityPolygon(originX, originY, obstacles, 980);
+            fc.poly = (poly && poly.length >= 3) ? poly : fc.poly;
+            fc.t = now;
+            fc.ox = originX;
+            fc.oy = originY;
+            poly = fc.poly;
+        }
         if (!poly || poly.length < 3) return;
 
         ctx.save();
@@ -3079,6 +3189,7 @@ class Renderer {
      */
     renderMuzzleFlashGroundReflections(ctx, players) {
         if (!players || players.length === 0) return;
+        if (this.perfTier < 2) return; // Performance Overhaul: skip ambient bloom on low tiers
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         for (let i = 0; i < players.length; i++) {
@@ -3097,16 +3208,9 @@ class Renderer {
             const intensity = Math.min(1.0, p.muzzleFlashTimer / 0.045);
             const flashRadius = Math.max(160, (wep.screenShake || 2) * 28 + 140);
 
-            // Soft atmospheric radial bloom with smooth Gaussian falloff (NO hard geometric edges)
-            const radialGrad = ctx.createRadialGradient(flashX, flashY, 2, flashX, flashY, flashRadius);
-            radialGrad.addColorStop(0, `rgba(255, 255, 255, ${0.45 * intensity})`);
-            radialGrad.addColorStop(0.20, hexToRgba(flashColor, 0.28 * intensity));
-            radialGrad.addColorStop(0.55, hexToRgba(flashColor, 0.08 * intensity));
-            radialGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = radialGrad;
-            ctx.beginPath();
-            ctx.arc(flashX, flashY, flashRadius, 0, Math.PI * 2);
-            ctx.fill();
+            // Performance Overhaul: pre-rendered soft bloom sprite (no per-frame radial gradient)
+            this.stampGlow(ctx, flashX, flashY, flashRadius, flashColor, 0.45 * intensity);
+            this.stampGlow(ctx, flashX, flashY, flashRadius * 0.22, '#ffffff', 0.4 * intensity);
         }
         ctx.restore();
     }
@@ -3116,6 +3220,7 @@ class Renderer {
      */
     renderMuzzleFlashWallReflections(ctx, players, obstacles) {
         if (!players || players.length === 0 || !obstacles || obstacles.length === 0) return;
+        if (this.perfTier < 2) return; // Performance Overhaul: skip specular wall fx on low tiers
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
 

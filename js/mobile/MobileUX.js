@@ -238,6 +238,9 @@
                 window.game.renderer.particleDensity = 'low';
                 const partEl = document.getElementById('particleDensitySelect');
                 if (partEl) partEl.value = 'low';
+                // Performance Overhaul: weak devices start on the reduced effects tier
+                // (the governor can still restore it if FPS stays high)
+                if (window.game.renderer.setPerfTier) window.game.renderer.setPerfTier(1);
             };
             window.addEventListener('load', applyWhenReady);
         }

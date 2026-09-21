@@ -124,8 +124,22 @@ class Bullet {
         this.life = 0;
         this.sentTime = (config.sentTime !== undefined && config.sentTime !== null) ? config.sentTime : performance.now();
         this.maxLife = config.maxLife || (this.isMeleeSlash ? 0.20 : 3.0); // Melee dissipation cap (250px max travel)
-        this.trail = [];
+
+        // Performance Overhaul: fixed ring-buffer trail (zero per-frame allocation;
+        // previously push/shift created a new {x,y} object per bullet per frame)
+        this.trailBuf = new Array(8);
+        for (let ti = 0; ti < 8; ti++) this.trailBuf[ti] = { x: 0, y: 0 };
+        this.trailHead = 0;  // next write slot
+        this.trailCount = 0; // filled slots (≤ 8)
+
         this.isDead = false;
+    }
+
+    /** Oldest→newest ordered access to the ring-buffer trail (idx in [0, trailCount)) */
+    getTrailPointAt(idx) {
+        const n = this.trailCount;
+        if (idx < 0 || idx >= n) return this.trailBuf[(this.trailHead - 1 + 8) % 8];
+        return this.trailBuf[(this.trailHead - n + idx + 8) % 8];
     }
 
     serialize() {
@@ -161,9 +175,12 @@ class Bullet {
             return;
         }
 
-        // Save trail position
-        this.trail.push({ x: this.x, y: this.y });
-        if (this.trail.length > 8) this.trail.shift();
+        // Save trail position (zero-GC ring buffer write)
+        const slot = this.trailBuf[this.trailHead];
+        slot.x = this.x;
+        slot.y = this.y;
+        this.trailHead = (this.trailHead + 1) % 8;
+        if (this.trailCount < 8) this.trailCount++;
 
         const stepX = this.vx * dt;
         const stepY = this.vy * dt;
@@ -182,8 +199,16 @@ class Bullet {
         let closestHit = null;
         let hitBox = null;
 
+        // Performance Overhaul: broad-phase segment-AABB reject — a bullet step only
+        // spans tens of pixels, so ~95% of obstacle tests are skipped with 4 compares
+        const minSX = this.x < nextX ? this.x : nextX;
+        const maxSX = this.x > nextX ? this.x : nextX;
+        const minSY = this.y < nextY ? this.y : nextY;
+        const maxSY = this.y > nextY ? this.y : nextY;
+
         for (let i = 0; i < obstacles.length; i++) {
             const box = obstacles[i];
+            if (box.x > maxSX || box.x + box.w < minSX || box.y > maxSY || box.y + box.h < minSY) continue;
             const hit = Physics.raycastBox(this.x, this.y, nextX, nextY, box);
             if (hit && hit.t >= 0 && hit.t <= 1) {
                 if (!closestHit || hit.t < closestHit.t) {

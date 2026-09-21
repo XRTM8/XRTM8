@@ -65,6 +65,8 @@ class Game {
         if (!this.mapManager) return;
         this.arenaSize = this.mapManager.currentMap.size;
         this.obstacles = this.mapManager.currentMap.createObstacles(this.arenaSize);
+        // Performance Overhaul: force the baked static world layer to re-render for this map
+        if (this.renderer && this.renderer.invalidateStaticLayer) this.renderer.invalidateStaticLayer();
     }
 
     setupMatch(isHost = true, botCount = 3, asSpectator = false) {
@@ -408,20 +410,32 @@ class Game {
             }
             this.renderer.render(this, dt);
 
-            // Mobile Overhaul: Dynamic Resolution Governor
+            // Performance Overhaul: unified 60-FPS Governor — degrades BOTH the
+            // effects tier (bloom, reflections, particle budget) AND the render
+            // resolution. Restores tier first (cheapest), then resolution.
             this.dynResTimer += dt;
-            if (this.dynResEnabled && this.dynResTimer >= 1.5) {
+            const governorOn = this.dynResEnabled && (!this.renderer.perfMode || this.renderer.perfMode === 'auto');
+            if (governorOn && this.dynResTimer >= 1.5) {
                 this.dynResTimer = 0;
                 const ceiling = this.renderer.userResScale || this.renderer.resolutionScale || 1.0;
                 const current = this.renderer.resolutionScale || 1.0;
-                if (this.fps < 46 && current > 0.55) {
-                    this.renderer.setResolutionScale(Math.max(0.55, current - 0.15), false);
-                    this.dynResStableCount = 0;
-                } else if (this.fps >= 58 && current < ceiling) {
+                if (this.fps < 46) {
+                    if (this.renderer.perfTier > 0) {
+                        this.renderer.setPerfTier(this.renderer.perfTier - 1);
+                        this.dynResStableCount = 0;
+                    } else if (current > 0.55) {
+                        this.renderer.setResolutionScale(Math.max(0.55, current - 0.15), false);
+                        this.dynResStableCount = 0;
+                    }
+                } else if (this.fps >= 58 && (this.renderer.perfTier < 2 || current < ceiling)) {
                     // Demand ~4.5s of sustained smoothness before restoring quality
                     this.dynResStableCount++;
                     if (this.dynResStableCount >= 3) {
-                        this.renderer.setResolutionScale(Math.min(ceiling, current + 0.1), false);
+                        if (this.renderer.perfTier < 2) {
+                            this.renderer.setPerfTier(this.renderer.perfTier + 1);
+                        } else if (current < ceiling) {
+                            this.renderer.setResolutionScale(Math.min(ceiling, current + 0.1), false);
+                        }
                         this.dynResStableCount = 0;
                     }
                 } else {
@@ -965,6 +979,11 @@ class Game {
     // --- Phase 11: Lag Compensation (Hitbox Rewind Buffer) ---
     recordHitboxSnapshot() {
         const now = performance.now();
+        // Performance Overhaul: 20Hz tick history (was: every frame → 480 short-lived
+        // objects/sec of pure GC pressure). 50ms granularity still misses nothing for
+        // lag compensation since network sync itself runs at ~30Hz.
+        if (this._lastHitboxSnap && now - this._lastHitboxSnap < 50) return;
+        this._lastHitboxSnap = now;
         const snapshot = {
             time: now,
             players: this.players.map(p => ({

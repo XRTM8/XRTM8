@@ -660,6 +660,15 @@ class UIManager {
             });
         }
 
+        // Performance Overhaul: Performance Mode (Auto-Boost / Max Quality / Turbo)
+        const perfModeSelect = document.getElementById('perfModeSelect');
+        if (perfModeSelect) {
+            perfModeSelect.addEventListener('change', (e) => {
+                this.applyPerfMode(e.target.value);
+                this.saveSettings();
+            });
+        }
+
         // Particle Density (Phase 23)
         const particleDensitySelect = document.getElementById('particleDensitySelect');
         if (particleDensitySelect) {
@@ -844,6 +853,32 @@ class UIManager {
         }
     }
 
+    /**
+     * Performance Overhaul: applies the FPS strategy.
+     *  auto    → 60-FPS governor degrades/restores effects tier + resolution
+     *  quality → governor off, always full effects at user resolution
+     *  turbo   → governor off, minimal effects tier + capped 0.75 resolution
+     */
+    applyPerfMode(mode) {
+        if (!this.game || !this.game.renderer) return;
+        const r = this.game.renderer;
+        r.perfMode = mode || 'auto';
+        const ceiling = r.userResScale || r.resolutionScale || 1.0;
+        if (r.perfMode === 'quality') {
+            this.game.dynResEnabled = false;
+            r.setPerfTier(2);
+            r.setResolutionScale(ceiling, false);
+        } else if (r.perfMode === 'turbo') {
+            this.game.dynResEnabled = false;
+            r.setPerfTier(0);
+            r.setResolutionScale(Math.min(ceiling, 0.75), false);
+        } else {
+            this.game.dynResEnabled = true;
+            r.setPerfTier(2);
+            r.setResolutionScale(ceiling, false);
+        }
+    }
+
     saveSettings() {
         const settings = {
             master: parseInt(document.getElementById('masterVolSlider')?.value || 80),
@@ -862,7 +897,8 @@ class UIManager {
             crosshairReloadArc: this.game.renderer ? (this.game.renderer.crosshairReloadArcEnabled !== false) : true,
             mobileAutoFire: this.game.input ? (this.game.input.mobileAutoFire !== false) : true,
             leftHanded: this.game.input ? (this.game.input.leftHanded === true) : false,
-            stickScale: this.game.input ? (this.game.input.stickScale || 1.0) : 1.0
+            stickScale: this.game.input ? (this.game.input.stickScale || 1.0) : 1.0,
+            perfMode: this.game.renderer ? (this.game.renderer.perfMode || 'auto') : 'auto'
         };
         try {
             localStorage.setItem('neon_clash_settings', JSON.stringify(settings));
@@ -981,6 +1017,11 @@ class UIManager {
                 if (stickEl) stickEl.value = Math.round(s.stickScale * 100);
                 const stickVal = document.getElementById('stickSizeVal');
                 if (stickVal) stickVal.textContent = `${Math.round(s.stickScale * 100)}%`;
+            }
+            if (s.perfMode !== undefined) {
+                this.applyPerfMode(s.perfMode);
+                const perfEl = document.getElementById('perfModeSelect');
+                if (perfEl) perfEl.value = s.perfMode;
             }
             if (s.haptics !== undefined && this.game.input) {
                 this.game.input.hapticsEnabled = s.haptics;
@@ -1120,6 +1161,11 @@ class UIManager {
     }
 
     updateHUD() {
+        // Performance Overhaul: DOM HUD refresh capped at 15Hz (was: every frame
+        // → 60–240 style/layout recalculations per second on mobile).
+        const now = performance.now();
+        if (this._hudLastTime && now - this._hudLastTime < 66) return;
+        this._hudLastTime = now;
         const game = this.game;
 
         // Player Level & Rank Badge or Spectator Tag
