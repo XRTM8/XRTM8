@@ -100,8 +100,11 @@ class Renderer {
         this.hitmarkers.push({ timer: 0.22, maxTimer: 0.22, isKill: !!isKill });
     }
 
-    setResolutionScale(scale) {
+    setResolutionScale(scale, isUser = true) {
         this.resolutionScale = Math.max(0.25, Math.min(2.0, parseFloat(scale) || 1.0));
+        // Remember the player's chosen quality ceiling; the dynamic-resolution
+        // governor in main.js may dip below it but never exceeds it.
+        if (isUser) this.userResScale = this.resolutionScale;
         this.resize();
     }
 
@@ -109,6 +112,16 @@ class Renderer {
         this.dpr = window.devicePixelRatio || 1;
         this.width = window.innerWidth;
         this.height = window.innerHeight;
+
+        // Mobile Overhaul: adaptive base camera zoom — small screens zoom out so
+        // phone players see a fair share of the arena (desktop stays 1.0).
+        const isCoarse = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+        if (isCoarse) {
+            const shortSide = Math.min(this.width, this.height);
+            this.baseZoom = Math.max(0.55, Math.min(1.0, shortSide / 640));
+        } else {
+            this.baseZoom = 1.0;
+        }
 
         const scale = this.resolutionScale || 1.0;
         this.canvas.width = Math.round(this.width * this.dpr * scale);
@@ -320,6 +333,8 @@ class Renderer {
             } else if (isSniper) {
                 targetZoom = 1.14; // Precision sniper scope zoom
             }
+            // Mobile Overhaul: scale every zoom state by the device-adaptive base
+            targetZoom *= (this.baseZoom || 1.0);
             this.camera.zoom += (targetZoom - this.camera.zoom) * zoomLerp;
         }
 
@@ -2057,6 +2072,9 @@ class Renderer {
     }
 
     renderMobileJoysticks(ctx, input) {
+        // Mobile Overhaul: stick size setting scales every visual radius
+        const s = input.stickScale || 1.0;
+
         // Move Joystick
         if (input.touchMoveId !== null) {
             ctx.save();
@@ -2065,7 +2083,7 @@ class Renderer {
             ctx.lineWidth = 1.5;
             ctx.setLineDash([4, 4]);
             ctx.beginPath();
-            ctx.arc(input.touchMoveOrigin.x, input.touchMoveOrigin.y, 56, 0, Math.PI * 2);
+            ctx.arc(input.touchMoveOrigin.x, input.touchMoveOrigin.y, 56 * s, 0, Math.PI * 2);
             ctx.stroke();
             ctx.setLineDash([]);
 
@@ -2073,13 +2091,13 @@ class Renderer {
             ctx.strokeStyle = 'rgba(0, 240, 255, 0.5)';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(input.touchMoveOrigin.x, input.touchMoveOrigin.y, 45, 0, Math.PI * 2);
+            ctx.arc(input.touchMoveOrigin.x, input.touchMoveOrigin.y, 45 * s, 0, Math.PI * 2);
             ctx.stroke();
 
             // Inner thumb knob
             ctx.fillStyle = 'rgba(0, 240, 255, 0.75)';
             ctx.beginPath();
-            ctx.arc(input.touchMovePos.x, input.touchMovePos.y, 22, 0, Math.PI * 2);
+            ctx.arc(input.touchMovePos.x, input.touchMovePos.y, 22 * s, 0, Math.PI * 2);
             ctx.fill();
             ctx.restore();
         }
@@ -2092,7 +2110,7 @@ class Renderer {
             ctx.lineWidth = 2;
             ctx.setLineDash([6, 3]);
             ctx.beginPath();
-            ctx.arc(input.touchAimOrigin.x, input.touchAimOrigin.y, 58, 0, Math.PI * 2);
+            ctx.arc(input.touchAimOrigin.x, input.touchAimOrigin.y, 58 * s, 0, Math.PI * 2);
             ctx.stroke();
             ctx.setLineDash([]);
 
@@ -2100,7 +2118,7 @@ class Renderer {
             ctx.strokeStyle = 'rgba(217, 70, 239, 0.5)';
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(input.touchAimOrigin.x, input.touchAimOrigin.y, 45, 0, Math.PI * 2);
+            ctx.arc(input.touchAimOrigin.x, input.touchAimOrigin.y, 45 * s, 0, Math.PI * 2);
             ctx.stroke();
 
             // Inner Deadzone Ring (Aim threshold)
@@ -2115,8 +2133,31 @@ class Renderer {
             // Inner thumb knob
             ctx.fillStyle = 'rgba(217, 70, 239, 0.75)';
             ctx.beginPath();
-            ctx.arc(input.touchAimPos.x, input.touchAimPos.y, 22, 0, Math.PI * 2);
+            ctx.arc(input.touchAimPos.x, input.touchAimPos.y, 22 * s, 0, Math.PI * 2);
             ctx.fill();
+
+            // Mobile Overhaul: live aim-direction arrow from the stick base —
+            // gives the drift direction even when the thumb hides the knob.
+            const dx = input.touchAimPos.x - input.touchAimOrigin.x;
+            const dy = input.touchAimPos.y - input.touchAimOrigin.y;
+            const dist = Math.hypot(dx, dy);
+            if (dist > (input.touchAimDeadzone || 15)) {
+                const ang = Math.atan2(dy, dx);
+                const ax = input.touchAimOrigin.x + Math.cos(ang) * 72 * s;
+                const ay = input.touchAimOrigin.y + Math.sin(ang) * 72 * s;
+                ctx.strokeStyle = 'rgba(217, 70, 239, 0.65)';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(input.touchAimOrigin.x + Math.cos(ang) * 26 * s, input.touchAimOrigin.y + Math.sin(ang) * 26 * s);
+                ctx.lineTo(ax, ay);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(ax - Math.cos(ang - 0.45) * 10, ay - Math.sin(ang - 0.45) * 10);
+                ctx.moveTo(ax, ay);
+                ctx.lineTo(ax - Math.cos(ang + 0.45) * 10, ay - Math.sin(ang + 0.45) * 10);
+                ctx.stroke();
+            }
             ctx.restore();
         }
     }

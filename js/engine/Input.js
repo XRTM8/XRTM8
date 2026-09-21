@@ -79,6 +79,12 @@ class InputManager {
         this.lastMoveFlickTime = 0;
         this.lastWheelTime = 0;
 
+        // Mobile Overhaul: player-tunable touch ergonomics
+        this.mobileAutoFire = true;   // true: fire while aim stick held • false: single shot on release
+        this.leftHanded = false;      // true: swap movement/aim halves + mirror button stack
+        this.stickScale = 1.0;        // 0.8 – 1.4 visual & reach multiplier for both sticks
+        this.mobileOneShotFrames = 0; // frame countdown for fire-on-release mode
+
         // Phase 12: HTML5 Gamepad API Support (Controllers)
         this.gamepadConnected = false;
         this.gamepadIndex = null;
@@ -359,8 +365,11 @@ class InputManager {
 
                 const now = performance.now();
 
-                // Left half of screen: Movement Joystick & Double-Tap Dash
-                if (t.clientX < halfWidth && this.touchMoveId === null) {
+                // Left-handed mode swaps which half drives movement vs aim
+                const isMoveSide = this.leftHanded ? (t.clientX >= halfWidth) : (t.clientX < halfWidth);
+
+                // Movement half of screen: Joystick & Double-Tap Dash
+                if (isMoveSide && this.touchMoveId === null) {
                     const distFromLastMove = Math.hypot(t.clientX - this.lastMoveTapPos.x, t.clientY - this.lastMoveTapPos.y);
                     if (now - this.lastMoveTapTime < 270 && distFromLastMove < 90) {
                         this.isDashing = true;
@@ -372,8 +381,8 @@ class InputManager {
                     this.touchMoveOrigin = { x: t.clientX, y: t.clientY };
                     this.touchMovePos = { x: t.clientX, y: t.clientY };
                 }
-                // Right half of screen: Aim & Fire Joystick & Tactile Parry Gestures
-                else if (t.clientX >= halfWidth && this.touchAimId === null) {
+                // Aim half of screen: Aim & Fire Joystick & Tactile Parry Gestures
+                else if (!isMoveSide && this.touchAimId === null) {
                     const distFromLastAim = Math.hypot(t.clientX - this.lastAimTapPos.x, t.clientY - this.lastAimTapPos.y);
                     if (now - this.lastAimTapTime < 270 && distFromLastAim < 90) {
                         this.isParrying = true;
@@ -387,8 +396,8 @@ class InputManager {
                     this.touchAimStartTime = now;
                     this.touchAimDistMax = 0;
                 }
-                // Secondary touch on right side while aiming triggers tactile Parry!
-                else if (t.clientX >= halfWidth && this.touchAimId !== null && t.identifier !== this.touchAimId) {
+                // Secondary touch on the aim side while aiming triggers tactile Parry!
+                else if (!isMoveSide && this.touchAimId !== null && t.identifier !== this.touchAimId) {
                     this.isParrying = true;
                 }
             }
@@ -406,8 +415,8 @@ class InputManager {
                 if (t.identifier === this.touchMoveId) {
                     this.touchMovePos = { x: t.clientX, y: t.clientY };
                     const moveDist = Math.hypot(t.clientX - this.touchMoveOrigin.x, t.clientY - this.touchMoveOrigin.y);
-                    // Flick Slide: pushing joystick to full extension triggers slide
-                    if (moveDist > 52) {
+                    // Flick Slide: pushing joystick to full extension triggers slide (scales with stick size)
+                    if (moveDist > 52 * (this.stickScale || 1.0)) {
                         const now = performance.now();
                         if (now - this.lastMoveFlickTime > 650) {
                             this.lastMoveFlickTime = now;
@@ -439,7 +448,14 @@ class InputManager {
                         this.isParrying = true;
                     }
                     this.touchAimId = null;
-                    this.isFiring = false;
+
+                    // Fire-on-release mode: a deliberate aim-drag ends with a single fired shot
+                    if (!this.mobileAutoFire && this.touchAimDistMax >= (this.touchAimDeadzone || 15)) {
+                        this.isFiring = true;
+                        this.mobileOneShotFrames = 2; // Held for 2 frames so fire-rate gates can consume it
+                    } else {
+                        this.isFiring = false;
+                    }
                 }
             }
         };
@@ -612,13 +628,22 @@ class InputManager {
         // Phase 12: Poll HTML5 Gamepad Controller
         this.pollGamepad();
 
+        // Mobile Overhaul: fire-on-release one-shot countdown keeps us from
+        // holding the trigger forever after the thumb lifts off the aim stick.
+        if (this.mobileOneShotFrames > 0) {
+            this.mobileOneShotFrames--;
+            if (this.mobileOneShotFrames === 0 && this.touchAimId === null && !this.mouse.isDown) {
+                this.isFiring = false;
+            }
+        }
+
         // --- Calculate Movement ---
         if (this.touchMoveId !== null) {
             // Mobile Joystick vector
             const dx = this.touchMovePos.x - this.touchMoveOrigin.x;
             const dy = this.touchMovePos.y - this.touchMoveOrigin.y;
             const dist = Math.hypot(dx, dy);
-            const maxRadius = 45;
+            const maxRadius = 45 * (this.stickScale || 1.0);
 
             if (dist > 5) {
                 const power = Math.min(1, dist / maxRadius);
@@ -694,7 +719,11 @@ class InputManager {
                 }
 
                 this.aimAngle = stickAngle;
-                this.isFiring = true;
+                // Auto-Fire (default): holding the stick past the deadzone keeps firing.
+                // Fire-on-Release mode only aims; the shot triggers on thumb lift.
+                if (this.mobileAutoFire) {
+                    this.isFiring = true;
+                }
             } else if (this.touchAimDistMax < deadzone) {
                 this.isFiring = false;
             }

@@ -48,6 +48,13 @@ class Game {
         this.fpsCounterTimer = 0;
         this.frameCount = 0;
 
+        // Mobile Overhaul: Dynamic Resolution Governor state
+        // Dips renderer scale when FPS drops (min 0.55), recovers to the
+        // player-chosen ceiling after sustained smoothness.
+        this.dynResEnabled = true;
+        this.dynResTimer = 0;
+        this.dynResStableCount = 0;
+
         this.initArena();
         this.ui = new UIManager(this);
         this.ui.init();
@@ -400,6 +407,27 @@ class Game {
                 this.update(effectiveDt);
             }
             this.renderer.render(this, dt);
+
+            // Mobile Overhaul: Dynamic Resolution Governor
+            this.dynResTimer += dt;
+            if (this.dynResEnabled && this.dynResTimer >= 1.5) {
+                this.dynResTimer = 0;
+                const ceiling = this.renderer.userResScale || this.renderer.resolutionScale || 1.0;
+                const current = this.renderer.resolutionScale || 1.0;
+                if (this.fps < 46 && current > 0.55) {
+                    this.renderer.setResolutionScale(Math.max(0.55, current - 0.15), false);
+                    this.dynResStableCount = 0;
+                } else if (this.fps >= 58 && current < ceiling) {
+                    // Demand ~4.5s of sustained smoothness before restoring quality
+                    this.dynResStableCount++;
+                    if (this.dynResStableCount >= 3) {
+                        this.renderer.setResolutionScale(Math.min(ceiling, current + 0.1), false);
+                        this.dynResStableCount = 0;
+                    }
+                } else {
+                    this.dynResStableCount = 0;
+                }
+            }
 
             requestAnimationFrame(loop);
         };
