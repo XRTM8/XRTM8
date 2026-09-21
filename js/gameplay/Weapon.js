@@ -142,6 +142,15 @@ class Bullet {
         return this.trailBuf[(this.trailHead - n + idx + 8) % 8];
     }
 
+    /** Compatibility accessor for trail array (Phase 24 tests & legacy access) */
+    get trail() {
+        const arr = [];
+        for (let i = 0; i < this.trailCount; i++) {
+            arr.push(this.getTrailPointAt(i));
+        }
+        return arr;
+    }
+
     serialize() {
         return {
             x: Math.round(this.x),
