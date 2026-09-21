@@ -34,6 +34,15 @@ html, body {
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
+    /* Mobile Overhaul: kill pull-to-refresh, tap flash & iOS long-press callout */
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+}
+
+/* Modern mobile browsers: use dynamic viewport height to survive the collapsing URL bar */
+html, body {
+    height: 100dvh;
 }
 
 #gameCanvas {
@@ -59,6 +68,11 @@ html, body {
     pointer-events: none;
     z-index: 10;
     display: flex;
+    /* Mobile Overhaul: keep HUD clear of notches, punch-holes & gesture bars */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
     flex-direction: column;
     justify-content: space-between;
     padding: 16px 20px;
@@ -339,13 +353,20 @@ html, body {
    ========================================================================== */
 .mobile-controls-layer {
     position: absolute;
-    bottom: 24px;
-    right: 20px;
+    /* Mobile Overhaul: respect gesture bar & punch-hole camera insets */
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    right: calc(20px + env(safe-area-inset-right, 0px));
     display: flex;
     flex-direction: column;
     gap: 14px;
     pointer-events: auto;
     z-index: 15;
+}
+
+/* Left-handed layout: mirror the whole button stack to the left thumb zone */
+body.lefty-mode .mobile-controls-layer {
+    right: auto;
+    left: calc(20px + env(safe-area-inset-left, 0px));
 }
 
 @media (min-width: 1024px) {
@@ -1499,6 +1520,7 @@ html, body {
     left: 0;
     width: 100vw;
     height: 100vh;
+    height: 100dvh;
     background: rgba(4, 8, 16, 0.96);
     z-index: 999999;
     flex-direction: column;
@@ -1544,7 +1566,9 @@ html, body {
 }
 
 @media (orientation: portrait) and (max-width: 900px) {
-    .rotate-prompt {
+    /* Mobile Overhaul: only force rotation while a match is live;
+       the lobby/hub remains fully usable in portrait. */
+    body.match-active .rotate-prompt {
         display: flex;
     }
 }
@@ -1892,3 +1916,117 @@ html, body {
 
 
 
+
+/* ==========================================================================
+   Mobile Overhaul Additions (PWA Install, Mobile-Only Settings)
+   ========================================================================== */
+
+/* PWA Install button in the lobby hub */
+.install-app-btn {
+    width: 100%;
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-color: rgba(16, 185, 129, 0.55);
+    color: #34d399;
+    font-weight: 700;
+    letter-spacing: 1px;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.10), rgba(0, 240, 255, 0.06));
+}
+
+.install-app-btn:hover {
+    border-color: rgba(52, 211, 153, 0.9);
+    box-shadow: 0 0 18px rgba(16, 185, 129, 0.35);
+}
+
+.install-app-btn.hidden {
+    display: none;
+}
+
+/* Touch-only settings rows: hidden from desktop players to reduce noise */
+.mobile-only-setting {
+    display: none;
+}
+
+@media (pointer: coarse), (max-width: 1023px) {
+    .mobile-only-setting {
+        display: block;
+    }
+}
+
+/* ==========================================================================
+   Mobile Overhaul: de-clutter the in-match HUD on phones
+   (5-slot weapon bar is a PC affordance — mobile switches via the GUN button
+   and sees the active weapon in the magazine chip)
+   ========================================================================== */
+@media (pointer: coarse) and (max-height: 640px) {
+    .weapons-selector-bar {
+        display: none !important;
+    }
+    .hud-bottom-bar {
+        justify-content: flex-start;
+        gap: 12px;
+    }
+}
+
+/* ==========================================================================
+   Mobile Overhaul: two-column button deck
+   The old single column overflowed off-screen on landscape phones, hiding
+   PARRY / DASH / SLIDE above the viewport. Now the combat column sits on
+   the right thumb edge and the utility mini-column just left of it.
+   ========================================================================== */
+@media (pointer: coarse) and (max-height: 640px) {
+    .mobile-controls-layer {
+        display: grid !important;
+        grid-template-columns: 46px 58px;
+        grid-template-rows: repeat(4, auto);
+        grid-template-areas:
+            "ping   parry"
+            "reload dash"
+            "gun    slide"
+            "gun    super";
+        gap: 8px 10px;
+        align-items: end;
+        justify-items: end;
+        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+        right: calc(14px + env(safe-area-inset-right, 0px));
+    }
+
+    body.lefty-mode .mobile-controls-layer {
+        justify-items: start;
+        left: calc(14px + env(safe-area-inset-left, 0px));
+    }
+
+    #mobileParryBtn  { grid-area: parry; }
+    #mobileDashBtn   { grid-area: dash; }
+    #mobileSlideBtn  { grid-area: slide; }
+    #mobileSuperBtn  { grid-area: super; }
+    #mobilePingBtn   { grid-area: ping; }
+    #mobileReloadBtn { grid-area: reload; }
+    #mobileSwitchBtn { grid-area: gun; align-self: center; }
+
+    /* Utility column = compact */
+    #mobilePingBtn,
+    #mobileReloadBtn,
+    #mobileSwitchBtn {
+        width: 46px;
+        height: 46px;
+        font-size: 8px;
+        gap: 2px;
+    }
+
+    #mobilePingBtn svg,
+    #mobileReloadBtn svg,
+    #mobileSwitchBtn svg {
+        width: 15px;
+        height: 15px;
+    }
+
+    /* Combat column = full-size thumb targets */
+    .mobile-controls-layer .mobile-btn {
+        margin: 0;
+    }
+}
