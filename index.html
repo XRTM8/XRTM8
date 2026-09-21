@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>NEON CLASH: OVERDRIVE</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2306080e'/%3E%3Cpolygon points='16,4 28,26 4,26' fill='%2300f0ff'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Local Offline PeerJS (with CDN fallback) for 100% Zero-Cloud LAN multiplayer -->
+    <script src="js/network/peerjs.min.js"></script>
+    <script>
+        if (typeof Peer === 'undefined') {
+            document.write('<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"><\/script>');
+        }
+    </script>
+</head>
+<body>
+
+    <!-- Game Canvas (Full Screen High-DPI) -->
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- In-Game HUD Overlay -->
+    <div id="hudLayer">
+        <!-- Top Bar -->
+        <div class="hud-top-bar">
+            <div class="hud-pill">
+                <span id="playerRankBadge" class="rank-badge">LVL 1 [Recruit]</span>
+                <span id="scoreDisplay">KILLS: 0 / 15</span>
+                <span id="fpsCounter" class="fps-badge">60 FPS</span>
+                <span id="pingCounter" class="ping-badge">0 ms</span>
+                <button id="settingsBtn" class="hud-icon-btn" title="Settings (Esc)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3" />
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                </button>
+                <button id="audioToggleBtn" class="hud-icon-btn" title="Toggle Sound / Music">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Top Right Killfeed -->
+            <div id="killfeedList"></div>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="hud-bottom-bar">
+            <!-- Active Buff Badges (Power-ups / Timers) -->
+            <div id="buffContainer" class="buff-container"></div>
+
+            <!-- Vitals: Health, Shield, Energy -->
+            <div class="vitals-container">
+                <div class="vital-row">
+                    <div class="vital-labels">
+                        <span>HEALTH</span>
+                        <span id="hudHpText">100 / 100</span>
+                    </div>
+                    <div class="bar-track">
+                        <div id="hudHpGhost" class="hp-ghost-fill" style="width: 100%;"></div>
+                        <div id="hudHpFill" class="bar-fill hp-fill" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <div class="vital-row">
+                    <div class="vital-labels">
+                        <span>SHIELD</span>
+                        <span id="hudShieldText">50 / 50</span>
+                    </div>
+                    <div class="bar-track">
+                        <div id="hudShieldFill" class="bar-fill shield-fill" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <div class="vital-row">
+                    <div class="vital-labels">
+                        <span>ENERGY (DASH / PARRY)</span>
+                    </div>
+                    <div class="bar-track">
+                        <div id="hudEnergyFill" class="bar-fill energy-fill" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <div class="vital-row">
+                    <div class="vital-labels">
+                        <span>ULTIMATE [F / X]</span>
+                        <span id="hudUltText" style="color: #00f0ff;">0%</span>
+                    </div>
+                    <div class="bar-track">
+                        <div id="hudUltFill" class="bar-fill ult-fill" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tactical Magazine Ammo Widget (Phase 8A) -->
+            <div class="ammo-widget" id="hudAmmoContainer">
+                <div class="ammo-top">
+                    <span class="ammo-title">MAGAZINE</span>
+                    <span class="ammo-key-tag">[R]</span>
+                </div>
+                <div class="ammo-numbers">
+                    <span id="hudAmmoCur" class="ammo-val-cur">20</span>
+                    <span class="ammo-val-slash">/</span>
+                    <span id="hudAmmoMax" class="ammo-val-max">20</span>
+                </div>
+                <div id="hudAmmoStatus" class="ammo-status">READY</div>
+            </div>
+
+            <!-- Weapon Selector Bar (100% SVG Vector Icons) -->
+            <div class="weapons-selector-bar">
+                <!-- Weapon 1: Pulse Blaster -->
+                <div class="weapon-slot active" data-index="0">
+                    <span class="weapon-slot-key">[1]</span>
+                    <svg class="weapon-slot-icon" viewBox="0 0 24 24">
+                        <path d="M4 14l8-8 4 4-8 8H4v-4z" />
+                        <path d="M14 6l3-3 4 4-3 3" />
+                    </svg>
+                    <span class="weapon-slot-name">BLASTER</span>
+                </div>
+
+                <!-- Weapon 2: Shotgun -->
+                <div class="weapon-slot" data-index="1">
+                    <span class="weapon-slot-key">[2]</span>
+                    <svg class="weapon-slot-icon" viewBox="0 0 24 24">
+                        <rect x="3" y="10" width="18" height="4" rx="2" />
+                        <path d="M7 14v4h4v-4" />
+                    </svg>
+                    <span class="weapon-slot-name">SHOTGUN</span>
+                </div>
+
+                <!-- Weapon 3: Sniper -->
+                <div class="weapon-slot" data-index="2">
+                    <span class="weapon-slot-key">[3]</span>
+                    <svg class="weapon-slot-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="9" />
+                        <line x1="12" y1="3" x2="12" y2="7" />
+                        <line x1="12" y1="17" x2="12" y2="21" />
+                        <line x1="3" y1="12" x2="7" y2="12" />
+                        <line x1="17" y1="12" x2="21" y2="12" />
+                    </svg>
+                    <span class="weapon-slot-name">SNIPER</span>
+                </div>
+
+                <!-- Weapon 4: Vortex -->
+                <div class="weapon-slot" data-index="3">
+                    <span class="weapon-slot-key">[4]</span>
+                    <svg class="weapon-slot-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="4" />
+                        <path d="M12 2a10 10 0 0 0-7 17l2-2" />
+                        <path d="M12 22a10 10 0 0 0 7-17l-2 2" />
+                    </svg>
+                    <span class="weapon-slot-name">VORTEX</span>
+                </div>
+
+                <!-- Weapon 5: Glaive / Blade -->
+                <div class="weapon-slot" data-index="4">
+                    <span class="weapon-slot-key">[5]</span>
+                    <svg class="weapon-slot-icon" viewBox="0 0 24 24">
+                        <path d="M14.5 17.5L3 6V3h3l11.5 11.5" />
+                        <path d="M13 19l6-6" />
+                        <path d="M16 16l4 4" />
+                        <path d="M19 21l2-2" />
+                    </svg>
+                    <span class="weapon-slot-name">GLAIVE</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Touch Action Buttons (Visible only on mobile devices) -->
+    <div class="mobile-controls-layer">
+        <button id="mobileParryBtn" class="mobile-btn parry-btn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            PARRY
+        </button>
+
+        <button id="mobileDashBtn" class="mobile-btn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+            DASH
+        </button>
+
+        <button id="mobileSlideBtn" class="mobile-btn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 19h14M19 19l-7-7 4-4" />
+            </svg>
+            SLIDE
+        </button>
+
+        <button id="mobileSuperBtn" class="mobile-btn super-btn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v10M7 12h10" />
+            </svg>
+            SUPER
+        </button>
+
+        <button id="mobilePingBtn" class="mobile-btn ping-btn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            PING
+        </button>
+
+        <button id="mobileReloadBtn" class="mobile-btn reload-btn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M23 4v6h-6" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+            </svg>
+            RELOAD
+        </button>
+
+        <button id="mobileSwitchBtn" class="mobile-btn">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="16 3 21 3 21 8" />
+                <line x1="4" y1="20" x2="21" y2="3" />
+                <polyline points="21 16 21 21 16 21" />
+                <line x1="15" y1="15" x2="21" y2="21" />
+                <line x1="4" y1="4" x2="9" y2="9" />
+            </svg>
+            GUN
+        </button>
+    </div>
+
+    <!-- Lobby Modal Overlay (Modern Cyberpunk Hub) -->
+    <div id="lobbyModal" class="modal-overlay">
+        <div class="lobby-modal modern-hub-box">
+            <!-- Hub Header -->
+            <div class="lobby-header">
+                <div class="hub-hero-badge">SYSTEM ACTIVE // V2.3 ESPORTS</div>
+                <h1 class="lobby-title">NEON CLASH</h1>
+                <p class="lobby-subtitle">OVERDRIVE COMPETITIVE ARENA</p>
+            </div>
+
+            <!-- Quick Action Hero Bar (1-Click Instant Deploy) -->
+            <div class="quick-deploy-card">
+                <button id="quickDeployBtn" class="btn btn-hero">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    QUICK DEPLOY // INSTANT MATCH
+                </button>
+                <div class="quick-deploy-subtext">Instant Solo Deploy with Balanced Opponents</div>
+            </div>
+
+            <!-- Hub Navigation Tabs -->
+            <div class="hub-nav-bar">
+                <button id="hubTabCustomBtn" class="hub-nav-btn active" type="button">CUSTOM MATCH</button>
+                <button id="hubTabOnlineBtn" class="hub-nav-btn" type="button">ONLINE MULTIPLAYER</button>
+                <button id="armoryBtn" class="hub-nav-btn accent-magenta" type="button">ARMORY & SKINS</button>
+                <button id="guideBtn" class="hub-nav-btn accent-amber" type="button">COMBAT GUIDE</button>
+            </div>
+
+            <!-- Tab 1: Custom Match Setup -->
+            <div id="hubCustomPanel" class="hub-tab-panel">
+                <div class="form-group">
+                    <label class="form-label" for="playerNameInput">OPERATOR CALLSIGN</label>
+                    <input type="text" id="playerNameInput" class="neon-input" value="Operator" maxlength="14" placeholder="Enter callsign...">
+                </div>
+
+                <!-- Arena Sector Visual Cards -->
+                <div class="form-group">
+                    <label class="form-label">ARENA SECTOR</label>
+                    <!-- Fallback select preserved for programmatic bindings -->
+                    <select id="mapSelect" class="neon-input" style="display:none;">
+                        <option value="core" selected>The Core (Symmetric Tactical Arena)</option>
+                        <option value="alleys">Neon Alleyways (Tight Urban Corridors)</option>
+                        <option value="crucible">The Crucible (Active Laser Hazards!)</option>
+                        <option value="hyperloop">Hyperloop Station (Kinetic Speed Pads & Gates)</option>
+                        <option value="foundry">Orbital Foundry (Plasma Core & Jump Boosters)</option>
+                    </select>
+                    <div class="sector-cards-grid" id="sectorCardsGrid">
+                        <div class="sector-card active" data-map="core">
+                            <div class="sector-tag">SECTOR 01</div>
+                            <div class="sector-name">THE CORE</div>
+                            <div class="sector-desc">Symmetric Tactical Arena // Teleporter Grid</div>
+                        </div>
+                        <div class="sector-card" data-map="alleys">
+                            <div class="sector-tag">SECTOR 02</div>
+                            <div class="sector-name">NEON ALLEYS</div>
+                            <div class="sector-desc">CQB Urban Labyrinth // High-Intensity Combat</div>
+                        </div>
+                        <div class="sector-card" data-map="crucible">
+                            <div class="sector-tag">SECTOR 03</div>
+                            <div class="sector-name">THE CRUCIBLE</div>
+                            <div class="sector-desc">Industrial Foundry // Active Laser Traps</div>
+                        </div>
+                        <div class="sector-card" data-map="hyperloop">
+                            <div class="sector-tag">SECTOR 04</div>
+                            <div class="sector-name">HYPERLOOP</div>
+                            <div class="sector-desc">Kinetic Transit // Speed Pads & Dynamic Gates</div>
+                        </div>
+                        <div class="sector-card" data-map="foundry">
+                            <div class="sector-tag">SECTOR 05</div>
+                            <div class="sector-name">ORBITAL FOUNDRY</div>
+                            <div class="sector-desc">Zero-G Platform // Kinetic Jump Boosters</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">MATCH PROTOCOL</label>
+                    <div class="mode-selection" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <label class="mode-radio-label">
+                            <input type="radio" name="gameMode" value="FFA" checked>
+                            FFA (SOLO)
+                        </label>
+                        <label class="mode-radio-label">
+                            <input type="radio" name="gameMode" value="TDM">
+                            TDM (TEAMS)
+                        </label>
+                        <label class="mode-radio-label">
+                            <input type="radio" name="gameMode" value="GUN_GAME">
+                            GUN GAME
+                        </label>
+                        <label class="mode-radio-label">
+                            <input type="radio" name="gameMode" value="ZONE_CONTROL">
+                            ZONE SIEGE
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Custom Match Rules & Mutators -->
+                <div class="custom-rules-panel">
+                    <div class="custom-rules-title">MATCH MUTATORS & TUNING</div>
+                    <div class="custom-rules-grid">
+                        <div class="compact-field">
+                            <label class="compact-label" for="ruleSpeedSelect">SPEED</label>
+                            <select id="ruleSpeedSelect" class="neon-input-compact">
+                                <option value="1.0" selected>Normal (1.0x)</option>
+                                <option value="1.4">Turbo Overdrive (1.4x)</option>
+                            </select>
+                        </div>
+                        <div class="compact-field">
+                            <label class="compact-label" for="ruleMutatorSelect">MUTATOR</label>
+                            <select id="ruleMutatorSelect" class="neon-input-compact">
+                                <option value="all" selected>All Weapons</option>
+                                <option value="snipers_only">Snipers Only (Ricochet)</option>
+                                <option value="shotguns_only">Shotguns Only (CQB)</option>
+                                <option value="instagib">Instagib (1-Hit Kill!)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="botCountSelect">TACTICAL AI BOTS</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <select id="botCountSelect" class="neon-input">
+                            <option value="3" selected>3 AI Bots</option>
+                            <option value="5">5 AI Bots</option>
+                            <option value="1">1 AI Bot (1v1)</option>
+                            <option value="0">0 Bots (Pure Online)</option>
+                        </select>
+                        <select id="botDifficultySelect" class="neon-input">
+                            <option value="recruit">Recruit AI</option>
+                            <option value="veteran" selected>Veteran AI</option>
+                            <option value="apex">Apex Nightmare AI</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="btn-row" style="margin-top: 12px;">
+                    <button id="soloBtn" class="btn btn-primary" style="flex: 2;">
+                        START CUSTOM MATCH
+                    </button>
+                    <button id="spectateBotsBtn" class="btn btn-secondary" style="flex: 1; border-color: rgba(255, 183, 3, 0.5); color: var(--neon-amber);">
+                        SPECTATE
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab 2: Online Multiplayer Hub -->
+            <div id="hubOnlinePanel" class="hub-tab-panel hidden">
+                <button id="hostBtn" class="btn btn-primary" style="width: 100%; margin-bottom: 12px;">
+                    HOST ONLINE ROOM
+                </button>
+
+                <div id="roomInfo" class="room-info-banner hidden">
+                    <div class="room-code-header">
+                        ROOM CODE: <span id="roomCodeDisplay" class="room-code-tag">ABCD</span>
+                    </div>
+                    <div class="invite-actions-row">
+                        <button id="copyInviteBtn" class="btn btn-secondary compact-btn" type="button">
+                            COPY INVITE LINK
+                        </button>
+                        <button id="toggleQrBtn" class="btn btn-secondary compact-btn" type="button">
+                            QR CODE
+                        </button>
+                    </div>
+                    <div id="qrCodeContainer" class="qr-code-box hidden">
+                        <canvas id="qrCanvas" width="140" height="140"></canvas>
+                        <div class="qr-code-hint">SCAN WITH PHONE CAMERA TO JOIN</div>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 14px;">
+                    <label class="form-label" for="joinCodeInput">JOIN ROOM WITH 4-LETTER CODE</label>
+                    <div class="btn-row">
+                        <input type="text" id="joinCodeInput" class="neon-input" placeholder="CODE" maxlength="4" style="text-transform: uppercase;">
+                        <button id="joinBtn" class="btn btn-secondary" style="flex: 1;">
+                            JOIN
+                        </button>
+                        <button id="spectateBtn" class="btn btn-secondary" style="flex: 1; border-color: var(--neon-amber); color: var(--neon-amber);">
+                            SPECTATE
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Spectator Floating Controls Overlay (Visible only when in Spectator Mode) -->
+    <div id="spectatorOverlay" class="spectator-controls-overlay hidden">
+        <button id="spectatePrevBtn" class="spectator-nav-btn" title="Previous Player">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="15 18 9 12 15 6" />
+            </svg>
+            PREV
+        </button>
+        <div class="spectator-nav-info">
+            SPECTATING // [&lt; / &gt;] SWITCH
+        </div>
+        <button id="spectateNextBtn" class="spectator-nav-btn" title="Next Player">
+            NEXT
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="9 18 15 12 9 6" />
+            </svg>
+        </button>
+    </div>
+
+    <!-- Armory & Progression Modal -->
+    <div id="armoryModal" class="modal-overlay hidden">
+        <div class="lobby-modal armory-modal-box">
+            <div class="lobby-header">
+                <h1 class="lobby-title" style="color: var(--neon-magenta); text-shadow: 0 0 15px rgba(217, 70, 239, 0.6);">CYBER ARMORY</h1>
+                <p class="lobby-subtitle">OPERATOR DOSSIER & NEON SKINS</p>
+            </div>
+
+            <!-- Profile Stats Card -->
+            <div id="profileStatsCard" class="profile-stats-card"></div>
+
+            <div class="form-label" style="margin-top: 8px;">WEAPON MASTERY & TACTICAL CHROMA</div>
+            <!-- Weapon Mastery Progress Cards -->
+            <div id="weaponMasteryList" class="weapon-mastery-list"></div>
+
+            <div class="form-label" style="margin-top: 8px;">SELECT WEAPON & NEON SKIN (UNLOCK BY PLAYING)</div>
+            <!-- Skins Grid -->
+            <div id="skinsGrid" class="skins-grid"></div>
+
+            <button id="closeArmoryBtn" class="btn btn-primary" style="margin-top: 10px;">
+                APPLY & RETURN
+            </button>
+        </div>
+    </div>
+
+    <!-- Modern Tabbed Settings & Configuration Modal -->
+    <div id="settingsModal" class="modal-overlay hidden">
+        <div class="lobby-modal settings-modal-box">
+            <div class="lobby-header">
+                <h1 class="lobby-title" style="font-size: 22px;">SYSTEM CONFIGURATION</h1>
+                <p class="lobby-subtitle">DISPLAY, AUDIO, COMBAT & CONTROLS</p>
+            </div>
+
+            <!-- Settings Tabs Header -->
+            <div class="settings-tabs-header">
+                <button class="settings-tab-btn active" data-tab="tab-display" type="button">DISPLAY</button>
+                <button class="settings-tab-btn" data-tab="tab-audio" type="button">AUDIO</button>
+                <button class="settings-tab-btn" data-tab="tab-gameplay" type="button">COMBAT</button>
+                <button class="settings-tab-btn" data-tab="tab-controls" type="button">CONTROLS</button>
+            </div>
+
+            <!-- Tab 1: Display & Performance -->
+            <div id="tab-display" class="settings-tab-content active">
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>RESOLUTION SCALE</span></div>
+                    <select id="resScaleSelect" class="neon-input-compact">
+                        <option value="0.75">Performance (0.75x)</option>
+                        <option value="1.0" selected>Balanced 1080p (1.0x)</option>
+                        <option value="1.25">Ultra Sharp (1.25x)</option>
+                    </select>
+                </div>
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>PARTICLE DENSITY</span></div>
+                    <div class="crosshair-picker-row" id="particleDensityPicker">
+                        <button class="particle-opt-btn" data-density="low" type="button">LOW</button>
+                        <button class="particle-opt-btn active" data-density="med" type="button">MEDIUM</button>
+                        <button class="particle-opt-btn" data-density="high" type="button">HIGH</button>
+                    </div>
+                </div>
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>SCREEN SHAKE</span><span id="shakeVal">100%</span></div>
+                    <input type="range" id="shakeSlider" min="0" max="150" value="100" class="neon-slider">
+                </div>
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>2D DYNAMIC FOG OF WAR</span></div>
+                    <div class="crosshair-picker-row">
+                        <button class="fow-opt-btn active" data-fow="true" type="button">ENABLED</button>
+                        <button class="fow-opt-btn" data-fow="false" type="button">DISABLED</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Audio & Haptics -->
+            <div id="tab-audio" class="settings-tab-content">
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>MASTER VOLUME</span><span id="masterVolVal">80%</span></div>
+                    <input type="range" id="masterVolSlider" min="0" max="100" value="80" class="neon-slider">
+                </div>
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>SFX VOLUME</span><span id="sfxVolVal">80%</span></div>
+                    <input type="range" id="sfxVolSlider" min="0" max="100" value="80" class="neon-slider">
+                </div>
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>SYNTH MUSIC</span><span id="musicVolVal">50%</span></div>
+                    <input type="range" id="musicVolSlider" min="0" max="100" value="50" class="neon-slider">
+                </div>
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>MOBILE HAPTIC VIBRATION</span></div>
+                    <div class="crosshair-picker-row">
+                        <button class="haptic-opt-btn active" data-haptic="true" type="button">ENABLED</button>
+                        <button class="haptic-opt-btn" data-haptic="false" type="button">MUTED</button>
+                    </div>
+                </div>
+                <button id="testSfxBtn" class="btn btn-secondary compact-btn" type="button" style="width: 100%; margin-top: 10px;">
+                    AUDIT SFX TEST (SOUND CHECK)
+                </button>
+            </div>
+
+            <!-- Tab 3: Combat & Aiming -->
+            <div id="tab-gameplay" class="settings-tab-content">
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>MOUSE SENSITIVITY</span><span id="sensVal">1.0x</span></div>
+                    <input type="range" id="sensSlider" min="20" max="300" value="100" class="neon-slider">
+                </div>
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>CROSSHAIR RETICLE STYLE</span></div>
+                    <div class="crosshair-picker-row">
+                        <button class="crosshair-opt-btn active" data-style="cross" type="button">CROSS</button>
+                        <button class="crosshair-opt-btn" data-style="dot" type="button">DOT</button>
+                        <button class="crosshair-opt-btn" data-style="circle" type="button">RING</button>
+                        <button class="crosshair-opt-btn" data-style="kinetic" type="button">KINETIC</button>
+                    </div>
+                </div>
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>CROSSHAIR COLOR</span></div>
+                    <div class="crosshair-color-row" id="crosshairColorPicker">
+                        <button class="color-swatch-btn active" data-color="#00f0ff" style="background:#00f0ff;" type="button" title="Cyan"></button>
+                        <button class="color-swatch-btn" data-color="#d946ef" style="background:#d946ef;" type="button" title="Magenta"></button>
+                        <button class="color-swatch-btn" data-color="#ffb703" style="background:#ffb703;" type="button" title="Amber"></button>
+                        <button class="color-swatch-btn" data-color="#10b981" style="background:#10b981;" type="button" title="Green"></button>
+                        <button class="color-swatch-btn" data-color="#ef4444" style="background:#ef4444;" type="button" title="Red"></button>
+                    </div>
+                </div>
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>LIVE RETICLE PREVIEW</span></div>
+                    <div class="crosshair-preview-box" style="display: flex; justify-content: center; margin-top: 6px;">
+                        <canvas id="crosshairPreviewCanvas" width="120" height="70" style="border-radius: 6px; border: 1px solid rgba(0, 240, 255, 0.3); background: #080d1a;"></canvas>
+                    </div>
+                </div>
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>FLOATING DAMAGE NUMBERS</span></div>
+                    <div class="crosshair-picker-row" id="damageNumbersPicker">
+                        <button class="damage-opt-btn active" data-enabled="true" type="button">ENABLED</button>
+                        <button class="damage-opt-btn" data-enabled="false" type="button">DISABLED</button>
+                    </div>
+                </div>
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>CROSSHAIR RELOAD ARC</span></div>
+                    <div class="crosshair-picker-row" id="reloadArcPicker">
+                        <button class="reloadarc-opt-btn active" data-enabled="true" type="button">ENABLED</button>
+                        <button class="reloadarc-opt-btn" data-enabled="false" type="button">DISABLED</button>
+                    </div>
+                </div>
+                <div class="setting-slider-row">
+                    <div class="slider-label"><span>MOBILE AIM ASSIST</span></div>
+                    <div class="crosshair-picker-row">
+                        <button class="assist-opt-btn active" data-assist="true" type="button">MAGNETIC</button>
+                        <button class="assist-opt-btn" data-assist="false" type="button">OFF</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 4: Controls & Keybindings -->
+            <div id="tab-controls" class="settings-tab-content">
+                <div class="keybinds-container" id="keybindsContainer"></div>
+                <button id="resetKeybindsBtn" class="btn btn-secondary" style="margin-top: 10px; width: 100%; font-size: 11px; padding: 7px;" type="button">
+                    RESET KEYBINDINGS TO DEFAULT
+                </button>
+            </div>
+
+            <button id="closeSettingsBtn" class="btn btn-primary" style="margin-top: 14px;" type="button">
+                SAVE & RESUME [ESC]
+            </button>
+        </div>
+    </div>
+
+    <!-- Tactical In-Game Pause Menu Modal -->
+    <div id="pauseModal" class="modal-overlay hidden">
+        <div class="lobby-modal pause-modal-box">
+            <div class="lobby-header">
+                <div class="hub-hero-badge">OPERATIVE SUSPENDED</div>
+                <h1 class="lobby-title" style="font-size: 26px;">TACTICAL PAUSE</h1>
+                <p class="lobby-subtitle">MISSION TELEMETRY & ESCAPE HUB</p>
+            </div>
+
+            <div id="pauseMatchStats" class="pause-stats-card">
+                <div class="pause-stat-item"><span class="pause-stat-val" id="pauseKillsVal">0</span><span class="pause-stat-lbl">KILLS</span></div>
+                <div class="pause-stat-item"><span class="pause-stat-val" id="pauseScoreVal">0</span><span class="pause-stat-lbl">SCORE</span></div>
+                <div class="pause-stat-item"><span class="pause-stat-val" id="pauseSectorVal">CORE</span><span class="pause-stat-lbl">SECTOR</span></div>
+            </div>
+
+            <div class="pause-actions-stack">
+                <button id="pauseResumeBtn" class="btn btn-primary" type="button">
+                    RESUME OPERATIVE [ESC]
+                </button>
+                <button id="pauseRestartBtn" class="btn btn-secondary" type="button" style="border-color: rgba(0, 240, 255, 0.6); color: var(--neon-cyan);">
+                    INSTANT RESTART
+                </button>
+                <button id="pauseSettingsBtn" class="btn btn-secondary" type="button">
+                    SYSTEM SETTINGS
+                </button>
+                <button id="pauseGuideBtn" class="btn btn-secondary" type="button">
+                    COMBAT MANUAL
+                </button>
+                <button id="pauseLeaveBtn" class="btn btn-secondary" type="button" style="border-color: rgba(239, 68, 68, 0.5); color: var(--neon-red);">
+                    SURRENDER TO LOBBY
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tactical Combat Manual & Guide Modal -->
+    <div id="guideModal" class="modal-overlay hidden">
+        <div class="lobby-modal guide-modal-box">
+            <div class="lobby-header">
+                <h1 class="lobby-title" style="color: var(--neon-amber);">COMBAT MANUAL</h1>
+                <p class="lobby-subtitle">ADVANCED KINETIC & WEAPONS PLAYBOOK</p>
+            </div>
+
+            <div class="guide-grid">
+                <div class="guide-card">
+                    <div class="guide-card-title">KINETIC DASH & SLIDE</div>
+                    <div class="guide-card-body">
+                        Press <strong>[SPACE]</strong> to Dash through enemy fire. Press <strong>[C]</strong> while sprinting to Slide under projectile trajectory. Re-triggering Slide cancels instantly into sprint speed.
+                    </div>
+                </div>
+                <div class="guide-card">
+                    <div class="guide-card-title">SHIELD DEFLECTOR PARRY</div>
+                    <div class="guide-card-body">
+                        Activate <strong>[E]</strong> or <strong>[R-CLICK]</strong> within 0.22s of incoming projectiles to reflect them with 1.5x damage back at enemies. Parrying melee slashes stuns and demotes opponents.
+                    </div>
+                </div>
+                <div class="guide-card">
+                    <div class="guide-card-title">EMP SUPERNOVA ULTIMATE</div>
+                    <div class="guide-card-body">
+                        Accumulate damage and eliminations to charge your Supernova to 100%. Press <strong>[F]</strong> or <strong>[X]</strong> to unleash a devastating EMP burst that knocks back and obliterates enemy shields.
+                    </div>
+                </div>
+                <div class="guide-card">
+                    <div class="guide-card-title">WALL-KICK PARKOUR</div>
+                    <div class="guide-card-body">
+                        Contact any wall obstacle and trigger Jump/Dash to execute an acrobatic Wall-Kick, launching away with +820 lateral velocity and refunding +15 kinetic energy.
+                    </div>
+                </div>
+            </div>
+
+            <button id="closeGuideBtn" class="btn btn-primary" style="margin-top: 14px;" type="button">
+                CONFIRMED // RETURN
+            </button>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="modal-overlay hidden">
+        <div class="lobby-modal" style="text-align: center;">
+            <h1 id="winnerText" class="lobby-title" style="font-size: 32px;">VICTORY</h1>
+            <p class="lobby-subtitle">MATCH COMPLETE</p>
+            <div id="postMatchSummary"></div>
+            <div class="btn-row" style="margin-top: 16px;">
+                <button id="rematchBtn" class="btn btn-primary" style="flex: 1.5;">
+                    INSTANT REMATCH
+                </button>
+                <button id="returnLobbyBtn" class="btn btn-secondary" style="flex: 1;">
+                    LOBBY
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Phase 13: Mobile Portrait Rotate Overlay Prompt -->
+    <div id="rotatePrompt" class="rotate-prompt">
+        <div class="rotate-content">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="rotate-icon">
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                <path d="M19 12c1.5-1.5 1.5-3.5 0-5l-2-2"></path>
+                <path d="M17 5h4v4"></path>
+            </svg>
+            <h2>ROTATE TO LANDSCAPE</h2>
+            <p>NEON CLASH: OVERDRIVE is optimized for landscape esports gaming.</p>
+        </div>
+    </div>
+
+    <!-- Toast Notification Banner -->
+    <div id="toastNotification" class="toast-notification hidden"></div>
+
+    <!-- Engine Scripts -->
+    <script src="js/engine/AudioEngine.js"></script>
+    <script src="js/engine/Physics.js"></script>
+    <script src="js/engine/Input.js"></script>
+    <script src="js/gameplay/MapManager.js"></script>
+    <script src="js/gameplay/Progression.js"></script>
+    <script src="js/gameplay/Weapon.js"></script>
+    <script src="js/gameplay/PowerUp.js"></script>
+    <script src="js/gameplay/Player.js"></script>
+    <script src="js/gameplay/BotAI.js"></script>
+    <script src="js/gameplay/GameMode.js"></script>
+    <script src="js/engine/Renderer.js"></script>
+    <script src="js/engine/UIManager.js"></script>
+    <script src="js/network/NetworkManager.js"></script>
+    <script src="js/main.js"></script>
+
+</body>
+</html>
