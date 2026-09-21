@@ -1,32 +1,36 @@
-# NEON CLASH: OVERDRIVE — Render Static Site Deployment
-# Deploy: Render Dashboard → New → Blueprint (or read this repo directly).
-# Static sites on the free plan never sleep and get automatic HTTPS.
+# NEON CLASH: OVERDRIVE — Render Deployment Blueprint
+# Deploy: Render Dashboard → New → Blueprint (or connect this repo directly).
+# Static sites on Render free plan never sleep and get automatic HTTPS.
 
 services:
   - type: web
     name: neon-clash-overdrive
     runtime: static
+    buildCommand: echo "Static assets ready"
     staticPublishPath: .
+    envVars:
+      - key: SKIP_INSTALL_DEPS
+        value: "true"
     routes:
-      # SPA-style fallback so deep links (e.g. /?room=ABCD) always load the game
+      # SPA fallback for deep links (e.g. /?room=ABCD)
       - type: rewrite
         source: /*
         destination: /index.html
     headers:
-      # Game assets are fingerprinted by the service worker; allow long caching
-      - path: /js
+      # Game assets: cached for performance
+      - path: /js/*
         name: Cache-Control
         value: public, max-age=604800
-      - path: /css
+      - path: /css/*
         name: Cache-Control
         value: public, max-age=604800
-      - path: /icons
+      - path: /icons/*
         name: Cache-Control
         value: public, max-age=2592000
-      # Service worker must always be re-validated so updates ship immediately
+      # Service worker & manifest must revalidate immediately
       - path: /service-worker.js
         name: Cache-Control
-        value: no-cache
+        value: no-cache, no-store, must-revalidate
       - path: /manifest.webmanifest
         name: Cache-Control
-        value: no-cache
+        value: no-cache, no-store, must-revalidate

@@ -1,0 +1,25 @@
+{
+  "name": "neon-clash-overdrive",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NEON CLASH: OVERDRIVE - 2.5D Cyberpunk Arena Combat Game",
+  "main": "server.js",
+  "scripts": {
+    "build": "echo 'Build complete - static assets ready'",
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "game",
+    "html5",
+    "canvas",
+    "webrtc",
+    "cyberpunk",
+    "arena-shooter",
+    "pwa"
+  ],
+  "author": "",
+  "license": "MIT"
+}
