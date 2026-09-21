@@ -2295,10 +2295,22 @@ class Renderer {
     }
 
     renderMinimap(ctx, game) {
-        const mapSize = 130;
-        const padding = 20;
-        const mapX = this.width - mapSize - padding;
-        const mapY = padding + 55; // Below killfeed/header
+        // Mobile Overhaul: on touch phones the right column of action buttons
+        // covers the classic top-right minimap — shrink it and dock it
+        // bottom-right just left of the button stack.
+        const isTouchSmall = (('ontouchstart' in window) || navigator.maxTouchPoints > 0)
+            && Math.min(this.width, this.height) < 700;
+        let mapSize, mapX, mapY;
+        if (isTouchSmall) {
+            mapSize = Math.max(70, Math.min(90, this.height * 0.23));
+            mapX = this.width - mapSize - 96; // left of the mobile button column
+            mapY = this.height - mapSize - 12;
+        } else {
+            mapSize = 130;
+            const padding = 20;
+            mapX = this.width - mapSize - padding;
+            mapY = padding + 55; // Below killfeed/header
+        }
 
         ctx.save();
         ctx.fillStyle = 'rgba(6, 8, 14, 0.75)';
